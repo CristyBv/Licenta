@@ -1,0 +1,24 @@
+.container {
+    width: 100%;
+}
+
+.navbar {
+    background-color: #666666;
+}
+
+.navbar a {
+    color: ghostwhite;
+    font-weight: bold;
+}
+
+.navbar-brand:hover {
+    color: #888888;
+}
+
+.navbar-nav>li:hover a {
+    background-color: #888888;
+}
+
+.navbar-nav>li.active {
+    background-color: #888888;
+}

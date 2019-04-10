@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th=”http://www.thymeleaf.org”
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout">
+<head th:with="title=#{${#httpServletRequest.requestURI + '.title'}}, description=#{${#httpServletRequest.requestURI + '.description'}}">
+    <th:block th:replace="fragments/meta :: meta-title(title=${title},author=#{pages.author},description=${description})"></th:block>
+    <th:block th:replace="fragments/stylesheets :: stylesheets"></th:block>
+    <th:block th:replace="fragments/scripts :: scripts"></th:block>
+</head>
+<body>
+    <nav th:replace="fragments/navbar :: navbar(${#httpServletRequest.requestURI})"></nav>
+    <div layout:fragment="content" class="container_div"></div>
+    <footer class="footer" th:include="fragments/footer :: footer">  </footer>
+    <th:block layout:fragment="scripts"></th:block>
+</body>
+</html>

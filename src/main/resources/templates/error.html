@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.w3.org/1999/xhtml"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/layout}">
+<head>
+    <th:block>
+        <!--Custom stylesheets-->
+        <link th:rel="stylesheet"  th:href="@{/css/loginAndRegister.css} "/>
+
+        <!--Custom scripts-->
+        <script th:src="@{/js/loginAndRegister.js}"></script>
+    </th:block>
+</head>
+<body th:with="httpStatus=${T(org.springframework.http.HttpStatus).valueOf(#response.status)}">
+    <div layout:fragment="content">
+        <div class="container">
+            <section class="jumbotron text-center" id="main-section">
+                <h1 th:text="|${httpStatus} - ${httpStatus.reasonPhrase}|" class="jumbotron-heading">404</h1>
+                <p class="lead text-muted"><a th:href="${@environment.getProperty('route.index')}">Back to Home Page</a></p>
+            </section>
+        </div>
+    </div>
+
+    <th:block layout:fragment="scripts">
+        <script th:inline="javascript">
+            $(".navbar").css("visibility", "hidden");
+        </script>
+
+    </th:block>
+</body>
+</html>

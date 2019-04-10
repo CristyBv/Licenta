@@ -1,0 +1,4 @@
+BEGIN %s BATCH
+%s
+    %s
+APPLY BATCH;

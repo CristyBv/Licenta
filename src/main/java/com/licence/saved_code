@@ -1,0 +1,41 @@
+ String[] beanNames = ApplicationContextProvider.getContext().getBeanDefinitionNames();
+ Arrays.sort(beanNames);
+ for(String beanName : beanNames) System.out.println(beanName);
+     System.out.println();
+ System.out.println(ApplicationContextProvider.getContext().getBean(CassandraCqlSessionFactoryBean.class).getObject().getLoggedKeyspace());
+
+ ConfigurableApplicationContext applicationContext = (ConfigurableApplicationContext) ApplicationContextProvider.getContext();
+ SingletonBeanRegistry singletonBeanRegistry = applicationContext.getBeanFactory();
+ singletonBeanRegistry.registerSingleton("session1", cassandraSession);
+
+ RemoveAndAddBeanDefinition removeAndAddBeanDefinition = new RemoveAndAddCassandraSession("demo1");
+ removeAndAddBeanDefinition.removeExistingAndAddNewCassandraSession();
+ ConfigurableApplicationContext applicationContext = (ConfigurableApplicationContext) ApplicationContextProvider.getContext();
+ BeanFactory beanFactory = applicationContext.getBeanFactory();
+ cassandraOperations = beanFactory.getBean(CassandraOperations.class);
+
+  AutowireCapableBeanFactory factory = ApplicationContextProvider.getContext().getAutowireCapableBeanFactory();
+ BeanDefinitionRegistry registry = (BeanDefinitionRegistry) factory;
+ BeanDefinitionBuilder beanDefinitionBuilder = BeanDefinitionBuilder.genericBeanDefinition(CassConfig.class).addConstructorArgValue("localhost");
+ BeanDefinition beanDefinition = beanDefinitionBuilder.getBeanDefinition();
+ registry.registerBeanDefinition("cassConfig", beanDefinition);
+
+   @Override
+    protected List getStartupScripts() {
+        return Collections.singletonList("CREATE KEYSPACE IF NOT EXISTS "
+                + properties.getKeyspaceName() + " WITH replication = {"
+                + " 'class': 'SimpleStrategy', "
+                + " 'replication_factor': '3' " + "};");
+
+    }
+
+// mai multe fisiere properties
+@Bean
+public MessageSource messageSource() {
+    final ReloadableResourceBundleMessageSource messageSource = new ReloadableResourceBundleMessageSource();
+    messageSource.setBasenames("classpath:/some-mvc-messages", "classpath:/some-other-mvc-messages", "classpath:/another-projects/mvc-messages");
+    messageSource.setUseCodeAsDefaultMessage(true);
+    messageSource.setDefaultEncoding("UTF-8");
+    messageSource.setCacheSeconds(5);
+    return messageSource;
+}

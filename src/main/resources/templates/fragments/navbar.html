@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/thymeleaf-extras-springsecurity4">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+<nav th:fragment="navbar(active)" class="navbar menu-navbar">
+    <div class="container-fluid">
+        <div class="navbar-header">
+            <a class="navbar-brand" th:href="${@environment.getProperty('route.index')}" th:text="#{app.name}">WebSiteName</a>
+        </div>
+        <ul class="nav navbar-nav">
+            <li th:class="(${active} == '/index' ? 'active' : (${active} == '/' ? 'active' : ''))">
+                <a th:href="${@environment.getProperty('route.index')}">Home</a>
+            </li>
+            <li th:class="(${active} == '/my-database' ? 'active' : '')">
+                <a th:href="${@environment.getProperty('route.myDatabase')}">My Database</a>
+            </li>
+        </ul>
+        <ul class="nav navbar-nav navbar-right" >
+            <li sec:authorize="isAnonymous()">
+                <a data-toggle="modal" data-target="#login-register-modal" id="log-in-a">
+                    <span class="glyphicon glyphicon-log-in"></span>
+                    Login
+                </a>
+            </li>
+            <li sec:authorize="isAnonymous()">
+                <a data-toggle="modal" data-target="#login-register-modal" id="sing-up-a">
+                    <span class="glyphicon glyphicon-user"></span>
+                    Sign Up
+                </a>
+            </li>
+            <li sec:authorize="isAuthenticated()" id="profile-li-navbar-right"
+                th:class="(${active} == '/profile' ? 'active' : '')">
+                <a th:href="@{profile}">
+                    <span class="glyphicon glyphicon-user"></span>
+                    <span th:text="${#authentication.getPrincipal().getUser().getUserName()}"></span>
+                </a>
+            </li>
+            <li sec:authorize="isAuthenticated()" id="logout-li-navbar-right">
+                <a th:href="@{logout}">
+                    <span class="glyphicon glyphicon-log-out"></span>
+                    Logout
+                </a>
+            </li>
+        </ul>
+    </div>
+</nav>
+</body>
+</html>

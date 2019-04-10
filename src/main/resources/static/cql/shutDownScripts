@@ -1,0 +1,7 @@
+DROP MATERIALIZED VIEW IF EXISTS cristybv_admin.users_by_username;
+
+DROP MATERIALIZED VIEW IF EXISTS cristybv.users_by_register_token;
+
+DROP MATERIALIZED VIEW IF EXISTS cristybv.users_by_email;
+
+DROP MATERIALIZED VIEW IF EXISTS cristybv_admin.keyspaces_by_name;

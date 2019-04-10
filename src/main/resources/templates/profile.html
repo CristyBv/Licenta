@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/thymeleaf-extras-springsecurity4"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/layout}">
+<head>
+    <th:block>
+        <!--Custom stylesheets-->
+        <link th:rel="stylesheet" th:href="@{/css/profile.css} "/>
+
+        <!--Custom scripts-->
+        <script th:src="@{/js/profile.js}"></script>
+        <script th:inline="javascript">
+            /*<![CDATA[*/
+            var changeAvatarUrl = /*[[${@environment.getProperty('route.changeAvatar')}]]*/ 'url'
+            /*]]>*/
+        </script>
+    </th:block>
+</head>
+<body>
+<div layout:fragment="content">
+    <div class="container">
+        <div class="row" th:with="user=${#authentication.getPrincipal().getUser()}">
+            <div class="col-sm-4"><!--left col-->
+                <div class="text-center">
+                    <h2 id="username-h2" th:text="${user.getUserName()}">User name</h2>
+                    <div th:if="${user.getAvatar()}!=null" th:remove="tag">
+                        <img th:src="${user.getAvatar()}" class="avatar img-circle img-thumbnail" alt="avatar"
+                             th:width="250px" th:height="500px">
+                        <h6>Upload a different photo (max <span
+                                th:text="${@environment.getProperty('user.avatar.maxLength')}"></span> chr)</h6>
+                        <input type="text" class="text-center center-block file-upload" th:value="${user.getAvatar()}">
+                    </div>
+                    <div th:if="${user.getAvatar()}==null" th:remove="tag">
+                        <img th:src="@{http://ssl.gstatic.com/accounts/ui/avatar_2x.png}"
+                             class="avatar img-circle img-thumbnail" alt="avatar" th:width="250px" th:height="500px">
+                        <h6>Upload a different photo (max <span
+                                th:text="${@environment.getProperty('user.avatar.maxLength')}"></span> chr)</h6>
+                        <input type="text" class="text-center center-block file-upload"
+                               placeholder="Copy an url address">
+                    </div>
+                    <button th:type="button" class="btn btn-secondary" style="margin-top: 5px;" id="avatar-change-button">Change</button>
+                </div>
+                </hr><br>
+                <ul class="list-group">
+                    <li class="list-group-item text-muted">User Data <i class="fa fa-dashboard fa-1x"></i></li>
+                    <li class="list-group-item text-right">
+                        <span class="pull-left">
+                            <strong>Email</strong>
+                        </span>
+                        <span th:text="${user.getEmail()}"></span>
+                    </li>
+                    <li class="list-group-item text-right">
+                        <span class="pull-left">
+                            <strong>Username</strong>
+                        </span>
+                        <span th:text="${user.getUserName()}"></span>
+                    </li>
+                    <li class="list-group-item text-right">
+                        <span class="pull-left">
+                            <strong>ROLE</strong>
+                        </span>
+                        <span th:text="${user.getRoles()}"></span>
+                    </li>
+                </ul>
+            </div><!--/col-3-->
+            <div class="col-sm-8">
+                <ul class="nav nav-tabs">
+                    <li class="active"><a data-toggle="tab" href="#home">Home</a></li>
+                    <li><a data-toggle="tab" href="#messages">Menu 1</a></li>
+                    <li><a data-toggle="tab" href="#settings">Menu 2</a></li>
+                </ul>
+                <div class="tab-content">
+                    <div class="tab-pane active" id="home">
+                        <hr/>
+                        <div class="alert alert-success" th:if="${changeEmailSuccess}"
+                             th:text="${changeEmailSuccess}"></div>
+                        <div class="alert alert-danger" th:if="${changeEmailError}"
+                             th:text="${changeEmailError}"></div>
+                        <form class="form jumbotron" th:action="${@environment.getProperty('route.changeEmail')}"
+                              method="post" id="change-email-form">
+                            <h3>Change your email</h3>
+                            <div class="form-group">
+                                <label for="change-email"><h4>Enter your new email:</h4></label>
+                                <input type="text" class="form-control" th:name="email" id="change-email"
+                                       th:placeholder="${user.getEmail()}"
+                                       title="Enter your new email!">
+                            </div>
+                            <div class="form-group">
+                                <br>
+                                <button class="btn btn-success" type="submit"><i
+                                        class="glyphicon glyphicon-ok-sign"></i> Save
+                                </button>
+                            </div>
+                        </form>
+                        <div class="alert alert-success" th:if="${changePasswordSuccess}"
+                             th:text="${changePasswordSuccess}"></div>
+                        <div class="alert alert-danger" th:if="${changePasswordError}"
+                             th:text="${changePasswordError}"></div>
+                        <form class="form jumbotron" th:action="${@environment.getProperty('route.changePassword')}"
+                              method="post" id="change-password-form">
+                            <h3>Change your password</h3>
+                            <div class="form-group">
+                                <label for="change-password-current"><h4>Your Current Password:</h4></label>
+                                <input type="password" class="form-control" name="oldPassword"
+                                       id="change-password-current"
+                                       placeholder="Current Password" title="Enter your current password!">
+                            </div>
+                            <div class="form-group">
+                                <label for="change-password-new"><h4>Your New Password:</h4></label>
+                                <input type="password" class="form-control" name="newPassword" id="change-password-new"
+                                       placeholder="New Password" title="Enter your new password!">
+                            </div>
+                            <div class="form-group">
+                                <label for="change-password-new"><h4>Repeat New Password:</h4></label>
+                                <input type="password" class="form-control" name="matchingPassword"
+                                       id="change-password-repeat-new" placeholder="Repeat Password"
+                                       title="Enter your new password again!">
+                            </div>
+                            <div class="form-group">
+                                <br>
+                                <button class="btn btn-success" type="submit"><i
+                                        class="glyphicon glyphicon-ok-sign"></i> Save
+                                </button>
+                            </div>
+                        </form>
+                        <hr/>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

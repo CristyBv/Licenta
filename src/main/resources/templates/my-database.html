@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/thymeleaf-extras-springsecurity4"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/layout}">
+<head>
+    <th:block>
+        <!--Custom stylesheets-->
+        <link th:rel="stylesheet" th:href="@{/css/my-database.css}"/>
+
+        <!--Custom scripts-->
+        <script th:src="@{/js/my-database.js}"></script>
+    </th:block>
+</head>
+<body>
+<div layout:fragment="content">
+    <div class="database-container">
+        <th:block th:replace="fragments/my_database_fragments/keyspaces-bar :: keyspaces-bar(keyspaces=null)"></th:block>
+        <th:block th:replace="fragments/my_database_fragments/database :: database(keyspaces='test')"></th:block>
+    </div>
+    <br style="clear:both">
+</div>
+</body>
+</html>

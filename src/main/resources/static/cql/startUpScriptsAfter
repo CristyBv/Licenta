@@ -1,0 +1,23 @@
+CREATE MATERIALIZED VIEW IF NOT EXISTS cristybv_admin.users_by_email
+AS SELECT *
+FROM cristybv_admin.users
+WHERE email IS NOT NULL AND user_id IS NOT NULL
+PRIMARY KEY ( email, user_id );
+
+CREATE MATERIALIZED VIEW IF NOT EXISTS cristybv_admin.users_by_username
+AS SELECT *
+FROM cristybv_admin.users
+WHERE username IS NOT NULL AND user_id IS NOT NULL
+PRIMARY KEY ( username, user_id );
+
+CREATE MATERIALIZED VIEW IF NOT EXISTS cristybv_admin.users_by_register_token
+AS SELECT *
+FROM cristybv_admin.users
+WHERE register_token IS NOT NULL AND user_id IS NOT NULL
+PRIMARY KEY ( register_token, user_id );
+
+CREATE MATERIALIZED VIEW IF NOT EXISTS cristybv_admin.keyspaces_by_name
+AS SELECT *
+FROM cristybv_admin.keyspaces
+WHERE name IS NOT NULL AND keyspace_id IS NOT NULL
+PRIMARY KEY ( name, keyspace_id );

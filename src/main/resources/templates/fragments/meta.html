@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+<th:block th:fragment="meta-title(author,description,title)">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <!--<link rel="icon" href="../../favicon.ico">-->
+    <meta name="author" th:content="${author}">
+    <meta name="description" content="Description" th:content="${description}">
+    <meta name="_csrf" th:content="${_csrf.token}"/>
+    <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
+    <title th:utext="${title}">Template Page</title>
+</th:block>
+</head>
+<body>
+</body>
+</html>

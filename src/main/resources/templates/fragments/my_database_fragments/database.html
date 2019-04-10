@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+</head>
+<body>
+    <th:block th:fragment="database(keyspaces)">
+        <div class="panel panel-default database-panel">
+            <div class="panel-heading database-panel-heading">
+                <th:block th:replace="fragments/my_database_fragments/database-navbar :: database-navbar"></th:block>
+            </div>
+            <div class="panel-body panel-resizable database-panel-body">
+                Test
+            </div>
+        </div>
+    </th:block>
+</body>
+</html>

@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/thymeleaf-extras-springsecurity4">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+    <div th:fragment="login-register" id="login-register-div" sec:authorize="isAnonymous()">
+        <div class="row">
+            <div class="col-md">
+                <div class="panel panel-login">
+                    <div class="panel-heading">
+                        <div class="row">
+                            <div class="col-xs-6">
+                                <div class="active" id="login-form-link">Login</div>
+                            </div>
+                            <div class="col-xs-6">
+                                <div id="register-form-link">Register</div>
+                            </div>
+                        </div>
+                        <hr>
+                    </div>
+                    <div class="panel-body">
+                        <div class="row">
+                            <div class="col-lg-12">
+                                <form id="login-form" th:action="${@environment.getProperty('route.login')}" method="post" role="form" style="display: block;">
+                                    <div class="alert alert-success" th:if="${registerConfirmationSuccess}" th:text="${registerConfirmationSuccess}">  </div>
+                                    <div th:if="${param.badCredentialsLoginError}" th:text="#{login.badCredentials.message}" class="alert alert-danger"> </div>
+                                    <div th:if="${param.disabledUserLoginError}" th:text="#{login.disabledUser.message}" class="alert alert-danger"> </div>
+                                    <div th:if="${param.login}" th:text="#{login.redirect.message}" class="alert alert-info"> </div>
+                                    <div class="form-group">
+                                        <input type="text" name="email" id="emailLogin" tabindex="1" class="form-control" placeholder="Email" value="">
+                                    </div>
+                                    <div class="form-group">
+                                        <input type="password" name="password" id="passwordLogin" tabindex="2" class="form-control" placeholder="Password">
+                                    </div>
+                                    <div class="form-group text-center">
+                                        <input type="checkbox" tabindex="3" class="" name="remember-me" id="remember">
+                                        <label for="remember"> Remember Me</label>
+                                    </div>
+                                    <div class="form-group">
+                                        <div class="row">
+                                            <div class="col-sm-6 col-sm-offset-3">
+                                                <input type="submit" name="login-submit" id="login-submit" tabindex="4" class="form-control btn btn-login" value="Log In">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="form-group">
+                                        <div class="row">
+                                            <div class="col-lg-12">
+                                                <div class="text-center">
+                                                    <span tabindex="5" class="forgot-password recovery" th:text="#{recovery.login.message}">Forgot Password?</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </form>
+                                <form id="recovery-form" th:action="${@environment.getProperty('route.recovery')}" method="post" role="form" style="display: none;">
+                                    <div th:text="#{recovery.form.message}" class="alert alert-info"> </div>
+                                    <div th:if="${recoveryError}" th:text="#{recovery.error.notFound.message}" class="alert alert-danger"> </div>
+                                    <div class="form-group">
+                                        <input type="text" name="email" id="emailRecovery" tabindex="1" class="form-control" placeholder="Email" value="">
+                                    </div>
+                                    <div class="text-center">OR</div>
+                                    <hr/>
+                                    <div class="form-group">
+                                        <input type="text" name="userName" id="userNameRecovery" tabindex="1" class="form-control" placeholder="Username" value="">
+                                    </div>
+                                    <hr/>
+                                    <div class="form-group">
+                                        <div class="row">
+                                            <div class="col-sm-6 col-sm-offset-3">
+                                                <input type="submit" name="recovery-submit" id="recovery-submit" tabindex="4" class="form-control btn btn-recovery" value="Recover">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </form>
+                                <form id="register-form" th:action="${@environment.getProperty('route.register')}" th:object="${userObject}" method="post" role="form" style="display: none;">
+                                    <div class="form-group">
+                                        <th:block th:if="${validateErrors}">
+                                            <div  th:each="error : ${validateErrors.userNameErrors}" th:remove="tag">
+                                                <span th:text="${error}" class="text-danger"></span><br>
+                                            </div>
+                                        </th:block>
+                                        <input type="text" th:field="*{userName}" data-toggle="popover" th:attr="data-content=#{register.username.popover}" name="username" id="usernameRegister" tabindex="1" class="form-control"  placeholder="Username" value="">
+                                    </div>
+
+                                    <div class="form-group">
+                                        <th:block th:if="${validateErrors}">
+                                            <div  th:each="error : ${validateErrors.emailErrors}" th:remove="tag">
+                                                <span th:text="${error}" class="text-danger"></span><br>
+                                            </div>
+                                        </th:block>
+                                        <input type="email" th:field="*{email}" data-toggle="popover" th:attr="data-content=#{register.email.popover}" name="email" id="emailRegister" tabindex="1" class="form-control" placeholder="Email Address" value="">
+                                    </div>
+
+                                    <div class="form-group">
+                                        <th:block th:if="${validateErrors}">
+                                            <div  th:each="error : ${validateErrors.passwordErrors}" th:remove="tag">
+                                                <span th:text="${error}" class="text-danger"></span><br>
+                                            </div>
+                                        </th:block>
+                                        <input type="password" th:field="*{password}" data-toggle="popover" th:attr="data-content=#{register.password.popover}" name="password" id="passwordRegister" tabindex="2" class="form-control" placeholder="Password">
+                                    </div>
+
+                                    <div class="form-group">
+                                        <th:block th:if="${validateErrors}">
+                                            <div  th:each="error : ${validateErrors.matchingPasswordErrors}" th:remove="tag">
+                                                <span th:text="${error}" class="text-danger"></span><br>
+                                            </div>
+                                        </th:block>
+                                        <input type="password" th:field="*{matchingPassword}" data-toggle="popover" th:attr="data-content=#{register.confirmPassword.popover}"name="matchingPassword" id="confirmPassword" tabindex="2" class="form-control" placeholder="Confirm Password">
+                                    </div>
+
+                                    <div class="form-group">
+                                        <div class="row">
+                                            <div class="col-sm-6 col-sm-offset-3">
+                                                <input type="submit" name="register-submit" id="register-submit" tabindex="4" class="form-control btn btn-register" value="Register Now">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

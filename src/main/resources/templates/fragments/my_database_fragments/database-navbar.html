@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+</head>
+<body>
+<nav th:fragment="database-navbar" class="navbar database-navbar">
+        <ul class="nav navbar-nav database-navbar-nav">
+            <li>
+                <a th:href="${@environment.getProperty('route.myDatabaseManage')}">Manage</a>
+            </li>
+            <li>
+                <a th:href="${@environment.getProperty('route.myDatabaseViewEdit')}">View/Edit</a>
+            </li>
+            <li>
+                <a th:href="${@environment.getProperty('route.myDatabaseConsoleScript')}">Console/Script</a>
+            </li>
+            <li>
+                <a th:href="${@environment.getProperty('route.myDatabaseImportExport')}">Import/Export</a>
+            </li>
+
+        </ul>
+        <ul class="nav navbar-nav navbar-right database-navbar-nav" >
+            <li>
+                <a th:href="${@environment.getProperty('route.myDatabaseLog')}">Log</a>
+            </li>
+            <li>
+                <a th:href="${@environment.getProperty('route.myDatabaseSearch')}">Search</a>
+            </li>
+        </ul>
+</nav>
+</body>
+</html>
