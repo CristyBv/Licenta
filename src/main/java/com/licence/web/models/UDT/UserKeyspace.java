@@ -21,7 +21,6 @@ public class UserKeyspace {
     }
 
     @Transient
-
     private Keyspace keyspace;
     private String name;
     private String access;

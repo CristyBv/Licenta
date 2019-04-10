@@ -43,6 +43,16 @@
             <version>2.0.5.RELEASE</version>
         </dependency>
 
+		<dependency>
+			<groupId>com.datastax.cassandra</groupId>
+			<artifactId>cassandra-driver-core</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>com.datastax.cassandra</groupId>
+			<artifactId>cassandra-driver-mapping</artifactId>
+		</dependency>
+
         <!--SECURITY-->
         <dependency>
             <groupId>org.springframework.boot</groupId>

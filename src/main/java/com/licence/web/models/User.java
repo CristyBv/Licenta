@@ -1,11 +1,13 @@
 package com.licence.web.models;
 
 import com.datastax.driver.core.DataType;
+import com.datastax.driver.mapping.annotations.FrozenValue;
 import com.licence.config.validation.email.ValidEmail;
 import com.licence.config.validation.password.match.PasswordMatches;
 import com.licence.config.validation.password.pattern.PasswordPattern;
 import com.licence.web.models.UDT.UserKeyspace;
 import com.licence.web.models.UDT.UserNotification;
+import jnr.ffi.annotations.In;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -24,6 +26,7 @@ import javax.validation.constraints.Pattern;
 import javax.validation.constraints.Size;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 
 
 @Data

@@ -38,7 +38,7 @@ public class Keyspace {
     private boolean passwordEnabled;
 
     @Column("PASSWORD")
-    @Size(min = 5, max = 20)
+    @Size(min = 5)
     private String password;
 
     @Transient

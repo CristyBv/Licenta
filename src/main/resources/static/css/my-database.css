@@ -104,46 +104,10 @@
 
 /*TREE MENU START*/
 
-.no-padding {
-    padding: 0;
-}
-
-.glyphicon-icon-rpad .glyphicon, .glyphicon-icon-rpad .glyphicon.m8, .fa-icon-rpad .fa, .fa-icon-rpad .fa.m8 {
-    padding-right: 8px;
-}
-
-.glyphicon-icon-lpad .glyphicon, .glyphicon-icon-lpad .glyphicon.m8, .fa-icon-lpad .fa, .fa-icon-lpad .fa.m8 {
-    padding-left: 8px;
-}
-
-.glyphicon-icon-rpad .glyphicon.m5, .fa-icon-rpad .fa.m5 {
-    padding-right: 5px;
-}
-
-.glyphicon-icon-lpad .glyphicon.m5, .fa-icon-lpad .fa.m5 {
-    padding-left: 5px;
-}
-
-.glyphicon-icon-rpad .glyphicon.m12, .fa-icon-rpad .fa.m12 {
-    padding-right: 12px;
-}
-
-.glyphicon-icon-lpad .glyphicon.m12, .fa-icon-lpad .fa.m12 {
-    padding-left: 12px;
-}
-
-.glyphicon-icon-rpad .glyphicon.m15, .fa-icon-rpad .fa.m15 {
-    padding-right: 15px;
-}
-
-.glyphicon-icon-lpad .glyphicon.m15, .fa-icon-lpad .fa.m15 {
-    padding-left: 15px;
-}
-
 ul.nav-menu-list-style .nav-header .menu-collapsible-icon {
     position: absolute;
-    right: 3px;
-    top: 16px;
+    right: 3%;
+    top: 15px;
     font-size: 9px;
 }
 
@@ -168,7 +132,7 @@ ul.nav-menu-list-style > li {
 ul.nav-menu-list-style > li a {
     border-top: 1px solid #FFFFFF;
     border-bottom: 1px solid #e8e8e8;
-    padding: 0 10px;
+    padding: 0 20px;
     line-height: 32px;
 }
 
@@ -184,28 +148,6 @@ ul.nav-menu-list-style {
 ul.nav-menu-list-style li .badge, ul.nav-menu-list-style li .pull-right, ul.nav-menu-list-style li span.badge, ul.nav-menu-list-style li label.badge {
     float: right;
     margin-top: 7px;
-}
-
-ul.bullets {
-    list-style: inside disc
-}
-
-ul.numerics {
-    list-style: inside decimal
-}
-
-.ul.kas-icon-aero {
-}
-
-ul.kas-icon-aero li a:before {
-    font-family: 'Glyphicons Halflings';
-    font-size: 9px;
-    content: "\e258";
-    padding-right: 8px;
-}
-
-ul.nav-menu-list-style > li span {
-    margin: 10px;
 }
 
 /*TREE MENU STOP*/

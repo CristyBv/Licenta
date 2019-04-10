@@ -10,6 +10,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -24,7 +25,7 @@ public class CassandraUserDetailsService implements UserDetailsService {
     @Override
     public UserDetails loadUserByUsername(String email) {
 
-        if(email.isEmpty()) {
+        if (email.isEmpty()) {
             System.out.println("LoadUser for log-in failed (email is empty)!");
             throw new UsernameNotFoundException("User's email is empty!");
         }
@@ -33,10 +34,10 @@ public class CassandraUserDetailsService implements UserDetailsService {
         // if user was not found, returns UsernameNotFoundException
         // if user is not enabled, returns InternalAuthenticationServiceException
         // both erros are managed in CustomAuthenticationFailureHandler
-        if(user == null) {
+        if (user == null) {
             System.out.println("LoadUser (" + email + ") for log-in failed (user not found)!");
             throw new UsernameNotFoundException("User's bad credentials!");
-        } else if(!user.isEnabled()) {
+        } else if (!user.isEnabled()) {
             System.out.println("LoadUser (" + email + ") for log-in failed (user not enabled)!");
             throw new InternalAuthenticationServiceException("User not enabled!");
         }
@@ -46,8 +47,12 @@ public class CassandraUserDetailsService implements UserDetailsService {
     private Map<String, List<UserKeyspace>> getUserKeyspaces(User user) {
         Map<String, List<UserKeyspace>> map;
         List<UserKeyspace> userKeyspaces = user.getKeyspaces();
-        map = userKeyspaces.stream().collect(Collectors.groupingBy(UserKeyspace::getCreatorName));
-        map.keySet().forEach(p -> map.get(p).forEach(q -> q.setKeyspace(keyspaceService.findKeyspaceByName(q.getName()))));
+        if(userKeyspaces != null) {
+            map = userKeyspaces.stream().collect(Collectors.groupingBy(UserKeyspace::getCreatorName));
+            map.keySet().forEach(p -> map.get(p).forEach(q -> q.setKeyspace(keyspaceService.findKeyspaceByName(q.getCreatorName() + "_" + q.getName()))));
+        } else {
+            return new HashMap<>();
+        }
         return map;
     }
 }

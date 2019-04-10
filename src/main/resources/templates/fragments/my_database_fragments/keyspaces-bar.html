@@ -3,7 +3,7 @@
 <head>
 </head>
 <body>
-<th:block th:fragment="keyspaces-bar(keyspaces)">
+<th:block th:fragment="keyspaces-bar" th:with="keyspaces=${#authentication.getPrincipal().getKeyspaces()}">
     <div class="panel panel-default keyspace-panel">
         <div class="panel-heading keyspace-panel-heading">
             <span class="keyspace-panel-heading-span">My Keyspaces</span>
@@ -12,66 +12,58 @@
             </div>
         </div>
         <div class="panel-body panel-resizable keyspace-panel-body">
-            <ul class="nav nav-list nav-menu-list-style">
+            <ul class="nav nav-list nav-menu-list-style" th:with="currentUserName=${#authentication.getPrincipal().getUser().getUserName()}">
                 <li>
                     <label class="tree-toggle nav-header">
                         <span class="glyphicon glyphicon-user"></span>
-                        <span th:text="${#authentication.getPrincipal().getUser().getUserName()}"></span>
+                        <span th:text="${currentUserName}"></span>
                         <span class="menu-collapsible-icon glyphicon glyphicon-chevron-down"></span>
                     </label>
                     <ul class="nav nav-list tree bullets">
-                        <th:block th:if="${#lists.isEmpty(keyspaces) || keyspaces == null}">
+                        <th:block th:if="${keyspaces.get(currentUserName) == null || #lists.isEmpty(keyspaces.get(currentUserName))}">
                             <li>
-                                <span>No keyspace</span>
+                                <label class="tree-toggle nav-header tree-level-two" th:text="#{database.keyspaces.nokeyspaces}"></label>
                             </li>
                         </th:block>
-                        <li><a href="#">JavaScript</a></li>
-                        <li><a href="#">CSS <span class="badge">42</span></a></li>
-                        <li><label class="tree-toggle nav-header">Buttons</label>
-                            <ul class="nav nav-list tree">
-                                <li><a href="#">Colors</a></li>
-                                <li><a href="#">Sizes</a></li>
-                                <li><label class="tree-toggle nav-header">Forms</label>
-                                    <ul class="nav nav-list tree">
-                                        <li><a href="#">Horizontal</a></li>
-                                        <li><a href="#">Vertical</a></li>
-                                    </ul>
-                                </li>
-                            </ul>
-                        </li>
+                        <th:block th:each="keyspace : ${keyspaces.get(currentUserName)}">
+                            <li>
+                                <label class="tree-toggle nav-header tree-level-two" th:text="${keyspace.getName()}"></label>
+                                <ul class="nav nav-list tree">
+                                    <li><a href="#">Connect</a></li>
+                                    <li><a href="#">Info</a></li>
+                                </ul>
+                            </li>
+                        </th:block>
                     </ul>
                 </li>
                 <li class="divider"></li>
-                <li><label class="tree-toggle nav-header">Responsive</label>
-                    <ul class="nav nav-list tree">
-                        <li><a href="#">Overview</a></li>
-                        <li><a href="#">CSS</a></li>
-                        <li><label class="tree-toggle nav-header">Media Queries</label>
-                            <ul class="nav nav-list tree">
-                                <li><a href="#">Text</a></li>
-                                <li><a href="#">Images</a></li>
-                                <li><label class="tree-toggle nav-header">Mobile Devices</label>
+                <th:block th:each="map : ${keyspaces}">
+                    <th:block th:if="${map.key} != ${currentUserName}">
+                    </th:block>
+                    <li>
+                        <label class="tree-toggle nav-header">
+                            <span class="glyphicon glyphicon-user"></span>
+                            <span th:text="${map.key}"></span>
+                            <span class="menu-collapsible-icon glyphicon glyphicon-chevron-down"></span>
+                        </label>
+                        <ul class="nav nav-list tree bullets">
+                            <th:block th:if="${map.value == null || #lists.isEmpty(map.value)}">
+                                <li>
+                                    <label class="tree-toggle nav-header tree-level-two" th:text="#{database.keyspaces.nokeyspaces}"></label>
+                                </li>
+                            </th:block>
+                            <th:block th:each="keyspace : ${map.value}">
+                                <li>
+                                    <label class="tree-toggle nav-header tree-level-two" th:text="${keyspace.getName()}"></label>
                                     <ul class="nav nav-list tree">
-                                        <li><a href="#">iPhone</a></li>
-                                        <li><a href="#">Samsung</a></li>
+                                        <li><a href="#">Connect</a></li>
+                                        <li><a href="#">Info</a></li>
                                     </ul>
                                 </li>
-                            </ul>
-                        </li>
-                        <li><label class="tree-toggle nav-header">Coding</label>
-                            <ul class="nav nav-list tree">
-                                <li><a href="#">JavaScript</a></li>
-                                <li><a href="#">jQuery</a></li>
-                                <li><label class="tree-toggle nav-header">HTML DOM</label>
-                                    <ul class="nav nav-list tree">
-                                        <li><a href="#">DOM Elements</a></li>
-                                        <li><a href="#">Recursive</a></li>
-                                    </ul>
-                                </li>
-                            </ul>
-                        </li>
-                    </ul>
-                </li>
+                            </th:block>
+                        </ul>
+                    </li>
+                </th:block>
             </ul>
         </div>
     </div>

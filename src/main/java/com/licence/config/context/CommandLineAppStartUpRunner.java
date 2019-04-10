@@ -75,7 +75,7 @@ public class CommandLineAppStartUpRunner implements CommandLineRunner {
                 .userName("CristyBv")
                 .password("exp112")
                 .enabled(true)
-                .keyspaces(Collections.singletonList(new UserKeyspace("CristyBv_admin", "creator", "CristyBv", true)))
+                .keyspaces(Collections.singletonList(new UserKeyspace("admin", "creator", "CristyBv", true)))
                 .build();
         userService.registerNewAdmin(user);
     }

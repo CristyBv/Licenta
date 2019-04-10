@@ -15,8 +15,8 @@
 <body>
 <div layout:fragment="content">
     <div class="database-container">
-        <th:block th:replace="fragments/my_database_fragments/keyspaces-bar :: keyspaces-bar(keyspaces=null)"></th:block>
-        <th:block th:replace="fragments/my_database_fragments/database :: database(keyspaces='test')"></th:block>
+        <th:block th:replace="fragments/my_database_fragments/keyspaces-bar :: keyspaces-bar"></th:block>
+        <th:block th:replace="fragments/my_database_fragments/database :: database"></th:block>
     </div>
     <br style="clear:both">
 </div>

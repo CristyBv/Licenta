@@ -89,7 +89,6 @@ public class CassandraConfig extends AbstractCassandraConfiguration {
     @Override
     public CustomConversions customConversions() {
         List<Converter<?, ?>> converters = new ArrayList<>();
-
         return new CassandraCustomConversions(converters);
     }
 
