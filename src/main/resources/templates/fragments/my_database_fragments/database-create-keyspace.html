@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+</head>
+<body>
+<div th:fragment="create-keyspace" id="create-keyspace-div">
+    <div class="row">
+        <div class="col-md">
+            <div class="panel panel-create-keyspace">
+                <div class="panel-heading">
+                    <div class="row">
+                        <div class="col">
+                            <div class="active" id="create-keyspace-form-link">Create Keyspace</div>
+                        </div>
+                    </div>
+                    <hr>
+                </div>
+                <div class="panel-body">
+                    <div class="row">
+                        <div class="col-lg-12">
+                            <form id="create-keyspace-form"
+                                  th:action="${@environment.getProperty('route.createKeyspace')}"
+                                  th:object="${keyspaceObject}" method="post" role="form" style="display: block;">
+                                <div class="form-group">
+                                    <th:block th:if="${validateErrors}">
+                                        <div th:each="error : ${validateErrors.nameErrors}" th:remove="tag">
+                                            <span th:text="${error}" class="text-danger"></span><br>
+                                        </div>
+                                    </th:block>
+                                    <input type="text" th:field="*{name}" data-toggle="popover"
+                                           th:attr="data-content=#{database.keyspaces.create.name.popover}" name="name"
+                                           id="nameCreateKeyspace" tabindex="1" class="form-control" placeholder="Name"
+                                           value="">
+                                </div>
+                                <div class="form-group text-center">
+                                    <input th:field="*{passwordEnabled}" type="checkbox" class=""
+                                           name="password-enabled" id="password-enabled">
+                                    <label for="password-enabled">Enable Password Protection</label>
+                                </div>
+                                <div id="create-keyspace-password"
+                                     th:style="*{passwordEnabled} == true ? 'display: block' : 'display: none'">
+                                    <div class="form-group">
+                                        <th:block th:if="${validateErrors}">
+                                            <div th:each="error : ${validateErrors.passwordErrors}" th:remove="tag">
+                                                <span th:text="${error}" class="text-danger"></span><br>
+                                            </div>
+                                        </th:block>
+                                        <input type="password" th:field="*{password}" data-toggle="popover"
+                                               th:attr="data-content=#{database.keyspaces.create.password.popover}"
+                                               name="password" id="password-create-keyspace" tabindex="2"
+                                               class="form-control" placeholder="Password">
+                                    </div>
+
+                                    <div class="form-group">
+                                        <th:block th:if="${validateErrors}">
+                                            <div th:each="error : ${validateErrors.matchingPasswordErrors}"
+                                                 th:remove="tag">
+                                                <span th:text="${error}" class="text-danger"></span><br>
+                                            </div>
+                                        </th:block>
+                                        <input type="password" th:field="*{matchingPassword}" data-toggle="popover"
+                                               th:attr="data-content=#{database.keyspaces.create.matchingPassword.popover}"
+                                               name="matchingPassword" id="confirmPassword" tabindex="2"
+                                               class="form-control" placeholder="Confirm Password">
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="replication-factor-select">Replication Factor</label>
+                                    <select th:field="*{replicationFactor}" name="replicationFactor"
+                                            class="form-control" id="replication-factor-select">
+                                        <option th:each="i : ${#numbers.sequence(1,8)}" th:value="${i}" th:text="${i}"
+                                                th:selected="${i==3}"></option>
+                                    </select>
+                                </div>
+                                <div class="form-group text-center">
+                                    <input th:field="*{durableWrites}" type="checkbox" class=""
+                                           name="durable-writes" id="durable-writes">
+                                    <label for="durable-writes">Enable Durable Writes</label>
+                                </div>
+                                <div class="form-group">
+                                    <div class="row">
+                                        <div class="col-sm-6 col-sm-offset-3">
+                                            <input type="submit" name="login-submit" id="login-submit" tabindex="4"
+                                                   class="form-control btn btn-success" value="Create">
+                                        </div>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

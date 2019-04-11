@@ -4,6 +4,13 @@
 </head>
 <body>
 <th:block th:fragment="keyspaces-bar" th:with="keyspaces=${#authentication.getPrincipal().getKeyspaces()}">
+
+    <div class="modal fade" id="create-keyspace-modal" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div th:replace="fragments/my_database_fragments/database-create-keyspace :: create-keyspace" id="create-keyspace-div"></div>
+        </div>
+    </div>
+
     <div class="panel panel-default keyspace-panel">
         <div class="panel-heading keyspace-panel-heading">
             <span class="keyspace-panel-heading-span">My Keyspaces</span>
@@ -12,49 +19,35 @@
             </div>
         </div>
         <div class="panel-body panel-resizable keyspace-panel-body">
-            <ul class="nav nav-list nav-menu-list-style" th:with="currentUserName=${#authentication.getPrincipal().getUser().getUserName()}">
-                <li>
-                    <label class="tree-toggle nav-header">
-                        <span class="glyphicon glyphicon-user"></span>
-                        <span th:text="${currentUserName}"></span>
-                        <span class="menu-collapsible-icon glyphicon glyphicon-chevron-down"></span>
-                    </label>
-                    <ul class="nav nav-list tree bullets">
-                        <th:block th:if="${keyspaces.get(currentUserName) == null || #lists.isEmpty(keyspaces.get(currentUserName))}">
-                            <li>
-                                <label class="tree-toggle nav-header tree-level-two" th:text="#{database.keyspaces.nokeyspaces}"></label>
-                            </li>
-                        </th:block>
-                        <th:block th:each="keyspace : ${keyspaces.get(currentUserName)}">
-                            <li>
-                                <label class="tree-toggle nav-header tree-level-two" th:text="${keyspace.getName()}"></label>
-                                <ul class="nav nav-list tree">
-                                    <li><a href="#">Connect</a></li>
-                                    <li><a href="#">Info</a></li>
-                                </ul>
-                            </li>
-                        </th:block>
-                    </ul>
-                </li>
-                <li class="divider"></li>
+            <div th:if="${createKeyspaceSuccess}" class="alert-success" th:text="${createKeyspaceSuccess}"></div>
+            <ul class="nav nav-list nav-menu-list-style"
+                th:with="currentUserName=${#authentication.getPrincipal().getUser().getUserName()}">
                 <th:block th:each="map : ${keyspaces}">
-                    <th:block th:if="${map.key} != ${currentUserName}">
-                    </th:block>
-                    <li>
+                    <li th:class="(${map.key} == ${currentUserName} ? 'user-keyspaces-li' : 'others-keyspaces-li')">
                         <label class="tree-toggle nav-header">
                             <span class="glyphicon glyphicon-user"></span>
                             <span th:text="${map.key}"></span>
                             <span class="menu-collapsible-icon glyphicon glyphicon-chevron-down"></span>
                         </label>
                         <ul class="nav nav-list tree bullets">
+                            <li class="keyspace-add-li" th:if="${map.key} == ${currentUserName}">
+                                <a href="#" class="glyphicon glyphicon-plus create-keyspace" data-toggle="modal" data-target="#create-keyspace-modal">
+                                    <span th:text="#{database.keyspaces.create}"></span>
+                                </a>
+                            </li>
                             <th:block th:if="${map.value == null || #lists.isEmpty(map.value)}">
                                 <li>
-                                    <label class="tree-toggle nav-header tree-level-two" th:text="#{database.keyspaces.nokeyspaces}"></label>
+                                    <label class="tree-toggle nav-header tree-level-two"
+                                           th:text="#{database.keyspaces.nokeyspaces}"></label>
                                 </li>
                             </th:block>
                             <th:block th:each="keyspace : ${map.value}">
-                                <li>
-                                    <label class="tree-toggle nav-header tree-level-two" th:text="${keyspace.getName()}"></label>
+                                <li class="keyspace-li" th:attr="data-test=${keyspace}">
+
+                                    <label class="tree-toggle nav-header keyspace-name">
+                                        <span class="glyphicon glyphicon-arrow-right"></span>
+                                        <span th:text="${keyspace.getName()}"></span>
+                                    </label>
                                     <ul class="nav nav-list tree">
                                         <li><a href="#">Connect</a></li>
                                         <li><a href="#">Info</a></li>

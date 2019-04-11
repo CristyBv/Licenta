@@ -123,6 +123,7 @@ ul.nav-menu-list-style .nav-header {
     line-height: 42px;
     padding: 0 8px;
     font-weight: 600;
+    cursor: hand; !important;
 }
 
 ul.nav-menu-list-style > li {
@@ -151,3 +152,92 @@ ul.nav-menu-list-style li .badge, ul.nav-menu-list-style li .pull-right, ul.nav-
 }
 
 /*TREE MENU STOP*/
+
+.keyspace-inactive-panel-body {
+    font-size: 25px;
+    font-weight: bold;
+    text-align: center;
+}
+
+/*CREATE KEYSPACE START*/
+
+.panel-create-keyspace {
+    border-color: #ccc;
+    -webkit-box-shadow: 0px 2px 3px 0px rgba(0, 0, 0, 0.2);
+    -moz-box-shadow: 0px 2px 3px 0px rgba(0, 0, 0, 0.2);
+    box-shadow: 0px 2px 3px 0px rgba(0, 0, 0, 0.2);
+}
+
+.panel-create-keyspace > .panel-heading {
+    color: #00415d;
+    background-color: #fff;
+    border-color: #fff;
+    text-align: center;
+}
+
+.panel-create-keyspace > .panel-heading div {
+    text-decoration: none;
+    color: #666;
+    font-weight: bold;
+    font-size: 15px;
+    -webkit-transition: all 0.1s linear;
+    -moz-transition: all 0.1s linear;
+    transition: all 0.1s linear;
+}
+
+.panel-create-keyspace > .panel-heading div.active {
+    color: #029f5b;
+    font-size: 18px;
+}
+
+.panel-create-keyspace > .panel-heading hr {
+    margin-top: 10px;
+    margin-bottom: 0px;
+    clear: both;
+    border: 0;
+    height: 1px;
+    background-image: -webkit-linear-gradient(left, rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.15), rgba(0, 0, 0, 0));
+    background-image: -moz-linear-gradient(left, rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.15), rgba(0, 0, 0, 0));
+    background-image: -ms-linear-gradient(left, rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.15), rgba(0, 0, 0, 0));
+    background-image: -o-linear-gradient(left, rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.15), rgba(0, 0, 0, 0));
+}
+
+.panel-create-keyspace input[type="text"], .panel-create-keyspace input[type="email"], .panel-create-keyspace input[type="password"] {
+    height: 45px;
+    border: 1px solid #ddd;
+    font-size: 16px;
+    -webkit-transition: all 0.1s linear;
+    -moz-transition: all 0.1s linear;
+    transition: all 0.1s linear;
+}
+
+.panel-create-keyspace input:hover,
+.panel-create-keyspace input:focus {
+    outline: none;
+    -webkit-box-shadow: none;
+    -moz-box-shadow: none;
+    box-shadow: none;
+    border-color: #ccc;
+}
+
+.btn-create-keyspace {
+    background-color: #59B2E0;
+    outline: none;
+    color: #fff;
+    font-size: 14px;
+    height: auto;
+    font-weight: normal;
+    padding: 14px 0;
+    text-transform: uppercase;
+    border-color: #59B2E6;
+}
+
+.btn-create-keyspace:hover,
+.btn-create-keyspace:focus {
+    color: #fff;
+    background-color: #53A3CD;
+    border-color: #53A3CD;
+}
+
+/*CREATE KEYSPACE STOP*/
+

@@ -75,7 +75,10 @@ public class CommandLineAppStartUpRunner implements CommandLineRunner {
                 .userName("CristyBv")
                 .password("exp112")
                 .enabled(true)
-                .keyspaces(Collections.singletonList(new UserKeyspace("admin", "creator", "CristyBv", true)))
+                .keyspaces(Arrays.asList(new UserKeyspace("admin", 0, "CristyBv", true),
+                        new UserKeyspace("keyspace1", 0, "CristyBv", true),
+                        new UserKeyspace("keyspace2", 0, "CristyBv", true),
+                        new UserKeyspace("keyspaceee", 0, "Cristian", true)))
                 .build();
         userService.registerNewAdmin(user);
     }
@@ -87,8 +90,10 @@ public class CommandLineAppStartUpRunner implements CommandLineRunner {
                 .passwordEnabled(true)
                 .password("exp112")
                 .log(new ArrayList<>())
+                .replicationFactor(3)
+                .durableWrites(true)
                 .build();
-        keyspaceService.save(keyspace);
+        keyspaceService.save(keyspace, false);
     }
 
     private String[] getScripts(String path) {

@@ -1,5 +1,6 @@
 package com.licence.config.validation.password.match;
 
+import com.licence.web.models.Keyspace;
 import com.licence.web.models.User;
 
 import javax.validation.ConstraintValidator;
@@ -13,7 +14,13 @@ public class PasswordMatchesValidator implements ConstraintValidator<PasswordMat
 
     @Override
     public boolean isValid(Object object, ConstraintValidatorContext context) {
-        User user = (User) object;
-        return user.getPassword().equals(user.getMatchingPassword());
+        if(object instanceof User) {
+            User user = (User) object;
+            return user.getPassword().equals(user.getMatchingPassword());
+        } else if(object instanceof Keyspace) {
+            Keyspace keyspace = (Keyspace) object;
+            return !(keyspace.getPassword().isEmpty() && keyspace.isPasswordEnabled()) && keyspace.getPassword().equals(keyspace.getMatchingPassword());
+        }
+        return false;
     }
 }

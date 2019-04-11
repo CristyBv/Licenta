@@ -4,12 +4,24 @@
 </head>
 <body>
     <th:block th:fragment="database">
-        <div class="panel panel-default database-panel">
-            <div class="panel-heading database-panel-heading">
-                <th:block th:replace="fragments/my_database_fragments/database-navbar :: database-navbar"></th:block>
+        <div class="keyspace-active" th:if="${session.keyspace}">
+            <div class="panel panel-default database-panel">
+                    <div class="panel-heading database-panel-heading">
+                        <th:block th:replace="fragments/my_database_fragments/database-navbar :: database-navbar"></th:block>
+                    </div>
+                    <div class="panel-body panel-resizable database-panel-body">
+                        Test
+                    </div>
             </div>
-            <div class="panel-body panel-resizable database-panel-body">
-                Test
+        </div>
+        <div class="keyspace-inactive" th:if="${session.keyspace} == null">
+            <div class="panel panel-default database-panel">
+                <div class="panel-heading database-panel-heading">
+                    <nav class="navbar database-navbar"></nav>
+                </div>
+                <div class="panel-body panel-resizable keyspace-inactive-panel-body">
+                    <span th:text="#{database.keyspaces.inactive}"></span>
+                </div>
             </div>
         </div>
     </th:block>

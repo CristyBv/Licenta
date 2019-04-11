@@ -20,5 +20,10 @@
     </div>
     <br style="clear:both">
 </div>
+<th:block layout:fragment="scripts">
+    <script th:inline="javascript" th:if="${createKeyspaceError}">
+        $("#create-keyspace-modal").modal("show");
+    </script>
+</th:block>
 </body>
 </html>

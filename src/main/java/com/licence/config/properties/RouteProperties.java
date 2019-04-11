@@ -19,4 +19,5 @@ public class RouteProperties {
     private String changePassword;
     private String changeAvatar;
     private String myDatabase;
+    private String createKeyspace;
 }
