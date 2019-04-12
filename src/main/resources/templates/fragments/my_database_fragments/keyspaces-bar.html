@@ -3,11 +3,12 @@
 <head>
 </head>
 <body>
-<th:block th:fragment="keyspaces-bar" th:with="keyspaces=${#authentication.getPrincipal().getKeyspaces()}">
+<th:block th:fragment="keyspaces-bar">
 
     <div class="modal fade" id="create-keyspace-modal" tabindex="-1" role="dialog" aria-hidden="true">
         <div class="modal-dialog" role="document">
-            <div th:replace="fragments/my_database_fragments/database-create-keyspace :: create-keyspace" id="create-keyspace-div"></div>
+            <div th:replace="fragments/my_database_fragments/database-create-keyspace :: create-keyspace"
+                 id="create-keyspace-div"></div>
         </div>
     </div>
 
@@ -31,7 +32,8 @@
                         </label>
                         <ul class="nav nav-list tree bullets">
                             <li class="keyspace-add-li" th:if="${map.key} == ${currentUserName}">
-                                <a href="#" class="glyphicon glyphicon-plus create-keyspace" data-toggle="modal" data-target="#create-keyspace-modal">
+                                <a href="#" class="glyphicon glyphicon-plus create-keyspace" data-toggle="modal"
+                                   data-target="#create-keyspace-modal">
                                     <span th:text="#{database.keyspaces.create}"></span>
                                 </a>
                             </li>
@@ -42,17 +44,47 @@
                                 </li>
                             </th:block>
                             <th:block th:each="keyspace : ${map.value}">
-                                <li class="keyspace-li" th:attr="data-test=${keyspace}">
+                                <li th:if="${keyspace.getKeyspace() != null}" class="keyspace-li">
+
+                                    <div class="modal fade" th:id="${keyspace.getKeyspace().getName()}" tabindex="-1"
+                                         role="dialog" aria-hidden="true">
+                                        <div class="modal-dialog" role="document">
+                                            <div th:replace="fragments/my_database_fragments/database-connect-keyspace :: connect-keyspace(keyspace=${keyspace})"></div>
+                                        </div>
+                                    </div>
 
                                     <label class="tree-toggle nav-header keyspace-name">
                                         <span class="glyphicon glyphicon-arrow-right"></span>
                                         <span th:text="${keyspace.getName()}"></span>
                                     </label>
                                     <ul class="nav nav-list tree">
-                                        <li><a href="#">Connect</a></li>
+                                        <li th:if="${session.keyspace}">
+                                            <a style="color: green;" class="connected-link">Connected</a>
+                                        </li>
+                                        <li th:if="${session.keyspace} == null">
+                                            <a href="" class="connect-link" data-toggle="modal"
+                                               th:attr="data-target='#'+${keyspace.getKeyspace().getName()}">Connect</a>
+                                        </li>
                                         <li><a href="#">Info</a></li>
                                     </ul>
                                 </li>
+                                <!--<li th:if="${keyspace.getKeyspace() == null}" class="keyspace-li">-->
+                                <!--<label class="tree-toggle nav-header keyspace-name">-->
+                                <!--<span class="glyphicon glyphicon-arrow-right"></span>-->
+                                <!--<span th:text="${keyspace.getName()}"></span>-->
+                                <!--<span class="menu-collapsible-icon 	glyphicon glyphicon-warning-sign" data-toggle="tooltip" data-placement="left" th:title="test"></span>-->
+                                <!--</label>-->
+                                <!--<ul class="nav nav-list tree">-->
+                                <!--<li th:if="${session.keyspace}">-->
+                                <!--<a style="color: green;" class="connected-link">Connected</a>-->
+                                <!--</li>-->
+                                <!--<li th:if="${session.keyspace} == null">-->
+                                <!--<a href="" class="connect-link">Connect</a>-->
+                                <!--</li>-->
+                                <!--<li><a href="#">Info</a></li>-->
+                                <!--</ul>-->
+                                <!--</li>-->
+
                             </th:block>
                         </ul>
                     </li>

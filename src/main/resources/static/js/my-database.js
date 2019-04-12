@@ -54,4 +54,7 @@ $(document).ready(function () {
         })
     })
 
+    // initialize tooltips
+    $('[data-toggle="tooltip"]').tooltip();
+
 });

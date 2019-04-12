@@ -3,6 +3,7 @@ package com.licence.web.models;
 import com.datastax.driver.core.DataType;
 import com.licence.config.validation.password.match.PasswordMatches;
 import com.licence.web.models.UDT.KeyspaceLog;
+import com.licence.web.models.UDT.KeyspaceUser;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -63,5 +64,8 @@ public class Keyspace {
 
     @CassandraType(type = DataType.Name.UDT, userTypeName = "keyspace_log")
     private List<KeyspaceLog> log;
+
+    @CassandraType(type = DataType.Name.UDT, userTypeName = "keyspace_user")
+    private List<KeyspaceUser> users;
 
 }

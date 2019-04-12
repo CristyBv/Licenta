@@ -1,15 +1,18 @@
 package com.licence.web.controllers;
 
+import com.licence.config.properties.KeyspaceProperties;
 import com.licence.config.properties.RouteProperties;
 import com.licence.config.security.CassandraUserDetails;
 import com.licence.config.validation.password.match.PasswordMatches;
 import com.licence.web.models.Keyspace;
+import com.licence.web.models.UDT.KeyspaceUser;
 import com.licence.web.models.UDT.UserKeyspace;
 import com.licence.web.models.User;
 import com.licence.web.services.KeyspaceService;
 import com.licence.web.services.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.MessageSource;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
@@ -24,10 +27,12 @@ import org.springframework.web.context.request.WebRequest;
 
 import javax.validation.Valid;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 @Controller
 public class MyDatabaseController {
@@ -36,19 +41,36 @@ public class MyDatabaseController {
     private final KeyspaceService keyspaceService;
     private final UserService userService;
     private final MessageSource messages;
+    private final KeyspaceProperties keyspaceProperties;
 
     @Autowired
-    public MyDatabaseController(RouteProperties routeProperties, KeyspaceService keyspaceService, UserService userService,@Qualifier("messageSource") MessageSource messages) {
+    public MyDatabaseController(RouteProperties routeProperties, KeyspaceService keyspaceService, UserService userService, @Qualifier("messageSource") MessageSource messages, KeyspaceProperties keyspaceProperties) {
         this.routeProperties = routeProperties;
         this.keyspaceService = keyspaceService;
         this.userService = userService;
         this.messages = messages;
+        this.keyspaceProperties = keyspaceProperties;
     }
 
     @RequestMapping(value = "${route.myDatabase}")
-    public String myDatabase(Model model) {
+    public String myDatabase(Model model, Authentication authentication) {
+        CassandraUserDetails userDetails = (CassandraUserDetails) authentication.getPrincipal();
+        User user = userDetails.getUser();
         model.addAttribute("keyspaceObject", new Keyspace());
+        model.addAttribute("keyspaces", getUserKeyspaces(user));
         return routeProperties.getMyDatabase();
+    }
+
+    private Map<String, List<UserKeyspace>> getUserKeyspaces(User user) {
+        Map<String, List<UserKeyspace>> map;
+        List<UserKeyspace> userKeyspaces = user.getKeyspaces();
+        if(userKeyspaces != null) {
+            map = userKeyspaces.stream().collect(Collectors.groupingBy(UserKeyspace::getCreatorName));
+            map.keySet().forEach(p -> map.get(p).forEach(q -> q.setKeyspace(keyspaceService.findKeyspaceByName(q.getCreatorName() + "_" + q.getName()))));
+        } else {
+            return new HashMap<>();
+        }
+        return map;
     }
 
     @PostMapping(value = "${route.createKeyspace}")
@@ -69,17 +91,15 @@ public class MyDatabaseController {
             } else {
                 String name = keyspace.getName();
                 keyspace.setName(user.getUserName() + "_" + name);
+                keyspace.setUsers(Collections.singletonList(new KeyspaceUser(user.getId(), keyspaceProperties.getCreator())));
                 keyspaceService.save(keyspace, true);
-                keyspace.setName(name);
                 UserKeyspace userKeyspace = UserKeyspace.builder()
                         .keyspace(keyspace)
                         .name(name)
-                        .access(0)
-                        .active(true)
+                        .access(keyspaceProperties.getCreator())
                         .creatorName(user.getUserName())
                         .build();
                 user.getKeyspaces().add(userKeyspace);
-                userDetails.getKeyspaces().get(user.getUserName()).add(userKeyspace);
                 userService.save(user);
                 String messageValue = messages.getMessage("database.keyspaces.create.success", null, request.getLocale());
                 model.addAttribute("createKeyspaceSuccess", messageValue);

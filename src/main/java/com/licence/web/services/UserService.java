@@ -69,5 +69,9 @@ public class UserService {
         user.setExpiryDate(Calendar.getInstance().getTime());
         save(user);
     }
+
+    public User findById(String id) {
+        return adminOperations.selectOneById(id, User.class);
+    }
 }
 

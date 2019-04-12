@@ -4,6 +4,7 @@ import com.licence.config.getters.ResourceGetter;
 import com.licence.config.properties.QueryProperties;
 import com.licence.web.models.Keyspace;
 import com.licence.web.models.UDT.KeyspaceLog;
+import com.licence.web.models.UDT.KeyspaceUser;
 import com.licence.web.models.UDT.UserKeyspace;
 import com.licence.web.models.User;
 import com.licence.web.services.KeyspaceService;
@@ -18,6 +19,7 @@ import org.springframework.stereotype.Component;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.UUID;
@@ -75,10 +77,7 @@ public class CommandLineAppStartUpRunner implements CommandLineRunner {
                 .userName("CristyBv")
                 .password("exp112")
                 .enabled(true)
-                .keyspaces(Arrays.asList(new UserKeyspace("admin", 0, "CristyBv", true),
-                        new UserKeyspace("keyspace1", 0, "CristyBv", true),
-                        new UserKeyspace("keyspace2", 0, "CristyBv", true),
-                        new UserKeyspace("keyspaceee", 0, "Cristian", true)))
+                .keyspaces(Collections.singletonList(new UserKeyspace("admin", "0", "CristyBv")))
                 .build();
         userService.registerNewAdmin(user);
     }
@@ -92,6 +91,7 @@ public class CommandLineAppStartUpRunner implements CommandLineRunner {
                 .log(new ArrayList<>())
                 .replicationFactor(3)
                 .durableWrites(true)
+                .users(Collections.singletonList(new KeyspaceUser("CristyBv","0")))
                 .build();
         keyspaceService.save(keyspace, false);
     }

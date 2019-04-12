@@ -14,21 +14,15 @@ import java.util.Map;
 public class CassandraUserDetails implements UserDetails {
 
     private User user;
-    private Map<String, List<UserKeyspace>> keyspaces;
     private String email;
     private String password;
     private List<GrantedAuthority> grantedAuthorities;
 
-    CassandraUserDetails(User user, Map<String, List<UserKeyspace>> keyspaces) {
+    CassandraUserDetails(User user) {
         this.user = user;
         this.email = user.getEmail();
         this.password = user.getPassword();
         this.grantedAuthorities = AuthorityUtils.createAuthorityList(user.getRoles().toArray(new String[user.getRoles().size()]));
-        this.keyspaces = keyspaces;
-    }
-
-    public Map<String, List<UserKeyspace>> getKeyspaces() {
-        return keyspaces;
     }
 
     @Override

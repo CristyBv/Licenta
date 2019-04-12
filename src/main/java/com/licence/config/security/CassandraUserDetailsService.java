@@ -10,6 +10,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -19,8 +20,6 @@ public class CassandraUserDetailsService implements UserDetailsService {
 
     @Autowired
     private UserService userService;
-    @Autowired
-    private KeyspaceService keyspaceService;
 
     @Override
     public UserDetails loadUserByUsername(String email) {
@@ -41,18 +40,6 @@ public class CassandraUserDetailsService implements UserDetailsService {
             System.out.println("LoadUser (" + email + ") for log-in failed (user not enabled)!");
             throw new InternalAuthenticationServiceException("User not enabled!");
         }
-        return new CassandraUserDetails(user, getUserKeyspaces(user));
-    }
-
-    private Map<String, List<UserKeyspace>> getUserKeyspaces(User user) {
-        Map<String, List<UserKeyspace>> map;
-        List<UserKeyspace> userKeyspaces = user.getKeyspaces();
-        if(userKeyspaces != null) {
-            map = userKeyspaces.stream().collect(Collectors.groupingBy(UserKeyspace::getCreatorName));
-            map.keySet().forEach(p -> map.get(p).forEach(q -> q.setKeyspace(keyspaceService.findKeyspaceByName(q.getCreatorName() + "_" + q.getName()))));
-        } else {
-            return new HashMap<>();
-        }
-        return map;
+        return new CassandraUserDetails(user);
     }
 }

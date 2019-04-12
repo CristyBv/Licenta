@@ -9,6 +9,8 @@ import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Transient;
 import org.springframework.data.cassandra.core.mapping.UserDefinedType;
 
+import java.util.List;
+
 @Data
 @Builder
 @AllArgsConstructor
@@ -16,17 +18,15 @@ import org.springframework.data.cassandra.core.mapping.UserDefinedType;
 @UserDefinedType("user_keyspace")
 public class UserKeyspace {
 
-    public UserKeyspace(String name, Integer access, String creatorName, boolean active) {
+    public UserKeyspace(String name, String access, String creatorName) {
         this.name = name;
         this.access = access;
         this.creatorName = creatorName;
-        this.active = active;
     }
 
     @Transient
     private Keyspace keyspace;
     private String name;
-    private Integer access;
+    private String access;
     private String creatorName;
-    private boolean active;
 }
