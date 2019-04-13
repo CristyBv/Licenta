@@ -12,7 +12,7 @@
                     <div class="row">
                         <div class="col">
                             <div class="active" id="connect-keyspace-form-link">Connect to Keyspace
-                            <span th:text="'('+${keyspace.getCreatorName()}+')'"></span> </div>
+                                <span th:text="'('+${keyspace.getCreatorName()}+')'"></span></div>
                         </div>
                     </div>
                     <hr>
@@ -20,48 +20,51 @@
                 <div class="panel-body">
                     <div class="row">
                         <div class="col-lg-12">
-                            <form id="connect-keyspace-form"
+                            <form th:id="'form-'+${keyspace.getName()}"
                                   th:action="${@environment.getProperty('route.connectKeyspace')}" method="post"
                                   role="form" style="display: block;">
+                                <input type="hidden" th:value="${keyspace.getCreatorName()}" name="creatorName">
                                 <div class="form-group">
                                     <input type="text" th:value="${keyspace.getName()}" name="name"
-                                           id="nameCreateKeyspace" tabindex="1" class="form-control" disabled>
+                                           th:id="'name-'+${keyspace.getName()}" tabindex="1" class="form-control"
+                                           readonly>
                                 </div>
                                 <div class="form-group text-center">
                                     <input th:checked="${keyspace.getKeyspace().isPasswordEnabled()}" type="checkbox"
-                                           name="password-enabled" id="password-enabled" disabled>
-                                    <label for="password-enabled">Enable Password Protection</label>
+                                           name="passwordEnabled" th:id="'password-enabled-'+${keyspace.getName()}"
+                                           onclick="return false;">
+                                    <label th:for="'password-enabled-'+${keyspace.getName()}">Enable Password
+                                        Protection</label>
                                 </div>
                                 <div id="connect-keyspace-password"
                                      th:style="${keyspace.getKeyspace().isPasswordEnabled()} == true ? 'display: block' : 'display: none'">
                                     <div class="form-group">
                                         <input type="password"
-                                               name="password" id="password-connect-keyspace" tabindex="2"
+                                               name="password" th:id="'password-'+${keyspace.getName()}" tabindex="2"
                                                class="form-control" placeholder="Password">
-                                    </div>
-                                    <div class="form-group">
-                                        <input type="password" name="matchingPassword"
-                                               id="confirmPassword" tabindex="2"
-                                               class="form-control" placeholder="Confirm Password">
                                     </div>
                                 </div>
                                 <div class="form-group">
-                                    <label for="replication-factor-select">Replication Factor</label>
-                                    <select th:value="${keyspace.getKeyspace().getReplicationFactor()}" name="replicationFactor"
-                                            class="form-control" id="replication-factor-select" disabled>
-                                        <option th:each="i : ${#numbers.sequence(1,8)}" th:value="${i}" th:text="${i}"
-                                                th:selected="${i==3}"></option>
+                                    <label th:for="'replication-factor-'+${keyspace.getName()}">Replication Factor</label>
+                                    <select name="replicationFactor"
+                                            class="form-control" th:id="'replication-factor-'+${keyspace.getName()}" readonly>
+                                        <option th:value="${keyspace.getKeyspace().getReplicationFactor()}"
+                                                th:text="${keyspace.getKeyspace().getReplicationFactor()}"
+                                                selected></option>
                                     </select>
                                 </div>
                                 <div class="form-group text-center">
-                                    <input th:checked="${keyspace.getKeyspace().isDurableWrites()}" type="checkbox" class=""
-                                           name="durable-writes" id="durable-writes" disabled>
-                                    <label for="durable-writes">Enable Durable Writes</label>
+                                    <input th:checked="${keyspace.getKeyspace().isDurableWrites()}" type="checkbox"
+                                           class=""
+                                           name="durableWrites" th:id="'durable-writes-'+${keyspace.getName()}"
+                                           onclick="return false;">
+                                    <label th:for="'durable-writes-'+${keyspace.getName()}">Enable Durable Writes</label>
                                 </div>
                                 <div class="form-group">
                                     <div class="row">
                                         <div class="col-sm-6 col-sm-offset-3">
-                                            <input type="submit" name="login-submit" id="login-submit" tabindex="4"
+                                            <input type="submit" name="connect-keyspa-submit"
+                                                   th:id="'submit-'+${keyspace.getName()}" tabindex="4"
                                                    class="form-control btn btn-success" value="Connect">
                                         </div>
                                     </div>

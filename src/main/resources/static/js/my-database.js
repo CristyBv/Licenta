@@ -16,21 +16,18 @@ $(document).ready(function () {
     $('.tree-toggle').click(function () {
         $(this).parent().children('ul.tree').toggle(200);
     });
-    $(function () {
-        $('.tree-toggle').parent().children('ul.tree').toggle(200);
-    })
 
     // Put the user-keyspace first in the list
     $('.user-keyspaces-li').prependTo('.nav-menu-list-style');
 
     // Display or not the password inputs if the enable checbox is changed
-    $("#password-enabled").change(function() {
-        if(this.checked) {
-            $("#create-keyspace-password").css('display','block');
+    $("#password-enabled").change(function () {
+        if (this.checked) {
+            $("#create-keyspace-password").css('display', 'block');
         } else {
             $("#password-create-keyspace").val(null);
             $("#confirmPassword").val(null);
-            $("#create-keyspace-password").css('display','none');
+            $("#create-keyspace-password").css('display', 'none');
         }
     });
 
@@ -56,5 +53,4 @@ $(document).ready(function () {
 
     // initialize tooltips
     $('[data-toggle="tooltip"]').tooltip();
-
 });

@@ -24,6 +24,21 @@
     <script th:inline="javascript" th:if="${createKeyspaceError}">
         $("#create-keyspace-modal").modal("show");
     </script>
+    <script th:inline="javascript" th:if="${connectKeyspaceError}">
+        alert(/*[[${connectKeyspaceError}]]*/ 'Access denied!');
+    </script>
+    <!--if is not keyspace active-->
+    <script th:inline="javascript" th:if="${session.userKeyspace == null}">
+        // go to level 1 of the keyspaces tree
+        $('.tree-toggle').parent().children('ul.tree').toggle();
+    </script>
+    <script th:inline="javascript" th:if="${session.userKeyspace}">
+        $('.tree-toggle').parent().children('ul.tree').toggle();
+        var name = /*[[${session.userKeyspace.getName()}]]*/ null;
+        var creator = /*[[${session.userKeyspace.getCreatorName()}]]*/ null;
+        $("#creator-list-"+creator).toggle(200);
+        $("#keyspaces-list-"+creator+"_"+name).toggle(200);
+    </script>
 </th:block>
 </body>
 </html>

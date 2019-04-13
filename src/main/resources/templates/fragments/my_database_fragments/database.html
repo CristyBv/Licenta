@@ -4,7 +4,7 @@
 </head>
 <body>
     <th:block th:fragment="database">
-        <div class="keyspace-active" th:if="${session.keyspace}">
+        <div class="keyspace-active" th:if="${session.userKeyspace}">
             <div class="panel panel-default database-panel">
                     <div class="panel-heading database-panel-heading">
                         <th:block th:replace="fragments/my_database_fragments/database-navbar :: database-navbar"></th:block>
@@ -14,7 +14,7 @@
                     </div>
             </div>
         </div>
-        <div class="keyspace-inactive" th:if="${session.keyspace} == null">
+        <div class="keyspace-inactive" th:if="${session.userKeyspace} == null">
             <div class="panel panel-default database-panel">
                 <div class="panel-heading database-panel-heading">
                     <nav class="navbar database-navbar"></nav>

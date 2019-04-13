@@ -15,16 +15,22 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.MessageSource;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.validation.ObjectError;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.context.request.WebRequest;
 
+import javax.servlet.http.HttpSession;
 import javax.validation.Valid;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -32,6 +38,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Controller
@@ -42,14 +49,16 @@ public class MyDatabaseController {
     private final UserService userService;
     private final MessageSource messages;
     private final KeyspaceProperties keyspaceProperties;
+    private final BCryptPasswordEncoder bCryptPasswordEncoder;
 
     @Autowired
-    public MyDatabaseController(RouteProperties routeProperties, KeyspaceService keyspaceService, UserService userService, @Qualifier("messageSource") MessageSource messages, KeyspaceProperties keyspaceProperties) {
+    public MyDatabaseController(RouteProperties routeProperties, KeyspaceService keyspaceService, UserService userService, @Qualifier("messageSource") MessageSource messages, KeyspaceProperties keyspaceProperties, BCryptPasswordEncoder bCryptPasswordEncoder) {
         this.routeProperties = routeProperties;
         this.keyspaceService = keyspaceService;
         this.userService = userService;
         this.messages = messages;
         this.keyspaceProperties = keyspaceProperties;
+        this.bCryptPasswordEncoder = bCryptPasswordEncoder;
     }
 
     @RequestMapping(value = "${route.myDatabase}")
@@ -59,18 +68,6 @@ public class MyDatabaseController {
         model.addAttribute("keyspaceObject", new Keyspace());
         model.addAttribute("keyspaces", getUserKeyspaces(user));
         return routeProperties.getMyDatabase();
-    }
-
-    private Map<String, List<UserKeyspace>> getUserKeyspaces(User user) {
-        Map<String, List<UserKeyspace>> map;
-        List<UserKeyspace> userKeyspaces = user.getKeyspaces();
-        if(userKeyspaces != null) {
-            map = userKeyspaces.stream().collect(Collectors.groupingBy(UserKeyspace::getCreatorName));
-            map.keySet().forEach(p -> map.get(p).forEach(q -> q.setKeyspace(keyspaceService.findKeyspaceByName(q.getCreatorName() + "_" + q.getName()))));
-        } else {
-            return new HashMap<>();
-        }
-        return map;
     }
 
     @PostMapping(value = "${route.createKeyspace}")
@@ -113,6 +110,39 @@ public class MyDatabaseController {
         return routeProperties.getMyDatabase();
     }
 
+    @PostMapping(value = "${route.connectKeyspace}")
+    public String connectKeyspace(Keyspace keyspace,
+                                  @RequestParam String creatorName,
+                                  Authentication authentication,
+                                  Model model,
+                                  WebRequest request,
+                                  HttpSession session) {
+        String message;
+        CassandraUserDetails userDetails = (CassandraUserDetails) authentication.getPrincipal();
+        User user = userDetails.getUser();
+        Optional<UserKeyspace> userKeyspaceOpt = user.getKeyspaces().stream().filter(p -> Objects.equals(p.getCreatorName(), creatorName) && Objects.equals(p.getName(), keyspace.getName())).findFirst();
+
+        if (userKeyspaceOpt.isPresent()) {
+            UserKeyspace userKeyspace = userKeyspaceOpt.get();
+            if (!keyspace.isPasswordEnabled() || bCryptPasswordEncoder.matches(keyspace.getPassword(), userKeyspace.getKeyspace().getPassword())) {
+                session.setAttribute("userKeyspace", userKeyspace);
+                return "redirect:" + routeProperties.getMyDatabase();
+            } else {
+                message = "Access denied! Incorect password!";
+            }
+        } else {
+            message = messages.getMessage("database.keyspaces.connect.notFound", null, request.getLocale());
+        }
+        model.addAttribute("connectKeyspaceError", message);
+        return "forward:" + routeProperties.getMyDatabase();
+    }
+
+    @GetMapping(value = "${route.disconnectKeyspace}")
+    public String disconnectKeyspace(HttpSession session) {
+        session.setAttribute("userKeyspace", null);
+        return "redirect:" + routeProperties.getMyDatabase();
+    }
+
     private Map<String, ArrayList<String>> getErrors(BindingResult bindingResult, Map<String, ArrayList<String>> errors) {
         List<FieldError> fieldErrors = bindingResult.getFieldErrors();
         for (FieldError fieldError : fieldErrors) {
@@ -140,5 +170,17 @@ public class MyDatabaseController {
         errors.put("passwordErrors", new ArrayList<>());
         errors.put("matchingPasswordErrors", new ArrayList<>());
         return errors;
+    }
+
+    private Map<String, List<UserKeyspace>> getUserKeyspaces(User user) {
+        Map<String, List<UserKeyspace>> map;
+        List<UserKeyspace> userKeyspaces = user.getKeyspaces();
+        if (userKeyspaces != null) {
+            map = userKeyspaces.stream().collect(Collectors.groupingBy(UserKeyspace::getCreatorName));
+            map.keySet().forEach(p -> map.get(p).forEach(q -> q.setKeyspace(keyspaceService.findKeyspaceByName(q.getCreatorName() + "_" + q.getName()))));
+        } else {
+            return new HashMap<>();
+        }
+        return map;
     }
 }
