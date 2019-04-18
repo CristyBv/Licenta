@@ -77,7 +77,7 @@ public class CommandLineAppStartUpRunner implements CommandLineRunner {
                 .userName("CristyBv")
                 .password("exp112")
                 .enabled(true)
-                .keyspaces(Collections.singletonList(new UserKeyspace("admin", "0", "CristyBv")))
+                .keyspaces(Collections.singletonList(new UserKeyspace("admin", "FULL", "CristyBv")))
                 .build();
         userService.registerNewAdmin(user);
     }
@@ -91,7 +91,7 @@ public class CommandLineAppStartUpRunner implements CommandLineRunner {
                 .log(new ArrayList<>())
                 .replicationFactor(3)
                 .durableWrites(true)
-                .users(Collections.singletonList(new KeyspaceUser("CristyBv","0")))
+                .users(Collections.singletonList(new KeyspaceUser("CristyBv","FULL")))
                 .build();
         keyspaceService.save(keyspace, false);
     }

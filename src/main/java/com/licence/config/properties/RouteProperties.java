@@ -22,4 +22,8 @@ public class RouteProperties {
     private String createKeyspace;
     private String connectKeyspace;
     private String disconnectKeyspace;
+    private String changeDatabasePanel;
+    private String addUserToKeyspace;
+    private String removeUserFromKeyspace;
+    private String searchUserLive;
 }

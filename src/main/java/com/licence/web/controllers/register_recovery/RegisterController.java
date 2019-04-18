@@ -60,7 +60,6 @@ public class RegisterController {
             } else if (userService.findUserByUsername(user.getUserName()) != null) {
                 errors.get("userNameErrors").add("Username: already exists");
             } else {
-
                 ExecutorService executor = Executors.newSingleThreadExecutor();
                 executor.submit(() -> {
                     SendRegisterRecoveryEmail registerRecoveryEmail = new SendRegisterRecoveryEmail(user, request, eventPublisher);

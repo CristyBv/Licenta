@@ -1,5 +1,12 @@
 $(document).ready(function () {
 
+    var token = $("meta[name='_csrf']").attr("content");
+    var header = $("meta[name='_csrf_header']").attr("content");
+    $(document).ajaxSend(function(e,xhr,options) {
+        if(token && header)
+            xhr.setRequestHeader(header, token);
+    });
+
     // My keyspace open/close tab
     $(".arrow-left-button").on("click", function () {
         $(".keyspace-panel").css("display", "none");
@@ -53,4 +60,43 @@ $(document).ready(function () {
 
     // initialize tooltips
     $('[data-toggle="tooltip"]').tooltip();
+
+    // change panel
+    $(".database-menu-link").on("click", function(e) {
+        e.preventDefault();
+        $("#panel-input").val($(this).data("panel"));
+        $("#panel-form").submit();
+    });
+
+    // less info on click
+    $(".keyspace-manage-minus").on('click', function() {
+        $(this).parent().find(".row").slideToggle(250);
+        if($(this).hasClass("glyphicon-minus")) {
+            $(this).removeClass("glyphicon-minus");
+            $(this).addClass("glyphicon-plus")
+        } else {
+            $(this).removeClass("glyphicon-plus");
+            $(this).addClass("glyphicon-minus")
+        }
+    });
+
+    // select2 (live search for users)
+    $("#add-user-to-keyspace-username").select2({
+        width: '100%',
+        placeholder: "Select a User",
+        allowClear: true,
+        ajax: {
+            url: searchUserLiveUrl,
+            dataType: 'json',
+            data: function(params) {
+                var query = {
+                    search: params.term,
+                }
+                return query;
+            },
+            processResults: function(data) {
+                return data;
+            }
+        }
+    });
 });

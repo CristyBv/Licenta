@@ -3,30 +3,44 @@
 <head>
 </head>
 <body>
-<nav th:fragment="database-navbar" class="navbar database-navbar">
-        <ul class="nav navbar-nav database-navbar-nav">
-            <li>
-                <a th:href="${@environment.getProperty('route.myDatabaseManage')}">Manage</a>
-            </li>
-            <li>
-                <a th:href="${@environment.getProperty('route.myDatabaseViewEdit')}">View/Edit</a>
-            </li>
-            <li>
-                <a th:href="${@environment.getProperty('route.myDatabaseConsoleScript')}">Console/Script</a>
-            </li>
-            <li>
-                <a th:href="${@environment.getProperty('route.myDatabaseImportExport')}">Import/Export</a>
-            </li>
+<nav th:fragment="database-navbar" class="navbar database-navbar" th:with="key=${session.userKeyspace}">
+    <form th:action="${@environment.getProperty('route.changeDatabasePanel')}" method="get" id="panel-form">
+        <input type="hidden" name="panel" id="panel-input">
+    </form>
+    <ul class="nav navbar-nav database-navbar-nav">
+        <li>
+            <a class="database-menu-link" data-panel="1"
+               th:href="${@environment.getProperty('route.myDatabaseManage')}">
+                <span th:if="${@environment.getProperty('keyspace.creator') == key.access || @environment.getProperty('keyspace.admin') == key.access}">Manage</span>
+                <span th:if="${@environment.getProperty('keyspace.editor') == key.access || @environment.getProperty('keyspace.member') == key.access}">Info</span>
+            </a>
+        </li>
+        <li>
+            <a class="database-menu-link" data-panel="2"
+               th:href="${@environment.getProperty('route.myDatabaseViewEdit')}">
+                <span th:if="${@environment.getProperty('keyspace.member') == key.access}">View</span>
+                <span th:unless="${@environment.getProperty('keyspace.member') == key.access}">View/Edit</span>
+            </a>
+        </li>
+        <li th:unless="${@environment.getProperty('keyspace.member') == key.access}">
+            <a class="database-menu-link" data-panel="3"
+               th:href="${@environment.getProperty('route.myDatabaseConsoleScript')}">Console/Script</a>
+        </li>
+        <li th:unless="${@environment.getProperty('keyspace.member') == key.access}">
+            <a class="database-menu-link" data-panel="4"
+               th:href="${@environment.getProperty('route.myDatabaseImportExport')}">Import/Export</a>
+        </li>
 
-        </ul>
-        <ul class="nav navbar-nav navbar-right database-navbar-nav" >
-            <li>
-                <a th:href="${@environment.getProperty('route.myDatabaseLog')}">Log</a>
-            </li>
-            <li>
-                <a th:href="${@environment.getProperty('route.myDatabaseSearch')}">Search</a>
-            </li>
-        </ul>
+    </ul>
+    <ul class="nav navbar-nav navbar-right database-navbar-nav">
+        <li th:if="${@environment.getProperty('keyspace.creator') == key.access || @environment.getProperty('keyspace.admin') == key.access}">
+            <a class="database-menu-link" data-panel="5" th:href="${@environment.getProperty('route.myDatabaseLog')}">Log</a>
+        </li>
+        <li>
+            <a class="database-menu-link" data-panel="6"
+               th:href="${@environment.getProperty('route.myDatabaseSearch')}">Search</a>
+        </li>
+    </ul>
 </nav>
 </body>
 </html>

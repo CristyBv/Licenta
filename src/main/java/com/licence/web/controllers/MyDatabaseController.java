@@ -88,7 +88,7 @@ public class MyDatabaseController {
             } else {
                 String name = keyspace.getName();
                 keyspace.setName(user.getUserName() + "_" + name);
-                keyspace.setUsers(Collections.singletonList(new KeyspaceUser(user.getId(), keyspaceProperties.getCreator())));
+                keyspace.setUsers(Collections.singletonList(new KeyspaceUser(user.getUserName(), keyspaceProperties.getCreator())));
                 keyspaceService.save(keyspace, true);
                 UserKeyspace userKeyspace = UserKeyspace.builder()
                         .keyspace(keyspace)
@@ -140,6 +140,13 @@ public class MyDatabaseController {
     @GetMapping(value = "${route.disconnectKeyspace}")
     public String disconnectKeyspace(HttpSession session) {
         session.setAttribute("userKeyspace", null);
+        return "redirect:" + routeProperties.getMyDatabase();
+    }
+
+    @GetMapping(value = "${route.changeDatabasePanel}")
+    public String changeDatabasePanel(@RequestParam String panel,
+                                      HttpSession session) {
+        session.setAttribute("activePanel", panel);
         return "redirect:" + routeProperties.getMyDatabase();
     }
 

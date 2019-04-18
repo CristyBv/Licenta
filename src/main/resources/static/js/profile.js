@@ -22,8 +22,7 @@ $(document).ready(function() {
             alert(result);
             location.reload();
         }).fail(function(data) {
-            alert("nu");
-            alert(data);
+            alert("Server error!");
         });
     });
 });

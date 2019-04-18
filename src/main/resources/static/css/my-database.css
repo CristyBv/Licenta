@@ -33,14 +33,6 @@
     width: 12%;
 }
 
-/*.arrow-right-button {*/
-/*padding: 0;*/
-/*margin: 0;*/
-/*border: 1px solid white;*/
-/*height: 100%;*/
-/*width: 100%;*/
-/*}*/
-
 .database-panel {
     margin: 0;
     width: 77%;
@@ -248,3 +240,21 @@ ul.nav-menu-list-style li .badge, ul.nav-menu-list-style li .pull-right, ul.nav-
 
 /*CREATE KEYSPACE STOP*/
 
+.manage-info-div {
+    border: 2px solid #182645;
+    background-color: white;
+}
+
+@media (max-width: 720px) {
+    .keyspace-panel {
+        width: 100%;
+        float: none;
+    }
+    .database-panel {
+        width: 100%;
+        float: none;
+    }
+    .arrow-left-button {
+        display: none;
+    }
+}

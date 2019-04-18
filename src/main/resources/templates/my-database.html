@@ -10,6 +10,11 @@
 
         <!--Custom scripts-->
         <script th:src="@{/js/my-database.js}"></script>
+        <script th:inline="javascript">
+            /*<![CDATA[*/
+            var searchUserLiveUrl = /*[[${@environment.getProperty('route.searchUserLive')}]]*/ 'url'
+            /*]]>*/
+        </script>
     </th:block>
 </head>
 <body>

@@ -72,7 +72,7 @@ public class CassandraConfig extends AbstractCassandraConfiguration {
     @Override
     public SchemaAction getSchemaAction() {
         // If schema is RECREATED then materialized view must be dropped before recreating the tables
-        return SchemaAction.RECREATE;
+        return SchemaAction.CREATE_IF_NOT_EXISTS;
     }
 
     @Override
