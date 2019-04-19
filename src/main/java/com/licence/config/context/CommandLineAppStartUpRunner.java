@@ -1,5 +1,7 @@
 package com.licence.config.context;
 
+import com.datastax.driver.core.Row;
+import com.datastax.driver.core.exceptions.DriverException;
 import com.licence.config.getters.ResourceGetter;
 import com.licence.config.properties.QueryProperties;
 import com.licence.web.models.Keyspace;
@@ -14,6 +16,9 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.MessageSource;
 import org.springframework.data.cassandra.core.CassandraAdminOperations;
+import org.springframework.data.cassandra.core.cql.RowMapper;
+import org.springframework.data.cassandra.core.query.Query;
+import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -22,9 +27,12 @@ import java.util.Calendar;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
+import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import static org.springframework.data.cassandra.core.query.Criteria.where;
 
 // after run functions starts from main class, this method (run) is called
 @Component
@@ -32,19 +40,21 @@ public class CommandLineAppStartUpRunner implements CommandLineRunner {
     private final UserService userService;
     private final CassandraAdminOperations adminOperations;
     private final KeyspaceService keyspaceService;
+    private final QueryProperties queryProperties;
 
     @Autowired
-    public CommandLineAppStartUpRunner(UserService userService, @Qualifier("operations") CassandraAdminOperations adminOperations, KeyspaceService keyspaceService) {
+    public CommandLineAppStartUpRunner(UserService userService, @Qualifier("operations") CassandraAdminOperations adminOperations, KeyspaceService keyspaceService, QueryProperties queryProperties) {
         this.userService = userService;
         this.adminOperations = adminOperations;
         this.keyspaceService = keyspaceService;
+        this.queryProperties = queryProperties;
     }
 
     @Override
     public void run(String... args) throws Exception {
-        insertAdmin();
-        insertKeyspaceAdmin();
-        executeStartUpScriptsAfter();
+        //insertAdmin();
+        //insertKeyspaceAdmin();
+        //executeStartUpScriptsAfter();
     }
 
     // after spring starts, some scripts are executed from a startUpScriptsAfter file
@@ -78,6 +88,26 @@ public class CommandLineAppStartUpRunner implements CommandLineRunner {
                 .password("exp112")
                 .enabled(true)
                 .keyspaces(Collections.singletonList(new UserKeyspace("admin", "FULL", "CristyBv")))
+                .build();
+        userService.registerNewAdmin(user);
+
+        user = User.builder()
+                .id("d2971b26-b13b-4f6d-9f25-70d685874551")
+                .email("cristy_bv1@yahoo.com")
+                .userName("Cristian")
+                .password("exp112")
+                .enabled(true)
+                .keyspaces(new ArrayList<>())
+                .build();
+        userService.registerNewAdmin(user);
+
+        user = User.builder()
+                .id("d2971b26-b13b-4f6d-9f25-70d685874552")
+                .email("abc@abc.com")
+                .userName("Abcde")
+                .password("exp112")
+                .enabled(true)
+                .keyspaces(new ArrayList<>())
                 .build();
         userService.registerNewAdmin(user);
     }

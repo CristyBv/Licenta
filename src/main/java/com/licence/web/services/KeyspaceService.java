@@ -50,4 +50,17 @@ public class KeyspaceService {
         System.out.println(query);
         adminOperations.getCqlOperations().execute(query);
     }
+
+    public void deleteKeyspace(Keyspace keyspace, boolean physicDelete) {
+        adminOperations.delete(keyspace);
+        if(physicDelete) {
+            String query = String.format(queryProperties.getDropKeyspace(), keyspace.getName());
+            System.out.println(query);
+            adminOperations.getCqlOperations().execute(query);
+        }
+    }
+
+    public String getAdminKeyspaceName() {
+        return adminOperations.getKeyspaceMetadata().getName();
+    }
 }

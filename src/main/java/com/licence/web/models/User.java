@@ -18,6 +18,7 @@ import org.springframework.data.cassandra.core.mapping.CassandraType;
 import org.springframework.data.cassandra.core.mapping.Column;
 import org.springframework.data.cassandra.core.mapping.Indexed;
 import org.springframework.data.cassandra.core.mapping.PrimaryKey;
+import org.springframework.data.cassandra.core.mapping.SASI;
 import org.springframework.data.cassandra.core.mapping.Table;
 import org.springframework.format.annotation.DateTimeFormat;
 
@@ -43,6 +44,7 @@ public class User {
     @ValidEmail
     private String email;
 
+    @SASI(indexMode = SASI.IndexMode.CONTAINS) @SASI.StandardAnalyzed(normalization = SASI.Normalization.LOWERCASE)
     @Column("USERNAME")
     @Size(min = 3, max = 20)
     @Pattern(regexp = "[a-zA-Z][a-zA-Z0-9]+")

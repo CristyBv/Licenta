@@ -18,7 +18,7 @@
     </th:block>
 </head>
 <body>
-<div layout:fragment="content">
+<div layout:fragment="content" th:with="creator=${@environment.getProperty('keyspace.creator')} ,admin=${@environment.getProperty('keyspace.admin')}, editor = ${@environment.getProperty('keyspace.editor')}, member = ${@environment.getProperty('keyspace.member')}">
     <div class="database-container">
         <th:block th:replace="fragments/my_database_fragments/keyspaces-bar :: keyspaces-bar"></th:block>
         <th:block th:replace="fragments/my_database_fragments/database :: database"></th:block>

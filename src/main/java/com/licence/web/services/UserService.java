@@ -2,18 +2,16 @@ package com.licence.web.services;
 
 import com.licence.config.properties.QueryProperties;
 import com.licence.web.models.User;
-import com.licence.web.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.cassandra.core.CassandraAdminOperations;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import javax.validation.constraints.NotEmpty;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
-import java.util.Date;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -46,11 +44,11 @@ public class UserService {
     }
 
     public void save(User user) {
-        if(user.getId() == null)
+        if (user.getId() == null)
             user.setId(UUID.randomUUID().toString());
-        if(user.getPassword().length() <= 40)
+        if (user.getPassword().length() <= 40)
             user.setPassword(bCryptPasswordEncoder.encode(user.getPassword()));
-        if(user.getRegisterDate() == null)
+        if (user.getRegisterDate() == null)
             user.setRegisterDate(Calendar.getInstance().getTime());
         adminOperations.insert(user);
     }
@@ -59,6 +57,7 @@ public class UserService {
         user.setRoles(Arrays.asList("USER", "ADMIN"));
         save(user);
     }
+
     public void registerNewUser(User user) {
         user.setRoles(Collections.singletonList("USER"));
         save(user);
@@ -72,6 +71,11 @@ public class UserService {
 
     public User findById(String id) {
         return adminOperations.selectOneById(id, User.class);
+    }
+
+    public List<User> findByPartialUsername(String partialUsername) {
+        String query = String.format(queryProperties.getSelectUserByPartialUsername(), "*", "%" + partialUsername + "%");
+        return adminOperations.select(query, User.class);
     }
 }
 

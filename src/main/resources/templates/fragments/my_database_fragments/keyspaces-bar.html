@@ -21,8 +21,15 @@
         </div>
         <div class="panel-body panel-resizable keyspace-panel-body">
             <div th:if="${createKeyspaceSuccess}" class="alert-success" th:text="${createKeyspaceSuccess}"></div>
+            <div th:if="${deleteKeyspaceSuccess}" class="alert-success" th:text="${deleteKeyspaceSuccess}"></div>
             <ul class="nav nav-list nav-menu-list-style"
                 th:with="currentUserName=${#authentication.getPrincipal().getUser().getUserName()}">
+                <th:block th:if="${#maps.isEmpty(keyspaces)}">
+                    <a href="#" class="glyphicon glyphicon-plus create-keyspace" data-toggle="modal"
+                       data-target="#create-keyspace-modal">
+                        <span th:text="#{database.keyspaces.create}"></span>
+                    </a>
+                </th:block>
                 <th:block th:each="map : ${keyspaces}">
                     <li th:class="(${map.key} == ${currentUserName} ? 'user-keyspaces-li' : 'others-keyspaces-li')">
                         <label class="tree-toggle nav-header">

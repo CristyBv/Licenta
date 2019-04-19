@@ -2,8 +2,8 @@ $(document).ready(function () {
 
     var token = $("meta[name='_csrf']").attr("content");
     var header = $("meta[name='_csrf_header']").attr("content");
-    $(document).ajaxSend(function(e,xhr,options) {
-        if(token && header)
+    $(document).ajaxSend(function (e, xhr, options) {
+        if (token && header)
             xhr.setRequestHeader(header, token);
     });
 
@@ -62,16 +62,16 @@ $(document).ready(function () {
     $('[data-toggle="tooltip"]').tooltip();
 
     // change panel
-    $(".database-menu-link").on("click", function(e) {
+    $(".database-menu-link").on("click", function (e) {
         e.preventDefault();
         $("#panel-input").val($(this).data("panel"));
         $("#panel-form").submit();
     });
 
     // less info on click
-    $(".keyspace-manage-minus").on('click', function() {
-        $(this).parent().find(".row").slideToggle(250);
-        if($(this).hasClass("glyphicon-minus")) {
+    $(".keyspace-manage-minus").on('click', function () {
+        $(this).parent().find(".row").slideToggle(150);
+        if ($(this).hasClass("glyphicon-minus")) {
             $(this).removeClass("glyphicon-minus");
             $(this).addClass("glyphicon-plus")
         } else {
@@ -88,15 +88,44 @@ $(document).ready(function () {
         ajax: {
             url: searchUserLiveUrl,
             dataType: 'json',
-            data: function(params) {
+            data: function (params) {
                 var query = {
                     search: params.term,
+                    from: "database"
                 }
                 return query;
             },
-            processResults: function(data) {
+            processResults: function (data) {
                 return data;
             }
+        }
+    });
+
+    $("#remove-user-from-keyspace-username").select2({
+        width: '100%',
+        placeholder: "Select a User",
+        allowClear: true,
+        ajax: {
+            url: searchUserLiveUrl,
+            dataType: 'json',
+            data: function (params) {
+                var query = {
+                    search: params.term,
+                    from: "keyspace"
+                }
+                return query;
+            },
+            processResults: function (data) {
+                return data;
+            }
+        }
+    });
+
+    // safe delete for keyspace
+    $("#delete-keyspace-form").on("submit", function (e) {
+        if(!$("#confirmKeyspaceDelete").is(":checked")) {
+            e.preventDefault();
+            alert("Confirm deletion first!");
         }
     });
 });

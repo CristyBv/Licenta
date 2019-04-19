@@ -26,4 +26,6 @@ public class RouteProperties {
     private String addUserToKeyspace;
     private String removeUserFromKeyspace;
     private String searchUserLive;
+    private String deleteKeyspace;
+    private String changeKeyspacePassword;
 }

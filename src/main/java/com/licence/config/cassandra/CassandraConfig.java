@@ -96,13 +96,15 @@ public class CassandraConfig extends AbstractCassandraConfiguration {
     @Override
     protected List<String> getStartupScripts() {
         List<String> scripts = getScripts("static/cql/startUpScripts");
-        return scripts;
+        //return scripts;
+        return super.getStartupScripts();
     }
 
     @Override
     protected List<String> getShutdownScripts() {
         List<String> scripts = getScripts("static/cql/shutDownScripts");
-        return scripts;
+        //return scripts;
+        return super.getShutdownScripts();
     }
 
     private List<String> getScripts(String path) {

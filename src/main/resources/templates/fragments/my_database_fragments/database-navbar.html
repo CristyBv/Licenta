@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
 <head>
 </head>
 <body>
@@ -11,29 +11,29 @@
         <li>
             <a class="database-menu-link" data-panel="1"
                th:href="${@environment.getProperty('route.myDatabaseManage')}">
-                <span th:if="${@environment.getProperty('keyspace.creator') == key.access || @environment.getProperty('keyspace.admin') == key.access}">Manage</span>
-                <span th:if="${@environment.getProperty('keyspace.editor') == key.access || @environment.getProperty('keyspace.member') == key.access}">Info</span>
+                <span th:if="${creator == key.access || admin == key.access}">Manage</span>
+                <span th:if="${editor == key.access || member == key.access}">Info</span>
             </a>
         </li>
         <li>
             <a class="database-menu-link" data-panel="2"
                th:href="${@environment.getProperty('route.myDatabaseViewEdit')}">
-                <span th:if="${@environment.getProperty('keyspace.member') == key.access}">View</span>
-                <span th:unless="${@environment.getProperty('keyspace.member') == key.access}">View/Edit</span>
+                <span th:if="${member == key.access}">View</span>
+                <span th:unless="${member == key.access}">View/Edit</span>
             </a>
         </li>
-        <li th:unless="${@environment.getProperty('keyspace.member') == key.access}">
+        <li th:unless="${member == key.access}">
             <a class="database-menu-link" data-panel="3"
                th:href="${@environment.getProperty('route.myDatabaseConsoleScript')}">Console/Script</a>
         </li>
-        <li th:unless="${@environment.getProperty('keyspace.member') == key.access}">
+        <li th:unless="${member == key.access}">
             <a class="database-menu-link" data-panel="4"
                th:href="${@environment.getProperty('route.myDatabaseImportExport')}">Import/Export</a>
         </li>
 
     </ul>
     <ul class="nav navbar-nav navbar-right database-navbar-nav">
-        <li th:if="${@environment.getProperty('keyspace.creator') == key.access || @environment.getProperty('keyspace.admin') == key.access}">
+        <li th:if="${creator == key.access || admin == key.access}">
             <a class="database-menu-link" data-panel="5" th:href="${@environment.getProperty('route.myDatabaseLog')}">Log</a>
         </li>
         <li>
