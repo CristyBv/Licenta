@@ -22,6 +22,7 @@
         <div class="panel-body panel-resizable keyspace-panel-body">
             <div th:if="${createKeyspaceSuccess}" class="alert-success" th:text="${createKeyspaceSuccess}"></div>
             <div th:if="${deleteKeyspaceSuccess}" class="alert-success" th:text="${deleteKeyspaceSuccess}"></div>
+            <div th:if="${keyspaceNotAvailable}" class="alert-danger" th:text="${keyspaceNotAvailable}"></div>
             <ul class="nav nav-list nav-menu-list-style"
                 th:with="currentUserName=${#authentication.getPrincipal().getUser().getUserName()}">
                 <th:block th:if="${#maps.isEmpty(keyspaces)}">

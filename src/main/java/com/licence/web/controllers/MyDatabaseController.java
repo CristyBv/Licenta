@@ -59,7 +59,17 @@ public class MyDatabaseController {
     }
 
     @RequestMapping(value = "${route.myDatabase}")
-    public String myDatabase(Model model, Authentication authentication) {
+    public String myDatabase(Model model,
+                             Authentication authentication,
+                             HttpSession session) {
+        if (session.getAttribute("userKeyspace") == null)
+            updateUserKeyspaces(authentication, session);
+        else {
+            session.setAttribute("userKeyspace", updateUserKeyspaces(authentication, session));
+            if (session.getAttribute("userKeyspace") == null) {
+                model.addAttribute("keyspaceNotAvailable", "Keyspace not available anymore!");
+            }
+        }
         CassandraUserDetails userDetails = (CassandraUserDetails) authentication.getPrincipal();
         User user = userDetails.getUser();
         model.addAttribute("keyspaceObject", new Keyspace());
@@ -67,13 +77,62 @@ public class MyDatabaseController {
         return routeProperties.getMyDatabase();
     }
 
-    // find the corespondent of session userKeyspace into auth
-    private UserKeyspace getUserKeyspaceFromContext(Authentication authentication, HttpSession session) {
-        CassandraUserDetails userDetails = (CassandraUserDetails) authentication.getPrincipal();
-        User user = userDetails.getUser();
-        UserKeyspace activeUserKeyspace = (UserKeyspace) session.getAttribute("userKeyspace");
-        Optional<UserKeyspace> userKeyspaceOpt = user.getKeyspaces().stream().filter(p -> Objects.equals(p.getCreatorName(), activeUserKeyspace.getCreatorName()) && Objects.equals(p.getName(), activeUserKeyspace.getName())).findFirst();
-        return userKeyspaceOpt.orElse(null);
+    private Map<String, List<UserKeyspace>> getUserKeyspaces(User user) {
+        Map<String, List<UserKeyspace>> map;
+        List<UserKeyspace> userKeyspaces = user.getKeyspaces();
+        if (userKeyspaces != null) {
+            map = userKeyspaces.stream().collect(Collectors.groupingBy(UserKeyspace::getCreatorName));
+//            map.keySet().forEach(p -> map.get(p).forEach(q -> {
+//                Keyspace keyspace = keyspaceService.findKeyspaceByName(q.getCreatorName() + "_" + q.getName());
+//                if(q.getKeyspace() == null || q.getKeyspace() != keyspace) {
+//                    q.setKeyspace(keyspace);
+//                }
+//            }));
+        } else {
+            return new HashMap<>();
+        }
+        return map;
+    }
+
+    private UserKeyspace updateUserKeyspaces(Authentication authentication, HttpSession session) {
+        User authUser = ((CassandraUserDetails) authentication.getPrincipal()).getUser();
+        User dbUser = userService.findById(authUser.getId());
+        UserKeyspace userKeyspace = (UserKeyspace) session.getAttribute("userKeyspace");
+        authUser.setKeyspaces(dbUser.getKeyspaces());
+        updateKeyspaces(authUser);
+        if (userKeyspace != null) {
+            if(authUser.getKeyspaces() != null) {
+                return authUser.getKeyspaces().stream().filter(p -> Objects.equals(p.getCreatorName(), userKeyspace.getCreatorName()) && Objects.equals(p.getName(), userKeyspace.getName())).findFirst().orElse(null);
+            }
+        }
+        return null;
+    }
+
+//    private boolean notEqualsUserKeyspaces(User authUser, User dbUser) {
+//        if(authUser.getKeyspaces() == null && dbUser.getKeyspaces() == null)
+//            return false;
+//        if(authUser.getKeyspaces() == null && dbUser.getKeyspaces() != null)
+//            return true;
+//        if(authUser.getKeyspaces() != null && dbUser.getKeyspaces() == null)
+//            return true;
+//        if(authUser.getKeyspaces().size() != dbUser.getKeyspaces().size())
+//            return true;
+//        final Boolean[] ok = {false};
+//        authUser.getKeyspaces().forEach(p -> {
+//            if(dbUser.getKeyspaces().stream().noneMatch(q -> Objects.equals(q.getCreatorName(), p.getCreatorName()) && Objects.equals(q.getName(), p.getName()))) {
+//                ok[0] = true;
+//            }
+//        });
+//        return ok[0];
+//    }
+
+    private void updateKeyspaces(User authUser) {
+        if (authUser.getKeyspaces() != null) {
+            authUser.getKeyspaces().forEach(p -> {
+                Keyspace keyspace = keyspaceService.findKeyspaceByName(p.getCreatorName() + "_" + p.getName());
+                p.setKeyspace(keyspace);
+            });
+        }
     }
 
     @PostMapping(value = "${route.removeUserFromKeyspace}")
@@ -87,7 +146,7 @@ public class MyDatabaseController {
             return "forward:" + routeProperties.getMyDatabase();
         }
         if (userName != null) {
-            UserKeyspace userKeyspace = getUserKeyspaceFromContext(authentication, session);
+            UserKeyspace userKeyspace = updateUserKeyspaces(authentication, session);
             User removeUser = userService.findUserByUsername(userName);
             if (userKeyspace != null && removeUser != null) {
                 // we verify that the keyspaceUser and the userKeyspace that we want to remove from keyspace table and
@@ -101,7 +160,6 @@ public class MyDatabaseController {
                     removeUser.getKeyspaces().remove(userKeyspaceToRemove);
                 keyspaceService.save(userKeyspace.getKeyspace(), false);
                 userService.save(removeUser);
-                session.setAttribute("userKeyspace", userKeyspace);
                 model.addAttribute("keyspaceManageSuccess",
                         messages.getMessage("database.keyspaces.remove-user.success", null,
                                 request.getLocale()));
@@ -124,7 +182,7 @@ public class MyDatabaseController {
             return "forward:" + routeProperties.getMyDatabase();
         }
         if (userName != null && access != null) {
-            UserKeyspace userKeyspace = getUserKeyspaceFromContext(authentication, session);
+            UserKeyspace userKeyspace = updateUserKeyspaces(authentication, session);
             User addUser = userService.findUserByUsername(userName);
             if (userKeyspace != null && addUser != null) {
                 // if the user exists, we create the userKeyspace that we want to add
@@ -146,7 +204,6 @@ public class MyDatabaseController {
                     userKeyspace.getKeyspace().getUsers().add(newKeyspaceUser);
                 keyspaceService.save(userKeyspace.getKeyspace(), false);
                 userService.save(addUser);
-                session.setAttribute("userKeyspace", userKeyspace);
                 model.addAttribute("keyspaceManageSuccess",
                         messages.getMessage("database.keyspaces.add-user.success", null,
                                 request.getLocale()));
@@ -173,17 +230,15 @@ public class MyDatabaseController {
             // we take the corespondent userKeyspace form session to auth context
             CassandraUserDetails userDetails = (CassandraUserDetails) authentication.getPrincipal();
             User user = userDetails.getUser();
-            UserKeyspace activeUserKeyspace = (UserKeyspace) session.getAttribute("userKeyspace");
-            Optional<UserKeyspace> userKeyspaceOpt = user.getKeyspaces().stream().filter(p -> Objects.equals(p.getCreatorName(), activeUserKeyspace.getCreatorName()) && Objects.equals(p.getName(), activeUserKeyspace.getName())).findFirst();
-            if (userKeyspaceOpt.isPresent()) {
-                UserKeyspace userKeyspace = userKeyspaceOpt.get();
+            UserKeyspace userKeyspace = updateUserKeyspaces(authentication, session);
+            if (userKeyspace != null) {
                 // if the keyspace is admin type, we can not delete it
                 if (keyspaceService.getAdminKeyspaceName().equals(userKeyspace.getKeyspace().getName().toLowerCase())) {
                     model.addAttribute("keyspaceManageError", "You cannot delete the admin keyspace!");
                     return "forward:" + routeProperties.getMyDatabase();
                 }
                 // if the keyspace is password enabled and the password field is not empty and not matches to the keyspace password
-                if (activeUserKeyspace.getKeyspace().isPasswordEnabled() && password != null) {
+                if (userKeyspace.getKeyspace().isPasswordEnabled() && password != null) {
                     if (!bCryptPasswordEncoder.matches(password, userKeyspace.getKeyspace().getPassword())) {
                         model.addAttribute("keyspaceManageError", "Invalid password!");
                         return "forward:" + routeProperties.getMyDatabase();
@@ -213,8 +268,6 @@ public class MyDatabaseController {
                 // update the logged user too
                 user.getKeyspaces().remove(userKeyspace);
                 userService.save(user);
-                // diconnect keyspace
-                session.setAttribute("userKeyspace", null);
                 model.addAttribute("deleteKeyspaceSuccess",
                         messages.getMessage("database.keyspaces.delete.success", null,
                                 request.getLocale()));
@@ -244,58 +297,46 @@ public class MyDatabaseController {
             model.addAttribute("keyspaceManageError", "Access denied!");
             return "forward:" + routeProperties.getMyDatabase();
         }
-        CassandraUserDetails userDetails = (CassandraUserDetails) authentication.getPrincipal();
-        User user = userDetails.getUser();
-        UserKeyspace activeUserKeyspace = (UserKeyspace) session.getAttribute("userKeyspace");
-        // if keyspace is password enabled
-        if (activeUserKeyspace.getKeyspace().isPasswordEnabled()) {
-            // if the old password matches with the current active keyspace
-            if (bCryptPasswordEncoder.matches(keyspace.getPassword(), activeUserKeyspace.getKeyspace().getPassword())) {
-                // we search into auth context for the active keyspace from session
-                Optional<UserKeyspace> userKeyspaceOpt = user.getKeyspaces().stream().filter(p -> Objects.equals(p.getCreatorName(), activeUserKeyspace.getCreatorName()) && Objects.equals(p.getName(), activeUserKeyspace.getName())).findFirst();
-                // if we find it, the password is disabled and saved in database
-                if (userKeyspaceOpt.isPresent()) {
+        UserKeyspace userKeyspace = updateUserKeyspaces(authentication, session);
+        if(userKeyspace != null && userKeyspace.getKeyspace() != null) {
+            // if keyspace is password enabled
+            if (userKeyspace.getKeyspace().isPasswordEnabled()) {
+                // if the old password matches with the current active keyspace
+                if (bCryptPasswordEncoder.matches(keyspace.getPassword(), userKeyspace.getKeyspace().getPassword())) {
                     // update the database, the context and the session too
-                    UserKeyspace userKeyspace = userKeyspaceOpt.get();
                     userKeyspace.getKeyspace().setPasswordEnabled(false);
                     keyspaceService.save(userKeyspace.getKeyspace(), false);
-                    session.setAttribute("userKeyspace", userKeyspace);
                     model.addAttribute("keyspaceManageSuccess",
                             messages.getMessage("database.keyspaces.password.disable", null,
                                     request.getLocale()));
+                } else {
+                    model.addAttribute("keyspaceManageError",
+                            messages.getMessage("database.keyspaces.password.wrong-old-password", null,
+                                    request.getLocale()));
                 }
             } else {
-                model.addAttribute("keyspaceManageError",
-                        messages.getMessage("database.keyspaces.password.wrong-old-password", null,
-                                request.getLocale()));
-            }
-        } else {
-            // if the keyspace has no password, we validate it
-            Map<String, ArrayList<String>> errors = getErrorsMap();
-            errors = getErrors(bindingResult, errors);
-            if (!errors.get("passwordErrors").isEmpty()) {
-                String message = errors.get("passwordErrors").toString();
-                if (!errors.get("matchingPasswordErrors").isEmpty()) {
-                    message = message + '\n' + errors.get("matchingPasswordErrors").toString();
-                }
-                model.addAttribute("keyspaceManageError", message);
-            } else {
-                // if the passwords are valid, we search into auth context for the active keyspace from session
-                Optional<UserKeyspace> userKeyspaceOpt = user.getKeyspaces().stream().filter(p -> Objects.equals(p.getCreatorName(), activeUserKeyspace.getCreatorName()) && Objects.equals(p.getName(), activeUserKeyspace.getName())).findFirst();
-                // if we find it, the password is enabled and saved in database
-                if (userKeyspaceOpt.isPresent()) {
+                // if the keyspace has no password, we validate it
+                Map<String, ArrayList<String>> errors = getErrorsMap();
+                errors = getErrors(bindingResult, errors);
+                if (!errors.get("passwordErrors").isEmpty()) {
+                    String message = errors.get("passwordErrors").toString();
+                    if (!errors.get("matchingPasswordErrors").isEmpty()) {
+                        message = message + '\n' + errors.get("matchingPasswordErrors").toString();
+                    }
+                    model.addAttribute("keyspaceManageError", message);
+                } else {
+                    // the password is enabled and saved in database
                     // update the database, the context and the session too
-                    UserKeyspace userKeyspace = userKeyspaceOpt.get();
                     userKeyspace.getKeyspace().setPasswordEnabled(true);
                     userKeyspace.getKeyspace().setPassword(keyspace.getPassword());
                     keyspaceService.save(userKeyspace.getKeyspace(), false);
-                    session.setAttribute("userKeyspace", userKeyspace);
                     model.addAttribute("keyspaceManageSuccess",
                             messages.getMessage("database.keyspaces.password.change", null,
                                     request.getLocale()));
                 }
             }
         }
+
         return "forward:" + routeProperties.getMyDatabase();
     }
 
@@ -344,7 +385,7 @@ public class MyDatabaseController {
         model.addAttribute("createKeyspaceError", true);
         model.addAttribute("validateErrors", errors);
         model.addAttribute("keyspaceObject", keyspace);
-        return routeProperties.getMyDatabase();
+        return "forward:" + routeProperties.getMyDatabase();
     }
 
     @PostMapping(value = "${route.connectKeyspace}")
@@ -419,15 +460,12 @@ public class MyDatabaseController {
         return errors;
     }
 
-    private Map<String, List<UserKeyspace>> getUserKeyspaces(User user) {
-        Map<String, List<UserKeyspace>> map;
-        List<UserKeyspace> userKeyspaces = user.getKeyspaces();
-        if (userKeyspaces != null) {
-            map = userKeyspaces.stream().collect(Collectors.groupingBy(UserKeyspace::getCreatorName));
-            map.keySet().forEach(p -> map.get(p).forEach(q -> q.setKeyspace(keyspaceService.findKeyspaceByName(q.getCreatorName() + "_" + q.getName()))));
-        } else {
-            return new HashMap<>();
-        }
-        return map;
-    }
+    // find the corespondent of session userKeyspace into auth
+//    private UserKeyspace getUserKeyspaceFromContext(Authentication authentication, HttpSession session) {
+//        CassandraUserDetails userDetails = (CassandraUserDetails) authentication.getPrincipal();
+//        User user = userDetails.getUser();
+//        UserKeyspace activeUserKeyspace = (UserKeyspace) session.getAttribute("userKeyspace");
+//        Optional<UserKeyspace> userKeyspaceOpt = user.getKeyspaces().stream().filter(p -> Objects.equals(p.getCreatorName(), activeUserKeyspace.getCreatorName()) && Objects.equals(p.getName(), activeUserKeyspace.getName())).findFirst();
+//        return userKeyspaceOpt.orElse(null);
+//    }
 }
