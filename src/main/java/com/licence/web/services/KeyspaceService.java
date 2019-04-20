@@ -26,7 +26,7 @@ public class KeyspaceService {
         this.queryProperties = queryProperties;
     }
     
-    public void save(Keyspace keyspace, Boolean create) {
+    public void save(Keyspace keyspace, Boolean physicCreate, Boolean physicEdit) {
         if(keyspace.getId() == null)
             keyspace.setId(UUID.randomUUID().toString());
         if(keyspace.getPassword().length() <= 40)
@@ -36,8 +36,10 @@ public class KeyspaceService {
         if(keyspace.getLog() == null)
             keyspace.setLog(new ArrayList<>());
         adminOperations.insert(keyspace);
-        if(create)
+        if(physicCreate)
             createKeyspace(keyspace);
+        if(physicEdit)
+            alterKeyspace(keyspace);
     }
 
     public Keyspace findKeyspaceByName(String keyspaceName) {
@@ -47,6 +49,12 @@ public class KeyspaceService {
 
     private void createKeyspace(Keyspace keyspace) {
         String query = String.format(queryProperties.getCreateKeyspace(), keyspace.getName(), keyspace.getReplicationFactor(), keyspace.isDurableWrites());
+        System.out.println(query);
+        adminOperations.getCqlOperations().execute(query);
+    }
+
+    private void alterKeyspace(Keyspace keyspace) {
+        String query = String.format(queryProperties.getAlterKeyspace(), keyspace.getName(), keyspace.getReplicationFactor(), keyspace.isDurableWrites());
         System.out.println(query);
         adminOperations.getCqlOperations().execute(query);
     }

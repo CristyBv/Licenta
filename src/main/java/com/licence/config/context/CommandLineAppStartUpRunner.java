@@ -123,7 +123,7 @@ public class CommandLineAppStartUpRunner implements CommandLineRunner {
                 .durableWrites(true)
                 .users(Collections.singletonList(new KeyspaceUser("CristyBv","FULL")))
                 .build();
-        keyspaceService.save(keyspace, false);
+        keyspaceService.save(keyspace, false, false);
     }
 
     private String[] getScripts(String path) {

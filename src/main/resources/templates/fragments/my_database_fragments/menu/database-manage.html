@@ -16,22 +16,24 @@
             <span style="float:right;" class="glyphicon glyphicon-minus btn btn-default keyspace-manage-minus"></span>
             <br style="clear:both;">
             <div class="row">
+                <form class="form" th:action="${@environment.getProperty('route.editKeyspace')}"
+                      method="post" id="edit-keyspace-form">
                 <div class="col-sm-6">
-                    <div class="form-group">
-                        <label for="keyspace-name"><h4>Keyspace Name</h4></label>
-                        <input type="text" class="form-control" id="keyspace-name"
-                               th:value="${key.name}" readonly>
-                    </div>
-                    <div class="form-group">
-                        <label for="keyspace-creator"><h4>Creator</h4></label>
-                        <input type="text" class="form-control" id="keyspace-creator"
-                               th:value="${key.creatorName}" readonly>
-                    </div>
-                    <div class="form-group">
-                        <label for="keyspace-your-access"><h4>Your Access</h4></label>
-                        <input type="text" class="form-control" id="keyspace-your-access"
-                               th:value="${key.access}" readonly>
-                    </div>
+                        <div class="form-group">
+                            <label for="keyspace-name"><h4>Keyspace Name</h4></label>
+                            <input type="text" class="form-control" id="keyspace-name"
+                                   th:value="${key.name}" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label for="keyspace-creator"><h4>Creator</h4></label>
+                            <input type="text" class="form-control" id="keyspace-creator"
+                                   th:value="${key.creatorName}" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label for="keyspace-your-access"><h4>Your Access</h4></label>
+                            <input type="text" class="form-control" id="keyspace-your-access"
+                                   th:value="${key.access}" readonly>
+                        </div>
                 </div>
                 <div class="col-sm-6">
                     <div class="form-group">
@@ -40,16 +42,43 @@
                                th:value="${key.keyspace.passwordEnabled}" readonly>
                     </div>
                     <div class="form-group">
-                        <label for="keyspace-replication-factor"><h4>Replication Factor</h4></label>
-                        <input type="text" class="form-control" id="keyspace-replication-factor"
-                               th:value="${key.keyspace.replicationFactor}" readonly>
+                        <th:block th:if="${key.access != creator}">
+                            <label for="keyspace-replication-factor1"><h4>Replication Factor</h4></label>
+                            <input type="text" class="form-control" id="keyspace-replication-factor1"
+                                   th:value="${key.keyspace.replicationFactor}" readonly>
+                        </th:block>
+                        <th:block th:if="${key.access == creator}">
+                            <label for="keyspace-replication-factor2"><h4>Replication Factor</h4></label>
+                            <select name="replicationFactor" class="form-control" id="keyspace-replication-factor2">
+                                <option th:each="i : ${#numbers.sequence(1,8)}" th:value="${i}" th:text="${i}"
+                                        th:selected="${i==key.keyspace.replicationFactor}"></option>
+                            </select>
+                        </th:block>
                     </div>
                     <div class="form-group">
-                        <label for="keyspace-durable-writes"><h4>Durable Writes</h4></label>
-                        <input type="text" class="form-control" id="keyspace-durable-writes"
-                               th:value="${key.keyspace.durableWrites}" readonly>
+                        <th:block th:if="${key.access != creator}">
+                            <label for="keyspace-durable-writes1"><h4>Durable Writes</h4></label>
+                            <input type="text" class="form-control" id="keyspace-durable-writes1"
+                                   th:value="${key.keyspace.durableWrites}" readonly>
+                        </th:block>
+                        <th:block th:if="${key.access == creator}">
+                            <label for="keyspace-durable-writes2"><h4>Durable Writes</h4></label>
+                            <select name="replicationFactor-select" class="form-control" id="keyspace-durable-writes2">
+                                <option th:value="${true}" th:text="'true'"
+                                        th:selected="${key.keyspace.durableWrites == true}"></option>
+                                <option th:value="${false}" th:text="'false'"
+                                        th:selected="${key.keyspace.durableWrites == false}"></option>
+                            </select>
+                            <input type="checkbox" name="durableWrites" style="visibility: hidden;" id="keyspace-durable-writes2-checkbox" th:checked="${key.keyspace.durableWrites == true}">
+                        </th:block>
+                    </div>
+                    <div class="form-group" style="display: none;" id="keyspace-edit-submit">
+                        <button class="btn btn-success" type="submit"><i
+                                class="glyphicon glyphicon-ok-sign"></i> Save
+                        </button>
                     </div>
                 </div>
+                </form>
             </div>
         </div>
         <div class="jumbotron manage-info-div" th:if="${key.access == creator || key.access == admin}">

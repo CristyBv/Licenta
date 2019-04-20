@@ -13,6 +13,7 @@ public class QueryProperties {
     private Map<String,String> selectUser;
     private Map<String,String> selectKeyspace;
     private String createKeyspace;
+    private String alterKeyspace;
     private String dropKeyspace;
     private String selectUserByPartialUsername;
 }

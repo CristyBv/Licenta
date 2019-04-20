@@ -20,6 +20,7 @@ public class RouteProperties {
     private String changeAvatar;
     private String myDatabase;
     private String createKeyspace;
+    private String editKeyspace;
     private String connectKeyspace;
     private String disconnectKeyspace;
     private String changeDatabasePanel;

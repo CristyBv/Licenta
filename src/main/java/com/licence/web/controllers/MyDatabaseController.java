@@ -101,30 +101,12 @@ public class MyDatabaseController {
         authUser.setKeyspaces(dbUser.getKeyspaces());
         updateKeyspaces(authUser);
         if (userKeyspace != null) {
-            if(authUser.getKeyspaces() != null) {
+            if (authUser.getKeyspaces() != null) {
                 return authUser.getKeyspaces().stream().filter(p -> Objects.equals(p.getCreatorName(), userKeyspace.getCreatorName()) && Objects.equals(p.getName(), userKeyspace.getName())).findFirst().orElse(null);
             }
         }
         return null;
     }
-
-//    private boolean notEqualsUserKeyspaces(User authUser, User dbUser) {
-//        if(authUser.getKeyspaces() == null && dbUser.getKeyspaces() == null)
-//            return false;
-//        if(authUser.getKeyspaces() == null && dbUser.getKeyspaces() != null)
-//            return true;
-//        if(authUser.getKeyspaces() != null && dbUser.getKeyspaces() == null)
-//            return true;
-//        if(authUser.getKeyspaces().size() != dbUser.getKeyspaces().size())
-//            return true;
-//        final Boolean[] ok = {false};
-//        authUser.getKeyspaces().forEach(p -> {
-//            if(dbUser.getKeyspaces().stream().noneMatch(q -> Objects.equals(q.getCreatorName(), p.getCreatorName()) && Objects.equals(q.getName(), p.getName()))) {
-//                ok[0] = true;
-//            }
-//        });
-//        return ok[0];
-//    }
 
     private void updateKeyspaces(User authUser) {
         if (authUser.getKeyspaces() != null) {
@@ -133,6 +115,35 @@ public class MyDatabaseController {
                 p.setKeyspace(keyspace);
             });
         }
+    }
+
+    @PostMapping(value = "${route.editKeyspace}")
+    public String editKeyspace(Keyspace keyspace,
+                               Authentication authentication,
+                               HttpSession session,
+                               WebRequest request,
+                               Model model) {
+        if (!testKeyspaceRole(session, keyspaceProperties.getCreator())) {
+            model.addAttribute("keyspaceManageError", "Access denied!");
+            return "forward:" + routeProperties.getMyDatabase();
+        }
+        UserKeyspace userKeyspace = updateUserKeyspaces(authentication, session);
+        if (userKeyspace != null) {
+            if (userKeyspace.getKeyspace().isDurableWrites() == keyspace.isDurableWrites() && Objects.equals(userKeyspace.getKeyspace().getReplicationFactor(), keyspace.getReplicationFactor())) {
+                model.addAttribute("keyspaceManageError",
+                        messages.getMessage("database.keyspaces.edit.no-change", null,
+                                request.getLocale()));
+            } else {
+                userKeyspace.getKeyspace().setDurableWrites(keyspace.isDurableWrites());
+                userKeyspace.getKeyspace().setReplicationFactor(keyspace.getReplicationFactor());
+                keyspaceService.save(userKeyspace.getKeyspace(), false, true);
+                model.addAttribute("keyspaceManageSuccess",
+                        messages.getMessage("database.keyspaces.edit.success", null,
+                                request.getLocale()));
+            }
+
+        }
+        return "forward:" + routeProperties.getMyDatabase();
     }
 
     @PostMapping(value = "${route.removeUserFromKeyspace}")
@@ -148,7 +159,7 @@ public class MyDatabaseController {
         if (userName != null) {
             UserKeyspace userKeyspace = updateUserKeyspaces(authentication, session);
             User removeUser = userService.findUserByUsername(userName);
-            if (userKeyspace != null && removeUser != null) {
+            if (userKeyspace != null && removeUser != null && removeUser.getKeyspaces() != null) {
                 // we verify that the keyspaceUser and the userKeyspace that we want to remove from keyspace table and
                 // users table, exists and we save them
                 KeyspaceUser keyspaceUserToRemove = userKeyspace.getKeyspace().getUsers().stream().filter(p -> Objects.equals(p.getUserName(), userName)).findFirst().orElse(null);
@@ -158,7 +169,7 @@ public class MyDatabaseController {
                     userKeyspace.getKeyspace().getUsers().remove(keyspaceUserToRemove);
                 if (userKeyspaceToRemove != null)
                     removeUser.getKeyspaces().remove(userKeyspaceToRemove);
-                keyspaceService.save(userKeyspace.getKeyspace(), false);
+                keyspaceService.save(userKeyspace.getKeyspace(), false, false);
                 userService.save(removeUser);
                 model.addAttribute("keyspaceManageSuccess",
                         messages.getMessage("database.keyspaces.remove-user.success", null,
@@ -202,7 +213,7 @@ public class MyDatabaseController {
                 KeyspaceUser newKeyspaceUser = new KeyspaceUser(addUser.getUserName(), access);
                 if (!userKeyspace.getKeyspace().getUsers().contains(newKeyspaceUser))
                     userKeyspace.getKeyspace().getUsers().add(newKeyspaceUser);
-                keyspaceService.save(userKeyspace.getKeyspace(), false);
+                keyspaceService.save(userKeyspace.getKeyspace(), false, false);
                 userService.save(addUser);
                 model.addAttribute("keyspaceManageSuccess",
                         messages.getMessage("database.keyspaces.add-user.success", null,
@@ -298,14 +309,14 @@ public class MyDatabaseController {
             return "forward:" + routeProperties.getMyDatabase();
         }
         UserKeyspace userKeyspace = updateUserKeyspaces(authentication, session);
-        if(userKeyspace != null && userKeyspace.getKeyspace() != null) {
+        if (userKeyspace != null && userKeyspace.getKeyspace() != null) {
             // if keyspace is password enabled
             if (userKeyspace.getKeyspace().isPasswordEnabled()) {
                 // if the old password matches with the current active keyspace
                 if (bCryptPasswordEncoder.matches(keyspace.getPassword(), userKeyspace.getKeyspace().getPassword())) {
                     // update the database, the context and the session too
                     userKeyspace.getKeyspace().setPasswordEnabled(false);
-                    keyspaceService.save(userKeyspace.getKeyspace(), false);
+                    keyspaceService.save(userKeyspace.getKeyspace(), false, false);
                     model.addAttribute("keyspaceManageSuccess",
                             messages.getMessage("database.keyspaces.password.disable", null,
                                     request.getLocale()));
@@ -329,7 +340,7 @@ public class MyDatabaseController {
                     // update the database, the context and the session too
                     userKeyspace.getKeyspace().setPasswordEnabled(true);
                     userKeyspace.getKeyspace().setPassword(keyspace.getPassword());
-                    keyspaceService.save(userKeyspace.getKeyspace(), false);
+                    keyspaceService.save(userKeyspace.getKeyspace(), false, false);
                     model.addAttribute("keyspaceManageSuccess",
                             messages.getMessage("database.keyspaces.password.change", null,
                                     request.getLocale()));
@@ -366,7 +377,7 @@ public class MyDatabaseController {
                 keyspace.setName(user.getUserName() + "_" + name);
                 keyspace.setUsers(Collections.singletonList(new KeyspaceUser(user.getUserName(), keyspaceProperties.getCreator())));
                 // save it in the database
-                keyspaceService.save(keyspace, true);
+                keyspaceService.save(keyspace, true, false);
                 // save add it in the users database as user keyspace
                 UserKeyspace userKeyspace = UserKeyspace.builder()
                         .keyspace(keyspace)

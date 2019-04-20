@@ -128,4 +128,19 @@ $(document).ready(function () {
             alert("Confirm deletion first!");
         }
     });
+
+    // submit edit keyspace on change
+    $("#keyspace-replication-factor2").on("change", function () {
+        $("#keyspace-edit-submit").css("display", "block");
+    });
+
+
+    $("#keyspace-durable-writes2").on("change", function () {
+        if($(this).val() === "false") {
+            $("#keyspace-durable-writes2-checkbox").prop("checked", false);
+        } else {
+            $("#keyspace-durable-writes2-checkbox").prop("checked", true);
+        }
+        $("#keyspace-edit-submit").css("display", "block");
+    });
 });
