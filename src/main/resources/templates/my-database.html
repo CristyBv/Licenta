@@ -10,9 +10,12 @@
 
         <!--Custom scripts-->
         <script th:src="@{/js/my-database.js}"></script>
+        <script th:src="@{/js/tables/bootstable.js}"></script>
+        <script th:src="@{/js/tables/colResizable.js}"></script>
         <script th:inline="javascript">
             /*<![CDATA[*/
-            var searchUserLiveUrl = /*[[${@environment.getProperty('route.searchUserLive')}]]*/ 'url'
+            var searchUserLiveUrl = /*[[${@environment.getProperty('route.searchUserLive')}]]*/ 'url';
+            var myKeyspacesPanelUrl = /*[[${@environment.getProperty('route.changeMyKeyspacesPanel')}]]*/ 'url';
             /*]]>*/
         </script>
     </th:block>

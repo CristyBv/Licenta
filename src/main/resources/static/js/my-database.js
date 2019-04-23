@@ -9,14 +9,39 @@ $(document).ready(function () {
 
     // My keyspace open/close tab
     $(".arrow-left-button").on("click", function () {
-        $(".keyspace-panel").css("display", "none");
-        $(".mini-keyspace").css("display", "block");
-        $(".database-panel").css("width", "96%");
+        $.ajax({
+            type: "post",
+            url: myKeyspacesPanelUrl,
+            contentType: "application/json; charset=utf-8",
+            data: JSON.stringify({
+                "position": 'close'
+            }),
+            dataType: "json"
+        }).done(function () {
+            $(".keyspace-panel").css("display", "none");
+            $(".mini-keyspace").css("display", "block");
+            $(".database-panel").css("width", "96%");
+        }).fail(function () {
+            alert("Server error!");
+        });
     });
     $(".mini-keyspace").on("click", function () {
-        $(".keyspace-panel").css("display", "block");
-        $(".mini-keyspace").css("display", "none");
-        $(".database-panel").css("width", "77%");
+        $.ajax({
+            type: "post",
+            url: myKeyspacesPanelUrl,
+            contentType: "application/json; charset=utf-8",
+            data: JSON.stringify({
+                "position": 'open'
+            }),
+            dataType: "json"
+        }).done(function () {
+            $(".keyspace-panel").css("display", "block");
+            $(".mini-keyspace").css("display", "none");
+            $(".database-panel").css("width", "77%");
+        }).fail(function () {
+            alert("Server error!");
+        });
+
     });
 
     // JS for a tree nav model
@@ -123,7 +148,7 @@ $(document).ready(function () {
 
     // safe delete for keyspace
     $("#delete-keyspace-form").on("submit", function (e) {
-        if(!$("#confirmKeyspaceDelete").is(":checked")) {
+        if (!$("#confirmKeyspaceDelete").is(":checked")) {
             e.preventDefault();
             alert("Confirm deletion first!");
         }
@@ -136,11 +161,22 @@ $(document).ready(function () {
 
 
     $("#keyspace-durable-writes2").on("change", function () {
-        if($(this).val() === "false") {
+        if ($(this).val() === "false") {
             $("#keyspace-durable-writes2-checkbox").prop("checked", false);
         } else {
             $("#keyspace-durable-writes2-checkbox").prop("checked", true);
         }
         $("#keyspace-edit-submit").css("display", "block");
+    });
+
+    var table = $("#keyspace-data-tables").DataTable({
+        "ordering": true,
+        "lengthMenu": [[1, 3, 5, 10, 20, 50, 100, -1], [1, 3, 5, 10, 20, 50, 100, "All"]],
+        "pageLength": 1,
+        "stateSave": true,
+        responsive: true,
+        "scrollY": true,
+        "scrollX": true,
+        'dom': 'Rlfrtip'
     });
 });

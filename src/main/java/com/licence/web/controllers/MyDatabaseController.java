@@ -10,8 +10,10 @@ import com.licence.web.models.UDT.UserKeyspace;
 import com.licence.web.models.User;
 import com.licence.web.services.KeyspaceService;
 import com.licence.web.services.UserService;
+import netscape.javascript.JSObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.configurationprocessor.json.JSONObject;
 import org.springframework.context.MessageSource;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -23,8 +25,10 @@ import org.springframework.validation.ObjectError;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.context.request.WebRequest;
 
 import javax.servlet.http.HttpSession;
@@ -62,16 +66,24 @@ public class MyDatabaseController {
     public String myDatabase(Model model,
                              Authentication authentication,
                              HttpSession session) {
-        if (session.getAttribute("userKeyspace") == null)
-            updateUserKeyspaces(authentication, session);
-        else {
-            session.setAttribute("userKeyspace", updateUserKeyspaces(authentication, session));
-            if (session.getAttribute("userKeyspace") == null) {
-                model.addAttribute("keyspaceNotAvailable", "Keyspace not available anymore!");
-            }
-        }
         CassandraUserDetails userDetails = (CassandraUserDetails) authentication.getPrincipal();
         User user = userDetails.getUser();
+        UserKeyspace userKeyspace = updateUserKeyspaces(authentication, session);
+
+        if (session.getAttribute("userKeyspace") != null) {
+            session.setAttribute("userKeyspace", userKeyspace);
+            if (userKeyspace == null) {
+                model.addAttribute("keyspaceNotAvailable", "Keyspace not available anymore!");
+            } else {
+                String activePanel = (String) session.getAttribute("activePanel");
+                if (Objects.equals(activePanel, "ManagePanel") || Objects.equals(activePanel, "ViewEditPanel")) {
+                    model.addAttribute("keyspaceContent", keyspaceService.getKeyspaceContent(userKeyspace.getKeyspace().getName().toLowerCase()));
+                }
+                if(Objects.equals(activePanel, "ViewEditPanel")) {
+                    model.addAttribute("systemSchemaContent", keyspaceService.getKeyspaceContent("system_schema"));
+                }
+            }
+        }
         model.addAttribute("keyspaceObject", new Keyspace());
         model.addAttribute("keyspaces", getUserKeyspaces(user));
         return routeProperties.getMyDatabase();
@@ -82,12 +94,6 @@ public class MyDatabaseController {
         List<UserKeyspace> userKeyspaces = user.getKeyspaces();
         if (userKeyspaces != null) {
             map = userKeyspaces.stream().collect(Collectors.groupingBy(UserKeyspace::getCreatorName));
-//            map.keySet().forEach(p -> map.get(p).forEach(q -> {
-//                Keyspace keyspace = keyspaceService.findKeyspaceByName(q.getCreatorName() + "_" + q.getName());
-//                if(q.getKeyspace() == null || q.getKeyspace() != keyspace) {
-//                    q.setKeyspace(keyspace);
-//                }
-//            }));
         } else {
             return new HashMap<>();
         }
@@ -116,6 +122,19 @@ public class MyDatabaseController {
             });
         }
     }
+
+    @ResponseBody
+    @PostMapping(value = "${route.changeMyKeyspacesPanel}")
+    public String changeMyKeyspacesPanel(@RequestBody Map<String, String> position,
+                                       HttpSession session) {
+        if(position.get("position").equals("open")) {
+            session.setAttribute("myKeyspacesPanelPosition", "open");
+        } else if(position.get("position").equals("close")) {
+            session.setAttribute("myKeyspacesPanelPosition", "close");
+        }
+        return JSONObject.quote("success");
+    }
+
 
     @PostMapping(value = "${route.editKeyspace}")
     public String editKeyspace(Keyspace keyspace,
@@ -304,7 +323,7 @@ public class MyDatabaseController {
                                          WebRequest request,
                                          Authentication authentication) {
 
-        if (!testKeyspaceRole(session, keyspaceProperties.getCreator()) && !testKeyspaceRole(session, keyspaceProperties.getAdmin())) {
+        if (!testKeyspaceRole(session, keyspaceProperties.getCreator())) {
             model.addAttribute("keyspaceManageError", "Access denied!");
             return "forward:" + routeProperties.getMyDatabase();
         }
@@ -418,6 +437,7 @@ public class MyDatabaseController {
             if (!keyspace.isPasswordEnabled() || bCryptPasswordEncoder.matches(keyspace.getPassword(), userKeyspace.getKeyspace().getPassword())) {
                 // we save the user keyspace in the session
                 session.setAttribute("userKeyspace", userKeyspace);
+                session.setAttribute("activePanel", "ManagePanel");
                 return "redirect:" + routeProperties.getMyDatabase();
             } else {
                 message = "Access denied! Incorect password!";

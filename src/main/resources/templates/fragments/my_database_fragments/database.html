@@ -1,37 +1,37 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
 <head>
 </head>
 <body>
 <th:block th:fragment="database">
     <div class="keyspace-active" th:if="${session.userKeyspace}">
-        <div class="panel panel-default database-panel">
+        <div class="panel panel-default database-panel" th:with="key=${session.userKeyspace}">
             <div class="panel-heading database-panel-heading">
                 <th:block th:replace="fragments/my_database_fragments/database-navbar :: database-navbar"></th:block>
             </div>
             <div class="panel-body panel-resizable database-panel-body">
                 <th:block th:switch="${session.activePanel}">
-                    <th:block th:case="'2'">
+                    <th:block th:case="'ViewEditPanel'">
                         <th:block
                                 th:replace="fragments/my_database_fragments/menu/database-view-edit :: database-view-edit">
                         </th:block>
                     </th:block>
-                    <th:block th:case="'3'">
+                    <th:block th:case="'ConsoleScriptPanel'">
                         <th:block
                                 th:replace="fragments/my_database_fragments/menu/database-console-script :: database-console-script">
                         </th:block>
                     </th:block>
-                    <th:block th:case="'4'">
+                    <th:block th:case="'ImportExportPanel'">
                         <th:block
                                 th:replace="fragments/my_database_fragments/menu/database-import-export :: database-import-export">
                         </th:block>
                     </th:block>
-                    <th:block th:case="'5'">
+                    <th:block th:case="'LogPanel'">
                         <th:block
                                 th:replace="fragments/my_database_fragments/menu/database-log :: database-log">
                         </th:block>
                     </th:block>
-                    <th:block th:case="'6'">
+                    <th:block th:case="'SearchPanel'">
                         <th:block th:replace="fragments/my_database_fragments/menu/database-search :: database-search">
                         </th:block>
                     </th:block>
@@ -54,6 +54,12 @@
             </div>
         </div>
     </div>
+    <script th:inline="javascript" th:if="${session.myKeyspacesPanelPosition == 'close'}">
+        $(".database-panel").css("width", "96%");
+    </script>
+    <script th:inline="javascript" th:if="${session.myKeyspacesPanelPosition == 'open'}">
+        $(".database-panel").css("width", "77%");
+    </script>
 </th:block>
 </body>
 </html>

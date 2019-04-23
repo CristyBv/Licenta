@@ -86,8 +86,8 @@
     text-align: center;
     background-color: #182645;
     color: white;
-    display: none;
     overflow: hidden;
+    display: none;
     margin: 0 0 0 0.5%;
     word-wrap: break-word;
     font-size: 1.5em;
@@ -245,6 +245,23 @@ ul.nav-menu-list-style li .badge, ul.nav-menu-list-style li .pull-right, ul.nav-
     background-color: white;
 }
 
+/*DATA TABLE START*/
+
+.dataTables_paginate a.current {
+    background: #ddd !important;
+    border-color: #ddd !important;
+}
+
+.dataTable {
+
+}
+
+
+/*DATA TABLE STOP*/
+
+
+/*MEDIA*/
+
 @media (max-width: 720px) {
     .keyspace-panel {
         width: 100%;
@@ -258,3 +275,5 @@ ul.nav-menu-list-style li .badge, ul.nav-menu-list-style li .pull-right, ul.nav-
         display: none;
     }
 }
+
+

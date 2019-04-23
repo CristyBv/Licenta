@@ -12,6 +12,7 @@ import java.util.Map;
 public class QueryProperties {
     private Map<String,String> selectUser;
     private Map<String,String> selectKeyspace;
+    private String selectKeyspaces;
     private String createKeyspace;
     private String alterKeyspace;
     private String dropKeyspace;

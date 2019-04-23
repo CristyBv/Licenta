@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
 <head>
 </head>
 <body>
-<th:block th:fragment="keyspaces-bar">
+<th:block th:fragment="keyspaces-bar" th:with="panelPosition=${session.myKeyspacesPanelPosition}">
 
     <div class="modal fade" id="create-keyspace-modal" tabindex="-1" role="dialog" aria-hidden="true">
         <div class="modal-dialog" role="document">
@@ -12,7 +12,8 @@
         </div>
     </div>
 
-    <div class="panel panel-default keyspace-panel">
+    <div class="panel panel-default keyspace-panel"
+         th:style="${(panelPosition == 'open' || panelPosition == null) ? 'display:block;' : 'display:none;'}">
         <div class="panel-heading keyspace-panel-heading">
             <span class="keyspace-panel-heading-span">My Keyspaces</span>
             <div class="btn btn-secondary arrow-left-button">
@@ -25,7 +26,7 @@
             <div th:if="${keyspaceNotAvailable}" class="alert-danger" th:text="${keyspaceNotAvailable}"></div>
             <th:block>
                 <a href="#" class="glyphicon glyphicon-plus create-keyspace btn btn-lg" data-toggle="modal"
-                   data-target="#create-keyspace-modal" >
+                   data-target="#create-keyspace-modal">
                     <span th:text="#{database.keyspaces.create}"></span>
                 </a>
             </th:block>
@@ -39,12 +40,6 @@
                             <span class="menu-collapsible-icon glyphicon glyphicon-chevron-down"></span>
                         </label>
                         <ul class="nav nav-list tree bullets" th:id="'creator-list-'+${map.key}">
-                            <!--<li class="keyspace-add-li" th:if="${map.key} == ${currentUserName}">-->
-                                <!--<a href="#" class="glyphicon glyphicon-plus create-keyspace" data-toggle="modal"-->
-                                   <!--data-target="#create-keyspace-modal">-->
-                                    <!--<span th:text="#{database.keyspaces.create}"></span>-->
-                                <!--</a>-->
-                            <!--</li>-->
                             <th:block th:if="${map.value == null || #lists.isEmpty(map.value)}">
                                 <li>
                                     <label class="tree-toggle nav-header tree-level-two"
@@ -64,9 +59,11 @@
                                         <span class="glyphicon glyphicon-arrow-right"></span>
                                         <span th:text="${keyspace.getName()}"></span>
                                     </label>
-                                    <ul class="nav nav-list tree" th:id="'keyspaces-list-'+${map.key}+'_'+${keyspace.getName()}">
+                                    <ul class="nav nav-list tree"
+                                        th:id="'keyspaces-list-'+${map.key}+'_'+${keyspace.getName()}">
                                         <li th:if="${session.userKeyspace == keyspace}">
-                                            <a style="color: red;" class="disconnect-link" th:href="${@environment.getProperty('route.disconnectKeyspace')}">Disconnect</a>
+                                            <a style="color: red;" class="disconnect-link"
+                                               th:href="${@environment.getProperty('route.disconnectKeyspace')}">Disconnect</a>
                                         </li>
                                         <li th:if="${session.userKeyspace != keyspace}">
                                             <a href="" class="connect-link" data-toggle="modal"
@@ -82,11 +79,12 @@
             </ul>
         </div>
     </div>
-    <div class="mini-keyspace">
+    <div class="mini-keyspace" th:style="${panelPosition} == 'close' ? 'display:block;' : 'display:none;'">
             <span class="mini-keyspace-span">
                 My keyspaces
             </span>
     </div>
+
 </th:block>
 </body>
 </html>

@@ -1,11 +1,8 @@
 package com.licence.config.context;
 
-import com.datastax.driver.core.Row;
-import com.datastax.driver.core.exceptions.DriverException;
 import com.licence.config.getters.ResourceGetter;
 import com.licence.config.properties.QueryProperties;
 import com.licence.web.models.Keyspace;
-import com.licence.web.models.UDT.KeyspaceLog;
 import com.licence.web.models.UDT.KeyspaceUser;
 import com.licence.web.models.UDT.UserKeyspace;
 import com.licence.web.models.User;
@@ -14,25 +11,14 @@ import com.licence.web.services.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.CommandLineRunner;
-import org.springframework.context.MessageSource;
 import org.springframework.data.cassandra.core.CassandraAdminOperations;
-import org.springframework.data.cassandra.core.cql.RowMapper;
-import org.springframework.data.cassandra.core.query.Query;
-import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Calendar;
-import java.util.Collection;
 import java.util.Collections;
-import java.util.Date;
-import java.util.List;
-import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
-import static org.springframework.data.cassandra.core.query.Criteria.where;
 
 // after run functions starts from main class, this method (run) is called
 @Component
@@ -121,7 +107,7 @@ public class CommandLineAppStartUpRunner implements CommandLineRunner {
                 .log(new ArrayList<>())
                 .replicationFactor(3)
                 .durableWrites(true)
-                .users(Collections.singletonList(new KeyspaceUser("CristyBv","FULL")))
+                .users(Collections.singletonList(new KeyspaceUser("CristyBv", "FULL")))
                 .build();
         keyspaceService.save(keyspace, false, false);
     }

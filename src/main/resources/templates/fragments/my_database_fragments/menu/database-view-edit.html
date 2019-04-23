@@ -1,11 +1,69 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
 <head>
 
 </head>
 <body>
 <div th:fragment="database-view-edit" id="view-edit-div">
-    View
+    <div class="container">
+        <div class="alert alert-success" th:if="${keyspaceViewEditSuccess}"
+             th:text="${keyspaceViewEditSuccess}"></div>
+        <div class="alert alert-danger" th:if="${keyspaceViewEditError}"
+             th:text="${keyspaceViewEditError}"></div>
+        <hr/>
+        <div class="jumbotron manage-info-div">
+            <p style="float:left; font-size: 1.75em;" class="font-weight-bold"><strong>Data</strong></p>
+            <span style="float:right;" class="glyphicon glyphicon-minus btn btn-default keyspace-manage-minus"></span>
+            <br style="clear:both;"><br>
+            <ul class="nav nav-tabs">
+                <li class="active"><a data-toggle="tab" href="#tables">Tables</a></li>
+                <li><a data-toggle="tab" href="#columns">Columns</a></li>
+                <li><a data-toggle="tab" href="#droppedColumns">DroppedColumns</a></li>
+                <li><a data-toggle="tab" href="#indexes">Indexes</a></li>
+                <li><a data-toggle="tab" href="#types">Types</a></li>
+                <li><a data-toggle="tab" href="#views">Views</a></li>
+                <li><a data-toggle="tab" href="#functions">Functions</a></li>
+                <li><a data-toggle="tab" href="#aggregates">Aggregates</a></li>
+                <li><a data-toggle="tab" href="#triggers">Triggers</a></li>
+            </ul>
+            <br/>
+            <div class="tab-content" th:if="${keyspaceContent != null && systemSchemaContent != null}">
+                <div class="tab-pane active" id="tables">
+                    <th:block
+                            th:replace="fragments/my_database_fragments/data/tables :: data-tables">
+                    </th:block>
+                </div>
+                <div class="tab-pane" id="columns">
+
+                </div>
+                <div class="tab-pane" id="droppedColumns">
+
+                </div>
+                <div class="tab-pane" id="indexes">
+
+                </div>
+                <div class="tab-pane" id="types">
+
+                </div>
+                <div class="tab-pane" id="views">
+
+                </div>
+                <div class="tab-pane" id="functions">
+
+                </div>
+                <div class="tab-pane" id="aggregates">
+
+                </div>
+                <div class="tab-pane" id="triggers">
+
+                </div>
+            </div>
+
+            <div th:if="${keyspaceContent == null}">
+                No data available!
+            </div>
+        </div>
+    </div>
 </div>
 </body>
 </html>

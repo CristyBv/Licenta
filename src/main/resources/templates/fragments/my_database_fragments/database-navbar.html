@@ -9,35 +9,35 @@
     </form>
     <ul class="nav navbar-nav database-navbar-nav">
         <li>
-            <a class="database-menu-link" data-panel="1"
+            <a class="database-menu-link" data-panel="ManagePanel"
                th:href="${@environment.getProperty('route.myDatabaseManage')}">
                 <span th:if="${creator == key.access || admin == key.access}">Manage</span>
                 <span th:if="${editor == key.access || member == key.access}">Info</span>
             </a>
         </li>
         <li>
-            <a class="database-menu-link" data-panel="2"
+            <a class="database-menu-link" data-panel="ViewEditPanel"
                th:href="${@environment.getProperty('route.myDatabaseViewEdit')}">
                 <span th:if="${member == key.access}">View</span>
                 <span th:unless="${member == key.access}">View/Edit</span>
             </a>
         </li>
         <li th:unless="${member == key.access}">
-            <a class="database-menu-link" data-panel="3"
+            <a class="database-menu-link" data-panel="ConsoleScriptPanel"
                th:href="${@environment.getProperty('route.myDatabaseConsoleScript')}">Console/Script</a>
         </li>
         <li th:unless="${member == key.access}">
-            <a class="database-menu-link" data-panel="4"
+            <a class="database-menu-link" data-panel="ImportExportPanel"
                th:href="${@environment.getProperty('route.myDatabaseImportExport')}">Import/Export</a>
         </li>
 
     </ul>
     <ul class="nav navbar-nav navbar-right database-navbar-nav">
         <li th:if="${creator == key.access || admin == key.access}">
-            <a class="database-menu-link" data-panel="5" th:href="${@environment.getProperty('route.myDatabaseLog')}">Log</a>
+            <a class="database-menu-link" data-panel="LogPanel" th:href="${@environment.getProperty('route.myDatabaseLog')}">Log</a>
         </li>
         <li>
-            <a class="database-menu-link" data-panel="6"
+            <a class="database-menu-link" data-panel="SearchPanel"
                th:href="${@environment.getProperty('route.myDatabaseSearch')}">Search</a>
         </li>
     </ul>
