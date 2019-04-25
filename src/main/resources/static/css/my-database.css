@@ -240,7 +240,7 @@ ul.nav-menu-list-style li .badge, ul.nav-menu-list-style li .pull-right, ul.nav-
 
 /*CREATE KEYSPACE STOP*/
 
-.manage-info-div {
+.database-data-div {
     border: 2px solid #182645;
     background-color: white;
 }

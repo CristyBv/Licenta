@@ -21,6 +21,7 @@ $(document).ready(function () {
             $(".keyspace-panel").css("display", "none");
             $(".mini-keyspace").css("display", "block");
             $(".database-panel").css("width", "96%");
+            adjustDataTableColumns(tables);
         }).fail(function () {
             alert("Server error!");
         });
@@ -38,6 +39,7 @@ $(document).ready(function () {
             $(".keyspace-panel").css("display", "block");
             $(".mini-keyspace").css("display", "none");
             $(".database-panel").css("width", "77%");
+            adjustDataTableColumns(tables);
         }).fail(function () {
             alert("Server error!");
         });
@@ -91,6 +93,13 @@ $(document).ready(function () {
         e.preventDefault();
         $("#panel-input").val($(this).data("panel"));
         $("#panel-form").submit();
+    });
+
+    //change view-edit panel
+    $(".database-view-edit-panel-link").on("click", function (e) {
+        e.preventDefault();
+        $("#view-edit-panel-input").val($(this).data("panel"));
+        $("#view-edit-panel-form").submit();
     });
 
     // less info on click
@@ -159,7 +168,7 @@ $(document).ready(function () {
         $("#keyspace-edit-submit").css("display", "block");
     });
 
-
+    // edit keyspace with text instead of checkbox
     $("#keyspace-durable-writes2").on("change", function () {
         if ($(this).val() === "false") {
             $("#keyspace-durable-writes2-checkbox").prop("checked", false);
@@ -169,14 +178,31 @@ $(document).ready(function () {
         $("#keyspace-edit-submit").css("display", "block");
     });
 
-    var table = $("#keyspace-data-tables").DataTable({
+    // DataTable for all tables in view-edit panel
+    var tables = [];
+    $("#view-edit-div").find('table').each(function () {
+        tables.push(drawDataTable($(this).attr('id')));
+    });
+    // adjust columns on resize
+    $(window).resize(function () {
+        adjustDataTableColumns(tables);
+    });
+});
+
+function adjustDataTableColumns(tables) {
+    for(var i = 0 ; i < tables.length ; i++) {
+        tables[i].columns.adjust().draw();
+    }
+}
+
+function drawDataTable(id) {
+    return $("#"+id).DataTable({
         "ordering": true,
         "lengthMenu": [[1, 3, 5, 10, 20, 50, 100, -1], [1, 3, 5, 10, 20, 50, 100, "All"]],
-        "pageLength": 1,
+        "pageLength": 3,
         "stateSave": true,
         responsive: true,
         "scrollY": true,
-        "scrollX": true,
         'dom': 'Rlfrtip'
     });
-});
+}

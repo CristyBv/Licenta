@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+</head>
+<body>
+<div th:fragment="structure-form(indexName,tableName)">
+    <form th:action="${@environment.getProperty('route.getDatabaseContent')}">
+        <input type="hidden" name="index" th:value="${indexName}"/>
+        <input type="hidden" name="table" th:value="${tableName}"/>
+        <input type="submit" value="Structure" class="btn btn-primary"/>
+    </form>
+</div>
+<div th:fragment="delete-form(indexName,tableName)">
+    <form th:action="${@environment.getProperty('route.getDatabaseContent')}">
+        <input type="hidden" name="index" th:value="${indexName}"/>
+        <input type="hidden" name="table" th:value="${tableName}"/>
+        <input type="submit" value="Delete" class="btn btn-danger"/>
+    </form>
+</div>
+</body>
+</html>

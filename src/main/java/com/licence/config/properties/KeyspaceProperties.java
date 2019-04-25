@@ -4,6 +4,8 @@ import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
+import java.util.Map;
+
 @Data
 @Component
 @ConfigurationProperties(prefix = "keyspace")
@@ -12,4 +14,5 @@ public class KeyspaceProperties {
     private String admin;
     private String editor;
     private String member;
+    private Map<String, String> panel;
 }

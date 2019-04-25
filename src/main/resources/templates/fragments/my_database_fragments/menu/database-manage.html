@@ -11,7 +11,7 @@
         <div class="alert alert-danger" th:if="${keyspaceManageError}"
              th:text="${keyspaceManageError}"></div>
         <hr/>
-        <div class="jumbotron manage-info-div">
+        <div class="jumbotron database-data-div">
             <p style="float:left; font-size: 1.75em;" class="font-weight-bold"><strong>Info</strong></p>
             <span style="float:right;" class="glyphicon glyphicon-minus btn btn-default keyspace-manage-minus"></span>
             <br style="clear:both;">
@@ -81,7 +81,7 @@
                 </form>
             </div>
         </div>
-        <div class="jumbotron manage-info-div" th:if="${key.access == creator || key.access == admin}">
+        <div class="jumbotron database-data-div" th:if="${key.access == creator || key.access == admin}">
             <p style="float:left; font-size: 1.75em;" class="font-weight-bold"><strong>Settings</strong></p>
             <span style="float:right;" class="glyphicon glyphicon-minus btn btn-default keyspace-manage-minus"></span>
             <br style="clear:both;"><br>
@@ -192,7 +192,7 @@
                 </div>
             </div>
         </div>
-        <div class="jumbotron manage-info-div" th:unless="${key.access == member}">
+        <div class="jumbotron database-data-div" th:unless="${key.access == member}">
             <p style="float:left; font-size: 1.75em;" class="font-weight-bold"><strong>Stats</strong></p>
             <span style="float:right;" class="glyphicon glyphicon-minus btn btn-default keyspace-manage-minus"></span>
             <br style="clear:both;"><br>
@@ -203,31 +203,31 @@
                         <span class="pull-left">
                             <strong>Tables:</strong>
                         </span>
-                            <span th:text="${#lists.size(keyspaceContent.tables)}"></span>
+                            <span th:text="${#lists.size(keyspaceContent.tables.content)}"></span>
                         </li>
                         <li class="list-group-item text-right">
                         <span class="pull-left">
                             <strong>Columns:</strong>
                         </span>
-                            <span th:text="${#lists.size(keyspaceContent.columns)}"></span>
+                            <span th:text="${#lists.size(keyspaceContent.columns.content)}"></span>
                         </li>
                         <li class="list-group-item text-right">
                         <span class="pull-left">
                             <strong>Views:</strong>
                         </span>
-                            <span th:text="${#lists.size(keyspaceContent.views)}"></span>
+                            <span th:text="${#lists.size(keyspaceContent.views.content)}"></span>
                         </li>
                         <li class="list-group-item text-right">
                         <span class="pull-left">
                             <strong>Types:</strong>
                         </span>
-                            <span th:text="${#lists.size(keyspaceContent.types)}"></span>
+                            <span th:text="${#lists.size(keyspaceContent.types.content)}"></span>
                         </li>
                         <li class="list-group-item text-right">
                         <span class="pull-left">
                             <strong>Indexes:</strong>
                         </span>
-                            <span th:text="${#lists.size(keyspaceContent.indexes)}"></span>
+                            <span th:text="${#lists.size(keyspaceContent.indexes.content)}"></span>
                         </li>
                     </ul>
                 </div>
@@ -243,25 +243,25 @@
                         <span class="pull-left">
                             <strong>Dropped Columns:</strong>
                         </span>
-                            <span th:text="${#lists.size(keyspaceContent.droppedColumns)}"></span>
+                            <span th:text="${#lists.size(keyspaceContent.droppedColumns.content)}"></span>
                         </li>
                         <li class="list-group-item text-right">
                         <span class="pull-left">
                             <strong>Functions:</strong>
                         </span>
-                            <span th:text="${#lists.size(keyspaceContent.functions)}"></span>
+                            <span th:text="${#lists.size(keyspaceContent.functions.content)}"></span>
                         </li>
                         <li class="list-group-item text-right">
                         <span class="pull-left">
                             <strong>Aggregates:</strong>
                         </span>
-                            <span th:text="${#lists.size(keyspaceContent.aggregates)}"></span>
+                            <span th:text="${#lists.size(keyspaceContent.aggregates.content)}"></span>
                         </li>
                         <li class="list-group-item text-right">
                         <span class="pull-left">
                             <strong>Triggers:</strong>
                         </span>
-                            <span th:text="${#lists.size(keyspaceContent.triggers)}"></span>
+                            <span th:text="${#lists.size(keyspaceContent.triggers.content)}"></span>
                         </li>
                     </ul>
                 </div>
@@ -271,7 +271,7 @@
                 No stats available!
             </p>
         </div>
-        <div class="jumbotron manage-info-div" th:unless="${key.access == member}">
+        <div class="jumbotron database-data-div" th:unless="${key.access == member}">
             <p style="float:left; font-size: 1.75em;" class="font-weight-bold"><strong>Access</strong></p>
             <span style="float:right;" class="glyphicon glyphicon-minus btn btn-default keyspace-manage-minus"></span>
             <br style="clear:both;"><br>

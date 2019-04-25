@@ -13,17 +13,18 @@ import lombok.Builder;
 import lombok.Data;
 
 import java.util.List;
+import java.util.Map;
 
 @Data
 @Builder
 public class KeyspaceContent {
-    List<Table> tables;
-    List<Column> columns;
-    List<Aggregate> aggregates;
-    List<Index> indexes;
-    List<Function> functions;
-    List<DroppedColumn> droppedColumns;
-    List<Trigger> triggers;
-    List<Type> types;
-    List<View> views;
+    KeyspaceContentObject tables;;
+    KeyspaceContentObject columns;
+    KeyspaceContentObject aggregates;
+    KeyspaceContentObject indexes;
+    KeyspaceContentObject functions;
+    KeyspaceContentObject droppedColumns;
+    KeyspaceContentObject triggers;
+    KeyspaceContentObject types;
+    KeyspaceContentObject views;
 }

@@ -29,4 +29,5 @@ public class RouteProperties {
     private String searchUserLive;
     private String deleteKeyspace;
     private String changeKeyspacePassword;
+    private String changeDatabaseViewEditPanel;
 }

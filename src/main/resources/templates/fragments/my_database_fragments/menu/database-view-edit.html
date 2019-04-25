@@ -11,51 +11,329 @@
         <div class="alert alert-danger" th:if="${keyspaceViewEditError}"
              th:text="${keyspaceViewEditError}"></div>
         <hr/>
-        <div class="jumbotron manage-info-div">
+        <div class="jumbotron database-data-div">
             <p style="float:left; font-size: 1.75em;" class="font-weight-bold"><strong>Data</strong></p>
             <span style="float:right;" class="glyphicon glyphicon-minus btn btn-default keyspace-manage-minus"></span>
             <br style="clear:both;"><br>
+            <form th:action="${@environment.getProperty('route.changeDatabaseViewEditPanel')}"
+                  id="view-edit-panel-form">
+                <input type="hidden" name="panel" id="view-edit-panel-input"/>
+            </form>
             <ul class="nav nav-tabs">
-                <li class="active"><a data-toggle="tab" href="#tables">Tables</a></li>
-                <li><a data-toggle="tab" href="#columns">Columns</a></li>
-                <li><a data-toggle="tab" href="#droppedColumns">DroppedColumns</a></li>
-                <li><a data-toggle="tab" href="#indexes">Indexes</a></li>
-                <li><a data-toggle="tab" href="#types">Types</a></li>
-                <li><a data-toggle="tab" href="#views">Views</a></li>
-                <li><a data-toggle="tab" href="#functions">Functions</a></li>
-                <li><a data-toggle="tab" href="#aggregates">Aggregates</a></li>
-                <li><a data-toggle="tab" href="#triggers">Triggers</a></li>
+                <li th:class="${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[tables]') ? 'active' : ''}">
+                    <a data-toggle="tab" href="#tables"
+                       th:class="'database-view-edit-panel-link'"
+                       th:attr="data-panel=${@environment.getProperty('keyspace.panel[tables]')}">Tables</a>
+                </li>
+                <li th:class="${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[columns]') ? 'active' : ''}"><a data-toggle="tab" href="#columns"
+                       th:class="'database-view-edit-panel-link ' + ${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[columns]') ? 'active' : ''}"
+                       th:attr="data-panel=${@environment.getProperty('keyspace.panel[columns]')}">Columns</a></li>
+                <li th:class="${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[droppedColumns]') ? 'active' : ''}"><a data-toggle="tab" href="#droppedColumns"
+                       th:class="'database-view-edit-panel-link ' + ${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[droppedColumns]') ? 'active' : ''}"
+                       th:attr="data-panel=${@environment.getProperty('keyspace.panel[droppedColumns]')}">DroppedColumns</a>
+                </li>
+                <li th:class="${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[indexes]') ? 'active' : ''}"><a data-toggle="tab" href="#indexes"
+                       th:class="'database-view-edit-panel-link ' + ${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[indexes]') ? 'active' : ''}"
+                       th:attr="data-panel=${@environment.getProperty('keyspace.panel[indexes]')}">Indexes</a></li>
+                <li th:class="${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[types]') ? 'active' : ''}"><a data-toggle="tab" href="#types"
+                       th:class="'database-view-edit-panel-link ' + ${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[types]') ? 'active' : ''}"
+                       th:attr="data-panel=${@environment.getProperty('keyspace.panel[types]')}">Types</a></li>
+                <li th:class="${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[views]') ? 'active' : ''}"><a data-toggle="tab" href="#views"
+                       th:class="'database-view-edit-panel-link ' + ${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[views]') ? 'active' : ''}"
+                       th:attr="data-panel=${@environment.getProperty('keyspace.panel[views]')}">Views</a></li>
+                <li th:class="${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[functions]') ? 'active' : ''}"><a data-toggle="tab" href="#functions"
+                       th:class="'database-view-edit-panel-link ' + ${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[functions]') ? 'active' : ''}"
+                       th:attr="data-panel=${@environment.getProperty('keyspace.panel[functions]')}">Functions</a></li>
+                <li th:class="${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[aggregates]') ? 'active' : ''}"><a data-toggle="tab" href="#aggregates"
+                       th:class="'database-view-edit-panel-link ' + ${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[aggregates]') ? 'active' : ''}"
+                       th:attr="data-panel=${@environment.getProperty('keyspace.panel[aggregates]')}">Aggregates</a>
+                </li>
+                <li th:class="${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[triggers]') ? 'active' : ''}"><a data-toggle="tab" href="#triggers"
+                       th:class="'database-view-edit-panel-link ' + ${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[triggers]') ? 'active' : ''}"
+                       th:attr="data-panel=${@environment.getProperty('keyspace.panel[triggers]')}">Triggers</a></li>
             </ul>
             <br/>
-            <div class="tab-content" th:if="${keyspaceContent != null && systemSchemaContent != null}">
-                <div class="tab-pane active" id="tables">
-                    <th:block
-                            th:replace="fragments/my_database_fragments/data/tables :: data-tables">
-                    </th:block>
+            <div class="tab-content row" th:if="${keyspaceContent != null}">
+                <div th:class="'tab-pane ' + ${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[tables]') ? 'active' : ''}"
+                     id="tables"
+                     th:if="${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[tables]')}">
+                    <table class="table table-striped table-bordered text-center" id="keyspace-data-tables">
+                        <thead>
+                        <tr>
+                            <th scope="col" class="text-center">Table Name</th>
+                            <th scope="col" class="text-center"></th>
+                            <th scope="col" class="text-center"></th>
+                            <th scope="col" class="text-center"></th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <th:block th:each="mapTable:${keyspaceContent.tables.content}">
+                            <tr th:with="tableName=${mapTable.get('table_name')}">
+                                <td style="font-weight: bold; border: 1px solid black;" th:text="${tableName}"></td>
+                                <td>
+                                    <th:block
+                                            th:replace="fragments/my_database_fragments/data/tables-data :: content-form(item=${tableName})"></th:block>
+                                </td>
+                                <td>
+                                    <th:block
+                                            th:replace="fragments/my_database_fragments/data/tables-data :: structure-form(item=${tableName})"></th:block>
+                                </td>
+                                <td>
+                                    <th:block
+                                            th:replace="fragments/my_database_fragments/data/tables-data :: delete-form(item=${tableName})"></th:block>
+                                </td>
+                            </tr>
+                        </th:block>
+                        </tbody>
+                    </table>
                 </div>
-                <div class="tab-pane" id="columns">
-
+                <div th:class="'tab-pane ' + ${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[columns]') ? 'active' : ''}"
+                     id="columns"
+                     th:if="${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[columns]')}">
+                    <table class="table table-striped table-bordered text-center" id="keyspace-data-columns">
+                        <thead>
+                        <tr>
+                            <th scope="col" class="text-center">Column Name</th>
+                            <th scope="col" class="text-center">Table Name</th>
+                            <th scope="col" class="text-center"></th>
+                            <th scope="col" class="text-center"></th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <th:block th:each="mapColumn:${keyspaceContent.columns.content}">
+                            <tr th:with="columnName=${mapColumn.get('column_name')},tableName=${mapColumn.get('table_name')}">
+                                <td style="font-weight: bold; border: 1px solid black;" th:text="${columnName}"></td>
+                                <td style="font-weight: bold;" th:text="${tableName}"></td>
+                                <td>
+                                    <th:block
+                                            th:replace="fragments/my_database_fragments/data/columns-data :: structure-form(columnName=${columnName},tableName=${tableName})"></th:block>
+                                </td>
+                                <td>
+                                    <th:block
+                                            th:replace="fragments/my_database_fragments/data/columns-data :: delete-form(columnName=${columnName},tableName=${tableName})"></th:block>
+                                </td>
+                            </tr>
+                        </th:block>
+                        </tbody>
+                    </table>
                 </div>
-                <div class="tab-pane" id="droppedColumns">
-
+                <div th:class="'tab-pane ' + ${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[droppedColumns]') ? 'active' : ''}"
+                     id="droppedColumns"
+                     th:if="${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[droppedColumns]')}">
+                    <table class="table table-striped table-bordered text-center" id="keyspace-data-dropped-columns">
+                        <thead>
+                        <tr>
+                            <th scope="col" class="text-center">Dropped Column Name</th>
+                            <th scope="col" class="text-center">Table Name</th>
+                            <th scope="col" class="text-center"></th>
+                            <th scope="col" class="text-center"></th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <th:block th:each="mapColumn:${keyspaceContent.droppedColumns.content}">
+                            <tr th:with="droppedColumnName=${mapColumn.get('column_name')},tableName=${mapColumn.get('table_name')}">
+                                <td style="font-weight: bold; border: 1px solid black;"
+                                    th:text="${droppedColumnName}"></td>
+                                <td style="font-weight: bold;" th:text="${tableName}"></td>
+                                <td>
+                                    <th:block
+                                            th:replace="fragments/my_database_fragments/data/dropped-columns-data :: structure-form(columnName=${droppedColumnName},tableName=${tableName})"></th:block>
+                                </td>
+                                <td>
+                                    <th:block
+                                            th:replace="fragments/my_database_fragments/data/dropped-columns-data :: delete-form(columnName=${droppedColumnName},tableName=${tableName})"></th:block>
+                                </td>
+                            </tr>
+                        </th:block>
+                        </tbody>
+                    </table>
                 </div>
-                <div class="tab-pane" id="indexes">
-
+                <div th:class="'tab-pane ' + ${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[indexes]') ? 'active' : ''}"
+                     id="indexes"
+                     th:if="${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[indexes]')}">
+                    <table class="table table-striped table-bordered text-center" id="keyspace-data-indexes">
+                        <thead>
+                        <tr>
+                            <th scope="col" class="text-center">Index Name</th>
+                            <th scope="col" class="text-center">Table Name</th>
+                            <th scope="col" class="text-center"></th>
+                            <th scope="col" class="text-center"></th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <th:block th:each="mapColumn:${keyspaceContent.indexes.content}">
+                            <tr th:with="indexName=${mapColumn.get('index_name')},tableName=${mapColumn.get('table_name')}">
+                                <td style="font-weight: bold; border: 1px solid black;"
+                                    th:text="${indexName}"></td>
+                                <td style="font-weight: bold;" th:text="${tableName}"></td>
+                                <td>
+                                    <th:block
+                                            th:replace="fragments/my_database_fragments/data/indexes-data :: structure-form(indexName=${indexName},tableName=${tableName})"></th:block>
+                                </td>
+                                <td>
+                                    <th:block
+                                            th:replace="fragments/my_database_fragments/data/indexes-data :: delete-form(indexName=${indexName},tableName=${tableName})"></th:block>
+                                </td>
+                            </tr>
+                        </th:block>
+                        </tbody>
+                    </table>
                 </div>
-                <div class="tab-pane" id="types">
-
+                <div th:class="'tab-pane ' + ${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[types]') ? 'active' : ''}"
+                     id="types"
+                     th:if="${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[types]')}">
+                    <table class="table table-striped table-bordered text-center" id="keyspace-data-types">
+                        <thead>
+                        <tr>
+                            <th scope="col" class="text-center">Type Name</th>
+                            <th scope="col" class="text-center"></th>
+                            <th scope="col" class="text-center"></th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <th:block th:each="mapColumn:${keyspaceContent.types.content}">
+                            <tr th:with="typeName=${mapColumn.get('type_name')}">
+                                <td style="font-weight: bold; border: 1px solid black;"
+                                    th:text="${typeName}"></td>
+                                <td>
+                                    <th:block
+                                            th:replace="fragments/my_database_fragments/data/types-data :: structure-form(typeName=${typeName})"></th:block>
+                                </td>
+                                <td>
+                                    <th:block
+                                            th:replace="fragments/my_database_fragments/data/types-data :: delete-form(typeName=${typeName})"></th:block>
+                                </td>
+                            </tr>
+                        </th:block>
+                        </tbody>
+                    </table>
                 </div>
-                <div class="tab-pane" id="views">
-
+                <div th:class="'tab-pane ' + ${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[views]') ? 'active' : ''}"
+                     id="views"
+                     th:if="${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[views]')}">
+                    <table class="table table-striped table-bordered text-center" id="keyspace-data-views">
+                        <thead>
+                        <tr>
+                            <th scope="col" class="text-center">View Name</th>
+                            <th scope="col" class="text-center">Base Table Name</th>
+                            <th scope="col" class="text-center"></th>
+                            <th scope="col" class="text-center"></th>
+                            <th scope="col" class="text-center"></th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <th:block th:each="mapColumn:${keyspaceContent.views.content}">
+                            <tr th:with="viewName=${mapColumn.get('view_name')},tableName=${mapColumn.get('base_table_name')}">
+                                <td style="font-weight: bold; border: 1px solid black;"
+                                    th:text="${viewName}"></td>
+                                <td style="font-weight: bold;" th:text="${tableName}"></td>
+                                <td>
+                                    <th:block
+                                            th:replace="fragments/my_database_fragments/data/views-data :: content-form(viewName=${indexName},tableName=${tableName})"></th:block>
+                                </td>
+                                <td>
+                                    <th:block
+                                            th:replace="fragments/my_database_fragments/data/views-data :: structure-form(viewName=${indexName},tableName=${tableName})"></th:block>
+                                </td>
+                                <td>
+                                    <th:block
+                                            th:replace="fragments/my_database_fragments/data/views-data :: delete-form(viewName=${indexName},tableName=${tableName})"></th:block>
+                                </td>
+                            </tr>
+                        </th:block>
+                        </tbody>
+                    </table>
                 </div>
-                <div class="tab-pane" id="functions">
-
+                <div th:class="'tab-pane ' + ${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[functions]') ? 'active' : ''}"
+                     id="functions"
+                     th:if="${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[functions]')}">
+                    <table class="table table-striped table-bordered text-center" id="keyspace-data-functions">
+                        <thead>
+                        <tr>
+                            <th scope="col" class="text-center">Function Name</th>
+                            <th scope="col" class="text-center"></th>
+                            <th scope="col" class="text-center"></th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <th:block th:each="mapColumn:${keyspaceContent.functions.content}">
+                            <tr th:with="functionName=${mapColumn.get('function_name')}">
+                                <td style="font-weight: bold; border: 1px solid black;"
+                                    th:text="${functionName}"></td>
+                                <td>
+                                    <th:block
+                                            th:replace="fragments/my_database_fragments/data/functions-data :: structure-form(functionName=${functionName})"></th:block>
+                                </td>
+                                <td>
+                                    <th:block
+                                            th:replace="fragments/my_database_fragments/data/functions-data :: delete-form(functionName=${functionName})"></th:block>
+                                </td>
+                            </tr>
+                        </th:block>
+                        </tbody>
+                    </table>
                 </div>
-                <div class="tab-pane" id="aggregates">
-
+                <div th:class="'tab-pane ' + ${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[aggregates]') ? 'active' : ''}"
+                     id="aggregates"
+                     th:if="${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[aggregates]')}">
+                    <table class="table table-striped table-bordered text-center" id="keyspace-data-aggregates">
+                        <thead>
+                        <tr>
+                            <th scope="col" class="text-center">Aggregate Name</th>
+                            <th scope="col" class="text-center"></th>
+                            <th scope="col" class="text-center"></th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <th:block th:each="mapColumn:${keyspaceContent.aggregates.content}">
+                            <tr th:with="aggregateName=${mapColumn.get('aggregate_name')}">
+                                <td style="font-weight: bold; border: 1px solid black;"
+                                    th:text="${aggregateName}"></td>
+                                <td>
+                                    <th:block
+                                            th:replace="fragments/my_database_fragments/data/aggregates-data :: structure-form(aggregateName=${aggregateName})"></th:block>
+                                </td>
+                                <td>
+                                    <th:block
+                                            th:replace="fragments/my_database_fragments/data/aggregates-data :: delete-form(aggregateName=${aggregateName})"></th:block>
+                                </td>
+                            </tr>
+                        </th:block>
+                        </tbody>
+                    </table>
                 </div>
-                <div class="tab-pane" id="triggers">
-
+                <div th:class="'tab-pane ' + ${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[triggers]') ? 'active' : ''}"
+                     id="triggers"
+                     th:if="${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[triggers]')}">
+                    <table class="table table-striped table-bordered text-center" id="keyspace-data-triggers">
+                        <thead>
+                        <tr>
+                            <th scope="col" class="text-center">Aggregate Name</th>
+                            <th scope="col" class="text-center">Table Name</th>
+                            <th scope="col" class="text-center"></th>
+                            <th scope="col" class="text-center"></th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <th:block th:each="mapColumn:${keyspaceContent.triggers.content}">
+                            <tr th:with="triggerName=${mapColumn.get('trigger_name')},tableName=${mapColumn.get('table_name')}">
+                                <td style="font-weight: bold; border: 1px solid black;"
+                                    th:text="${triggerName}"></td>
+                                <td>
+                                <td style="font-weight: bold;"
+                                    th:text="${tableName}"></td>
+                                <td>
+                                    <th:block
+                                            th:replace="fragments/my_database_fragments/data/triggers-data :: structure-form(triggerName=${triggerName},tableName=${tableName})"></th:block>
+                                </td>
+                                <td>
+                                    <th:block
+                                            th:replace="fragments/my_database_fragments/data/triggers-data :: delete-form(triggerName=${triggerName},tableName=${tableName})"></th:block>
+                                </td>
+                            </tr>
+                        </th:block>
+                        </tbody>
+                    </table>
                 </div>
             </div>
 

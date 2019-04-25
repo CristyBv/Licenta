@@ -11,27 +11,27 @@
             </div>
             <div class="panel-body panel-resizable database-panel-body">
                 <th:block th:switch="${session.activePanel}">
-                    <th:block th:case="'ViewEditPanel'">
+                    <th:block th:case="${@environment.getProperty('keyspace.panel[viewEdit]')}">
                         <th:block
                                 th:replace="fragments/my_database_fragments/menu/database-view-edit :: database-view-edit">
                         </th:block>
                     </th:block>
-                    <th:block th:case="'ConsoleScriptPanel'">
+                    <th:block th:case="${@environment.getProperty('keyspace.panel[consoleScript]')}">
                         <th:block
                                 th:replace="fragments/my_database_fragments/menu/database-console-script :: database-console-script">
                         </th:block>
                     </th:block>
-                    <th:block th:case="'ImportExportPanel'">
+                    <th:block th:case="${@environment.getProperty('keyspace.panel[importExport]')}">
                         <th:block
                                 th:replace="fragments/my_database_fragments/menu/database-import-export :: database-import-export">
                         </th:block>
                     </th:block>
-                    <th:block th:case="'LogPanel'">
+                    <th:block th:case="${@environment.getProperty('keyspace.panel[log]')}">
                         <th:block
                                 th:replace="fragments/my_database_fragments/menu/database-log :: database-log">
                         </th:block>
                     </th:block>
-                    <th:block th:case="'SearchPanel'">
+                    <th:block th:case="${@environment.getProperty('keyspace.panel[search]')}">
                         <th:block th:replace="fragments/my_database_fragments/menu/database-search :: database-search">
                         </th:block>
                     </th:block>

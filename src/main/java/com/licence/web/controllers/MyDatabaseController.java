@@ -76,12 +76,12 @@ public class MyDatabaseController {
                 model.addAttribute("keyspaceNotAvailable", "Keyspace not available anymore!");
             } else {
                 String activePanel = (String) session.getAttribute("activePanel");
-                if (Objects.equals(activePanel, "ManagePanel") || Objects.equals(activePanel, "ViewEditPanel")) {
+                if (Objects.equals(activePanel, keyspaceProperties.getPanel().get("manage")) || Objects.equals(activePanel, keyspaceProperties.getPanel().get("viewEdit"))) {
                     model.addAttribute("keyspaceContent", keyspaceService.getKeyspaceContent(userKeyspace.getKeyspace().getName().toLowerCase()));
                 }
-                if(Objects.equals(activePanel, "ViewEditPanel")) {
-                    model.addAttribute("systemSchemaContent", keyspaceService.getKeyspaceContent("system_schema"));
-                }
+//                if(Objects.equals(activePanel, keyspaceProperties.getPanel().get("viewEdit"))) {
+//                    model.addAttribute("systemSchemaContent", keyspaceService.getKeyspaceContent("system_schema"));
+//                }
             }
         }
         model.addAttribute("keyspaceObject", new Keyspace());
@@ -437,7 +437,7 @@ public class MyDatabaseController {
             if (!keyspace.isPasswordEnabled() || bCryptPasswordEncoder.matches(keyspace.getPassword(), userKeyspace.getKeyspace().getPassword())) {
                 // we save the user keyspace in the session
                 session.setAttribute("userKeyspace", userKeyspace);
-                session.setAttribute("activePanel", "ManagePanel");
+                session.setAttribute("activePanel", keyspaceProperties.getPanel().get("manage"));
                 return "redirect:" + routeProperties.getMyDatabase();
             } else {
                 message = "Access denied! Incorect password!";
@@ -459,6 +459,16 @@ public class MyDatabaseController {
     public String changeDatabasePanel(@RequestParam String panel,
                                       HttpSession session) {
         session.setAttribute("activePanel", panel);
+        if(panel.equals(keyspaceProperties.getPanel().get("viewEdit"))) {
+            session.setAttribute("activeViewEditPanel", keyspaceProperties.getPanel().get("tables"));
+        }
+        return "redirect:" + routeProperties.getMyDatabase();
+    }
+
+    @GetMapping(value = "${route.changeDatabaseViewEditPanel}")
+    public String changeDatabaseViewEditPanel(@RequestParam String panel,
+                                              HttpSession session) {
+        session.setAttribute("activeViewEditPanel", panel);
         return "redirect:" + routeProperties.getMyDatabase();
     }
 
