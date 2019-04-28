@@ -30,4 +30,5 @@ public class RouteProperties {
     private String deleteKeyspace;
     private String changeKeyspacePassword;
     private String changeDatabaseViewEditPanel;
+    private String getDatabaseContent;
 }

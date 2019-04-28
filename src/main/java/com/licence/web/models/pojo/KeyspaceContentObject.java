@@ -14,6 +14,7 @@ import java.util.Map;
 @NoArgsConstructor
 @AllArgsConstructor
 public class KeyspaceContentObject {
+    String tableName;
     ColumnDefinitions columnDefinitions;
     List<Map<String, Object>> content;
 }

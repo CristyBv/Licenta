@@ -1,5 +1,6 @@
 package com.licence.web.controllers;
 
+import com.datastax.driver.core.ColumnDefinitions;
 import com.licence.config.properties.KeyspaceProperties;
 import com.licence.config.properties.RouteProperties;
 import com.licence.config.security.CassandraUserDetails;
@@ -8,13 +9,14 @@ import com.licence.web.models.Keyspace;
 import com.licence.web.models.UDT.KeyspaceUser;
 import com.licence.web.models.UDT.UserKeyspace;
 import com.licence.web.models.User;
+import com.licence.web.models.pojo.KeyspaceContentObject;
 import com.licence.web.services.KeyspaceService;
 import com.licence.web.services.UserService;
-import netscape.javascript.JSObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.configurationprocessor.json.JSONObject;
 import org.springframework.context.MessageSource;
+import org.springframework.http.MediaType;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Controller;
@@ -33,8 +35,10 @@ import org.springframework.web.context.request.WebRequest;
 
 import javax.servlet.http.HttpSession;
 import javax.validation.Valid;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -79,14 +83,21 @@ public class MyDatabaseController {
                 if (Objects.equals(activePanel, keyspaceProperties.getPanel().get("manage")) || Objects.equals(activePanel, keyspaceProperties.getPanel().get("viewEdit"))) {
                     model.addAttribute("keyspaceContent", keyspaceService.getKeyspaceContent(userKeyspace.getKeyspace().getName().toLowerCase()));
                 }
-//                if(Objects.equals(activePanel, keyspaceProperties.getPanel().get("viewEdit"))) {
-//                    model.addAttribute("systemSchemaContent", keyspaceService.getKeyspaceContent("system_schema"));
-//                }
+                if (Objects.equals(activePanel, keyspaceProperties.getPanel().get("viewEdit"))) {
+                    if (session.getAttribute("dataContent") != null) {
+                        KeyspaceContentObject keyspaceContentObject = (KeyspaceContentObject) session.getAttribute("dataContent");
+                        session.setAttribute("dataContent", getAllContent(userKeyspace.getKeyspace().getName().toLowerCase(), keyspaceContentObject.getTableName()));
+                    }
+                }
             }
         }
         model.addAttribute("keyspaceObject", new Keyspace());
         model.addAttribute("keyspaces", getUserKeyspaces(user));
         return routeProperties.getMyDatabase();
+    }
+
+    private KeyspaceContentObject getAllContent(String keyspaceName, String tableName) {
+        return keyspaceService.getSelectSimple(keyspaceName, tableName, "*");
     }
 
     private Map<String, List<UserKeyspace>> getUserKeyspaces(User user) {
@@ -123,13 +134,143 @@ public class MyDatabaseController {
         }
     }
 
+    @GetMapping(value = "${route.getDatabaseContent}")
+    public String getDatabaseContent(@RequestParam(name = "table", required = false) String table,
+                                     HttpSession session,
+                                     Authentication authentication,
+                                     WebRequest request) {
+        UserKeyspace userKeyspace = updateUserKeyspaces(authentication, session);
+        if (userKeyspace != null) {
+            if (!table.isEmpty()) {
+                session.setAttribute("dataContent", getAllContent(userKeyspace.getKeyspace().getName().toLowerCase(),
+                        table));
+            }
+        }
+        return "redirect:" + routeProperties.getMyDatabase() + "#keyspace-data-content";
+    }
+
+
+    @ResponseBody
+    @GetMapping(value = "/table-data", produces = MediaType.APPLICATION_JSON_VALUE)
+    public Map<String, Object> getTableData(WebRequest request,
+                                            HttpSession session) {
+        Map<String, Object> map = new HashMap<>();
+        String draw = request.getParameter("draw");
+        String start = request.getParameter("start");
+        String length = request.getParameter("length");
+        String orderColumn = request.getParameter("order[0][column]");
+        String order = request.getParameter("order[0][dir]");
+        String search = request.getParameter("search[value]");
+        UserKeyspace userKeyspace = (UserKeyspace) session.getAttribute("userKeyspace");
+        KeyspaceContentObject keyspaceContentObject = (KeyspaceContentObject) session.getAttribute("dataContent");
+        if (userKeyspace != null && keyspaceContentObject != null) {
+            KeyspaceContentObject update = getAllContent(userKeyspace.getKeyspace().getName().toLowerCase(), keyspaceContentObject.getTableName());
+            if (draw != null)
+                map.put("draw", Integer.parseInt(draw));
+            map.put("recordsTotal", update.getContent().size());
+            if (search != null && !search.isEmpty()) {
+                update.setContent(update.getContent().stream().filter(p -> {
+                    final Boolean[] ok = {false};
+                    p.forEach((key, value) -> {
+                        if (value != null && value.toString().toLowerCase().contains(search.toLowerCase()))
+                            ok[0] = true;
+                    });
+                    return ok[0];
+                }).collect(Collectors.toList()));
+            }
+            map.put("recordsFiltered", update.getContent().size());
+            if (orderColumn != null && order != null) {
+                Integer ordCol = Integer.parseInt(orderColumn);
+                update.setContent(update.getContent().stream().sorted((p, q) -> {
+                    int count = 0;
+                    Map.Entry<String, Object> ent1 = null;
+                    for (Map.Entry<String, Object> entry : p.entrySet()) {
+                        if (count == ordCol) {
+                            ent1 = entry;
+                            break;
+                        }
+                        count++;
+                    }
+                    count = 0;
+                    Map.Entry<String, Object> ent2 = null;
+                    for (Map.Entry<String, Object> entry : q.entrySet()) {
+                        if (count == ordCol) {
+                            ent2 = entry;
+                            break;
+                        }
+                        count++;
+                    }
+                    if (ent1 != null && ent2 != null) {
+                        if (ent1.getValue() == null && ent2.getValue() != null) {
+                            if (order.equals("asc"))
+                                return 1;
+                            else if (order.equals("desc"))
+                                return -1;
+                        } else if (ent1.getValue() != null && ent2.getValue() == null) {
+                            if (order.equals("asc"))
+                                return -1;
+                            else if (order.equals("desc"))
+                                return 1;
+                        } else if (ent1.getValue() != null && ent2.getValue() != null) {
+                            Map.Entry<String, Object> finalEnt = ent1;
+                            ColumnDefinitions.Definition definition = update.getColumnDefinitions().asList().stream().filter(w -> w.getName().equals(finalEnt.getKey())).findAny().orElse(null);
+                            if (definition != null) {
+                                if (definition.getType().getName().toString().equals("timestamp")) {
+                                    Date timestamp1 = (Date) ent1.getValue();
+                                    Date timestamp2 = (Date) ent2.getValue();
+                                    if (order.equals("asc"))
+                                        return timestamp1.compareTo(timestamp2);
+                                    else if (order.equals("desc"))
+                                        return timestamp2.compareTo(timestamp1);
+                                }
+                                if (order.equals("asc"))
+                                    return ent1.getValue().toString().compareTo(ent2.getValue().toString());
+                                else if (order.equals("desc"))
+                                    return ent2.getValue().toString().compareTo(ent1.getValue().toString());
+                            }
+                        }
+                    }
+                    return 0;
+                }).collect(Collectors.toList()));
+            }
+            if (start != null && length != null) {
+                Integer startVal = Integer.parseInt(start);
+                Integer lengthVal = Integer.parseInt(length);
+                List<Map<String, Object>> updateNew = new ArrayList<>();
+                if (update.getContent().size() > startVal) {
+                    for (int i = startVal; i < startVal + lengthVal; i++) {
+                        if (i >= update.getContent().size())
+                            break;
+                        updateNew.add(update.getContent().get(i));
+                    }
+                }
+                update.setContent(updateNew);
+            }
+            update.getContent().forEach(p -> {
+                for (ColumnDefinitions.Definition definition : update.getColumnDefinitions()) {
+                    if (p.get(definition.getName()) != null) {
+                        if (definition.getType().getName().toString().equals("timestamp")) {
+                            p.put(definition.getName(), new SimpleDateFormat("yyyy/MM/dd HH:mm:ss").format(p.get(definition.getName())));
+                        }
+                    }
+                }
+//                Map<String,String> rowData = new HashMap<>();
+//                rowData.put("test", "dada");
+//                p.put("DT_RowData", rowData);
+            });
+
+            map.put("data", update.getContent().stream().map(Map::values).collect(Collectors.toList()));
+        }
+        return map;
+    }
+
     @ResponseBody
     @PostMapping(value = "${route.changeMyKeyspacesPanel}")
     public String changeMyKeyspacesPanel(@RequestBody Map<String, String> position,
-                                       HttpSession session) {
-        if(position.get("position").equals("open")) {
+                                         HttpSession session) {
+        if (position.get("position").equals("open")) {
             session.setAttribute("myKeyspacesPanelPosition", "open");
-        } else if(position.get("position").equals("close")) {
+        } else if (position.get("position").equals("close")) {
             session.setAttribute("myKeyspacesPanelPosition", "close");
         }
         return JSONObject.quote("success");
@@ -438,6 +579,7 @@ public class MyDatabaseController {
                 // we save the user keyspace in the session
                 session.setAttribute("userKeyspace", userKeyspace);
                 session.setAttribute("activePanel", keyspaceProperties.getPanel().get("manage"));
+                session.setAttribute("dataContent", null);
                 return "redirect:" + routeProperties.getMyDatabase();
             } else {
                 message = "Access denied! Incorect password!";
@@ -459,7 +601,7 @@ public class MyDatabaseController {
     public String changeDatabasePanel(@RequestParam String panel,
                                       HttpSession session) {
         session.setAttribute("activePanel", panel);
-        if(panel.equals(keyspaceProperties.getPanel().get("viewEdit"))) {
+        if (panel.equals(keyspaceProperties.getPanel().get("viewEdit"))) {
             session.setAttribute("activeViewEditPanel", keyspaceProperties.getPanel().get("tables"));
         }
         return "redirect:" + routeProperties.getMyDatabase();

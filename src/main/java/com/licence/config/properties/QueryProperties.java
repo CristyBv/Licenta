@@ -10,11 +10,12 @@ import java.util.Map;
 @Component
 @ConfigurationProperties(prefix = "query")
 public class QueryProperties {
-    private Map<String,String> selectUser;
-    private Map<String,String> selectKeyspace;
+    private Map<String, String> selectUser;
+    private Map<String, String> selectKeyspace;
     private String selectKeyspaces;
     private String createKeyspace;
     private String alterKeyspace;
     private String dropKeyspace;
     private String selectUserByPartialUsername;
+    private Map<String, String> select;
 }

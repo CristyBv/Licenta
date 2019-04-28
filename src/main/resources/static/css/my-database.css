@@ -253,7 +253,24 @@ ul.nav-menu-list-style li .badge, ul.nav-menu-list-style li .pull-right, ul.nav-
 }
 
 .dataTable {
+}
+table.dataTable tbody td {
+    word-wrap: break-word;
+    /*word-break: break-all;*/
+    vertical-align: top;
+}
+table.dataTable thead th {
+    word-wrap: break-word;
+    /*word-break: break-all;*/
+    vertical-align: top;
+}
 
+.data-table-submit {
+    background: transparent;
+    border: none;
+    width: 100%;
+    height: 100%;
+    display: block;
 }
 
 

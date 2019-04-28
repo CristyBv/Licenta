@@ -11,7 +11,7 @@
         <div class="alert alert-danger" th:if="${keyspaceViewEditError}"
              th:text="${keyspaceViewEditError}"></div>
         <hr/>
-        <div class="jumbotron database-data-div">
+        <div class="jumbotron database-data-div" id="data-div">
             <p style="float:left; font-size: 1.75em;" class="font-weight-bold"><strong>Data</strong></p>
             <span style="float:right;" class="glyphicon glyphicon-minus btn btn-default keyspace-manage-minus"></span>
             <br style="clear:both;"><br>
@@ -25,30 +25,38 @@
                        th:class="'database-view-edit-panel-link'"
                        th:attr="data-panel=${@environment.getProperty('keyspace.panel[tables]')}">Tables</a>
                 </li>
-                <li th:class="${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[columns]') ? 'active' : ''}"><a data-toggle="tab" href="#columns"
+                <li th:class="${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[columns]') ? 'active' : ''}">
+                    <a data-toggle="tab" href="#columns"
                        th:class="'database-view-edit-panel-link ' + ${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[columns]') ? 'active' : ''}"
                        th:attr="data-panel=${@environment.getProperty('keyspace.panel[columns]')}">Columns</a></li>
-                <li th:class="${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[droppedColumns]') ? 'active' : ''}"><a data-toggle="tab" href="#droppedColumns"
+                <li th:class="${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[droppedColumns]') ? 'active' : ''}">
+                    <a data-toggle="tab" href="#droppedColumns"
                        th:class="'database-view-edit-panel-link ' + ${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[droppedColumns]') ? 'active' : ''}"
                        th:attr="data-panel=${@environment.getProperty('keyspace.panel[droppedColumns]')}">DroppedColumns</a>
                 </li>
-                <li th:class="${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[indexes]') ? 'active' : ''}"><a data-toggle="tab" href="#indexes"
+                <li th:class="${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[indexes]') ? 'active' : ''}">
+                    <a data-toggle="tab" href="#indexes"
                        th:class="'database-view-edit-panel-link ' + ${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[indexes]') ? 'active' : ''}"
                        th:attr="data-panel=${@environment.getProperty('keyspace.panel[indexes]')}">Indexes</a></li>
-                <li th:class="${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[types]') ? 'active' : ''}"><a data-toggle="tab" href="#types"
+                <li th:class="${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[types]') ? 'active' : ''}">
+                    <a data-toggle="tab" href="#types"
                        th:class="'database-view-edit-panel-link ' + ${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[types]') ? 'active' : ''}"
                        th:attr="data-panel=${@environment.getProperty('keyspace.panel[types]')}">Types</a></li>
-                <li th:class="${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[views]') ? 'active' : ''}"><a data-toggle="tab" href="#views"
+                <li th:class="${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[views]') ? 'active' : ''}">
+                    <a data-toggle="tab" href="#views"
                        th:class="'database-view-edit-panel-link ' + ${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[views]') ? 'active' : ''}"
                        th:attr="data-panel=${@environment.getProperty('keyspace.panel[views]')}">Views</a></li>
-                <li th:class="${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[functions]') ? 'active' : ''}"><a data-toggle="tab" href="#functions"
+                <li th:class="${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[functions]') ? 'active' : ''}">
+                    <a data-toggle="tab" href="#functions"
                        th:class="'database-view-edit-panel-link ' + ${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[functions]') ? 'active' : ''}"
                        th:attr="data-panel=${@environment.getProperty('keyspace.panel[functions]')}">Functions</a></li>
-                <li th:class="${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[aggregates]') ? 'active' : ''}"><a data-toggle="tab" href="#aggregates"
+                <li th:class="${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[aggregates]') ? 'active' : ''}">
+                    <a data-toggle="tab" href="#aggregates"
                        th:class="'database-view-edit-panel-link ' + ${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[aggregates]') ? 'active' : ''}"
                        th:attr="data-panel=${@environment.getProperty('keyspace.panel[aggregates]')}">Aggregates</a>
                 </li>
-                <li th:class="${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[triggers]') ? 'active' : ''}"><a data-toggle="tab" href="#triggers"
+                <li th:class="${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[triggers]') ? 'active' : ''}">
+                    <a data-toggle="tab" href="#triggers"
                        th:class="'database-view-edit-panel-link ' + ${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[triggers]') ? 'active' : ''}"
                        th:attr="data-panel=${@environment.getProperty('keyspace.panel[triggers]')}">Triggers</a></li>
             </ul>
@@ -61,7 +69,7 @@
                         <thead>
                         <tr>
                             <th scope="col" class="text-center">Table Name</th>
-                            <th scope="col" class="text-center"></th>
+                            <!--<th scope="col" class="text-center"></th>-->
                             <th scope="col" class="text-center"></th>
                             <th scope="col" class="text-center"></th>
                         </tr>
@@ -69,18 +77,23 @@
                         <tbody>
                         <th:block th:each="mapTable:${keyspaceContent.tables.content}">
                             <tr th:with="tableName=${mapTable.get('table_name')}">
-                                <td style="font-weight: bold; border: 1px solid black;" th:text="${tableName}"></td>
-                                <td>
+                                <!--<td style="font-weight: bold; border: 1px solid black;">-->
+                                <!--<form th:action="${@environment.getProperty('route.getDatabaseContent')}">-->
+                                <!--<input type="hidden" name="table" th:value="${tableName}"/>-->
+                                <!--<button type="submit" class="btn btn-info" th:text="${tableName}"></button>-->
+                                <!--</form>-->
+                                <!--</td>-->
+                                <td style="font-weight: bold; border: 1px solid black;">
                                     <th:block
-                                            th:replace="fragments/my_database_fragments/data/tables-data :: content-form(item=${tableName})"></th:block>
+                                            th:replace="fragments/my_database_fragments/data/tables-data :: content-form(tableName=${tableName})"></th:block>
                                 </td>
                                 <td>
                                     <th:block
-                                            th:replace="fragments/my_database_fragments/data/tables-data :: structure-form(item=${tableName})"></th:block>
+                                            th:replace="fragments/my_database_fragments/data/tables-data :: structure-form(tableName=${tableName})"></th:block>
                                 </td>
                                 <td>
                                     <th:block
-                                            th:replace="fragments/my_database_fragments/data/tables-data :: delete-form(item=${tableName})"></th:block>
+                                            th:replace="fragments/my_database_fragments/data/tables-data :: delete-form(tableName=${tableName})"></th:block>
                                 </td>
                             </tr>
                         </th:block>
@@ -139,7 +152,7 @@
                                     <th:block
                                             th:replace="fragments/my_database_fragments/data/dropped-columns-data :: structure-form(columnName=${droppedColumnName},tableName=${tableName})"></th:block>
                                 </td>
-                                <td>
+                                <td>1
                                     <th:block
                                             th:replace="fragments/my_database_fragments/data/dropped-columns-data :: delete-form(columnName=${droppedColumnName},tableName=${tableName})"></th:block>
                                 </td>
@@ -339,6 +352,67 @@
 
             <div th:if="${keyspaceContent == null}">
                 No data available!
+            </div>
+        </div>
+        <div class="jumbotron database-data-div" id="content-div" th:with="dataContent=${session.dataContent}">
+            <p style="float:left; font-size: 1.75em;" class="font-weight-bold">
+                <strong th:if="${dataContent != null}" th:text="${dataContent.tableName}">Content</strong>
+                <strong th:if="${dataContent == null}" th:text="'Content'">Content</strong>
+            </p>
+            <span style="float:right;" class="glyphicon glyphicon-minus btn btn-default keyspace-manage-minus"></span>
+            <br style="clear:both;"><br>
+            <div class="row" th:if="${dataContent != null}">
+                <table class="table table-striped table-bordered text-center" id="keyspace-data-content">
+                    <thead>
+                    <tr>
+                        <th:block th:if="${dataContent.columnDefinitions == null}">
+                            <th:block th:each="mapColumn    :${keyspaceContent.columns.content}">
+                                <th th:if="${mapColumn.get('table_name') == dataContent.tableName}">
+                                    <span th:text="${mapColumn.get('column_name')}"></span>
+                                    <br>
+                                    <span style="font-weight: normal"
+                                          th:text="${'(' + mapColumn.get('type') + ')'}"></span>
+                                </th>
+                            </th:block>
+                        </th:block>
+                        <th:block th:if="${dataContent.columnDefinitions != null}">
+                            <script th:inline="javascript">
+                                var columnTypes = {};
+                                var columnNames = [];
+                            </script>
+                            <th:block th:each="column:${dataContent.columnDefinitions}">
+                                <script th:inline="javascript">
+                                    /*<![CDATA[*/
+                                    var columnName = /*[[${column.getName()}]]*/ 'name';
+                                    var columnType = /*[[${column.getType()}]]*/ 'type';
+                                    columnTypes[columnName] = columnType;
+                                    var nameMap = {"name": columnName};
+                                    columnNames.push(nameMap);
+                                    /*]]>*/
+                                </script>
+                                <th scope="col" class="text-center">
+                                    <span th:text="${column.getName()}"></span>
+                                    <br>
+                                    <span style="font-weight: normal"
+                                          th:text="${'(' + column.getType().asFunctionParameterString() + ')'}"></span>
+                                </th>
+                            </th:block>
+                        </th:block>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <!--<th:block th:each="mapColumn:${dataContent.content}">-->
+                    <!--<tr>-->
+                    <!--<th:block th:each="column:${dataContent.columnDefinitions}">-->
+                    <!--<td th:text="${mapColumn.get(column.name)}"></td>-->
+                    <!--</th:block>-->
+                    <!--</tr>-->
+                    <!--</th:block>-->
+                    </tbody>
+                </table>
+            </div>
+            <div th:if="${dataContent} == null">
+                No data selected!
             </div>
         </div>
     </div>

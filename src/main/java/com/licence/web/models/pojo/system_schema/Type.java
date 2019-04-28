@@ -7,7 +7,7 @@ import java.util.List;
 
 @Data
 @Builder
-public class Type {
+public class    Type {
     private String keyspace_name;
     private String type_name;
     private List<String> field_names;

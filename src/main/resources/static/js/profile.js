@@ -28,26 +28,26 @@ $(document).ready(function() {
 });
 
 
-//     var readURL = function(input) {
-//         if (input.files && input.files[0]) {
-//             var reader = new FileReader();
-//             reader.onload = function (e) {
-//                 var avatar = {};
-//                 avatar["avatar"] = e.target.result;
-//                 $.ajax({
-//                     type: "post",
-//                     url: "/change-avatar/",
-//                     contentType: "application/json; charset=utf-8",
-//                     data: JSON.stringify(avatar)
-//                 }).done(function() {
-//                     alert("da");
-//                     $('.avatar').attr('src', e.target.result);
-//                 }).fail(function() {
-//                     alert("Invalid file!")
-//                 });
-//             };
-//             reader.readAsDataURL(input.files[0]);
-//         }
-//     };
+    // var readURL = function(input) {
+    //     if (input.files && input.files[0]) {
+    //         var reader = new FileReader();
+    //         reader.onload = function (e) {
+    //             var avatar = {};
+    //             avatar["avatar"] = e.target.result;
+    //             $.ajax({
+    //                 type: "post",
+    //                 url: "/change-avatar/",
+    //                 contentType: "application/json; charset=utf-8",
+    //                 data: JSON.stringify(avatar)
+    //             }).done(function() {
+    //                 alert("da");
+    //                 $('.avatar').attr('src', e.target.result);
+    //             }).fail(function() {
+    //                 alert("Invalid file!")
+    //             });
+    //         };
+    //         reader.readAsDataURL(input.files[0]);
+    //     }
+    // };
 //
 //

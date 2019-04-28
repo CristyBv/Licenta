@@ -21,7 +21,7 @@ $(document).ready(function () {
             $(".keyspace-panel").css("display", "none");
             $(".mini-keyspace").css("display", "block");
             $(".database-panel").css("width", "96%");
-            adjustDataTableColumns(tables);
+            adjustDataTableColumns(tablesTop);
         }).fail(function () {
             alert("Server error!");
         });
@@ -39,7 +39,7 @@ $(document).ready(function () {
             $(".keyspace-panel").css("display", "block");
             $(".mini-keyspace").css("display", "none");
             $(".database-panel").css("width", "77%");
-            adjustDataTableColumns(tables);
+            adjustDataTableColumns(tablesTop);
         }).fail(function () {
             alert("Server error!");
         });
@@ -179,30 +179,166 @@ $(document).ready(function () {
     });
 
     // DataTable for all tables in view-edit panel
-    var tables = [];
-    $("#view-edit-div").find('table').each(function () {
-        tables.push(drawDataTable($(this).attr('id')));
+    var tablesTop =[];
+    var tablesBottom = [];
+    $("#data-div").find('table').each(function () {
+        tablesTop.push(drawDataTableNoServerSide($(this).attr('id')));
+    });
+    $("#content-div").find('table').each(function () {
+        tablesBottom.push(drawDataTableServerSide($(this).attr('id')));
     });
     // adjust columns on resize
     $(window).resize(function () {
-        adjustDataTableColumns(tables);
+        adjustDataTableColumns(tablesTop);
+    });
+
+    $(".data-table-submit").hover(function () {
+        $(this).closest("td").css('background', "darkgray");
+    }, function () {
+        $(this).closest("td").css('background', "transparent");
+    });
+
+    // $("#content-div").on('mouseleave', 'textarea', function () {
+    //     adjustDataTableColumns(tables);
+    // });
+
+    // $(".datepicker").datepicker({
+    //     changeMonth: true,
+    //     changeYear: true,
+    //     changeTime: true,
+    //     autoclose: true,
+    //     dateFormat: 'yy-mm-dd',
+    //     timeformat: 'hh:mm:ss',
+    //     orientation: 'bottom auto'
+    // });
+
+    $("#content-div").on("click", 'td', function (e) {
+        var content = $(this).find(".content-table");
+        var input = $(this).find(".input-content");
+        if (content.css("display") == 'block') {
+            content.css("display", "none");
+            input.css("display", "block");
+            input.find("textarea").trigger('focus');
+        } else if (e.target == e.currentTarget) {
+            // content.css("display", "block");
+            // input.css("display", "none");
+            // adjustDataTableColumns(tablesBottom);
+        }
+        var d = tablesBottom[0].row( $(this).parent() ).data();
+        //alert(JSON.stringify(d));
+        //for(var i=0 ; i < d.length ; i++)
+        //    alert(JSON.stringify(d[i]));
+    });
+    $("#content-div").on("blur", 'textarea', function () {
+        $(this).css("width", "100%");
+        $(this).css("height", "100%");
     });
 });
 
 function adjustDataTableColumns(tables) {
-    for(var i = 0 ; i < tables.length ; i++) {
+    for (var i = 0; i < tables.length; i++) {
         tables[i].columns.adjust().draw();
     }
 }
 
-function drawDataTable(id) {
-    return $("#"+id).DataTable({
+function drawDataTableNoServerSide(id) {
+    return $("#" + id).DataTable({
         "ordering": true,
         "lengthMenu": [[1, 3, 5, 10, 20, 50, 100, -1], [1, 3, 5, 10, 20, 50, 100, "All"]],
         "pageLength": 3,
         "stateSave": true,
         responsive: true,
         "scrollY": true,
-        'dom': 'Rlfrtip'
+        'dom': 'Rlfrtip',
+        "processing": true, "sScrollX": "100%",
+        "sScrollXInner": "110%",
+        "bScrollCollapse": true,
+        "fixedColumns": {
+            "leftColumns": 1
+        },
+        "autoWidth": true
+        // "serverSide": true,
+        // "ajax": "/table-data"
+    });
+}
+
+
+function formatData(data, key, type) {
+    var name = type.name.toLowerCase();
+    if (name == "boolean") {
+        if (data == true) {
+            return "<div class='form-group input-content' style='display: none;'> " +
+                "<select name='" + key + "' class='form-control'>" +
+                "<option selected value='true'>true</option>" +
+                "<option value='false'>false</option>" +
+                "</select>" +
+                "</div>" +
+                "<div class='content-table'>" + data + "</div>";
+        } else
+            return "<div class='form-group input-content' style='display: none;'> " +
+                "<select name='" + key + "' class='form-control'>" +
+                "<option value='true'>true</option>" +
+                "<option selected value='false'>false</option>" +
+                "</select>" +
+                "</div>" +
+                "<div class='content-table'>" + data + "</div>";
+    } else if (name == "timestamp") {
+        if(data == null)
+            return "<div class='form-group input-content' style='display: none;'> <textarea name='" + key + "' class='form-control'>yyyy/MM/dd HH:mm:ss</textarea></div> <div class='content-table'>" + data + "</div>";
+        return "<div class='form-group input-content' style='display: none;'> <textarea name='" + key + "' class='form-control'>" + data + "</textarea></div> <div class='content-table'>" + data + "</div>";
+    } else {
+        if(data == null)
+            return "<div class='form-group input-content' style='display: none;'> <textarea name='" + key + "' class='form-control'></textarea></div> <div class='content-table'>" + data + "</div>";
+        return "<div class='form-group input-content' style='display: none;'> <textarea name='" + key + "' class='form-control'>" + data + "</textarea></div> <div class='content-table'>" + data + "</div>";
+
+    }
+    return data;
+}
+
+function onResizeTextareaEvent() {
+    alert("da");
+}
+
+function drawDataTableServerSide(id) {
+    return $("#" + id).DataTable({
+        "ordering": true,
+        "lengthMenu": [[1, 3, 5, 10, 20, 50, 100, -1], [1, 3, 5, 10, 20, 50, 100, "All"]],
+        "pageLength": 3,
+        "stateSave": true,
+        responsive: true,
+        "scrollY": true,
+        'dom': 'Rlfrtip',
+        "processing": true,
+        "sScrollX": "100%",
+        "sScrollXInner": "110%",
+        "bScrollCollapse": true,
+        "fixedColumns": {
+            "leftColumns": 1
+        },
+        "autoWidth": false,
+        "serverSide": true,
+        "ajax": {
+            "type": "GET",
+            "url": "/table-data",
+            "dataSrc": function (json) {
+                if (columnTypes !== undefined) {
+                    for (var i = 0; i < json.data.length; i++) {
+                        var j = 0;
+                        Object.keys(columnTypes).forEach(function (key) {
+                            var column = columnTypes[key];
+                            json.data[i][j] = formatData(json.data[i][j], key, column);
+                            j++;
+                        });
+                    }
+                }
+                return json.data;
+            }
+        },
+        "initComplete": function (settings, json) {
+        },
+        // "columns": [
+        //     { "data": "id" },
+        //     { "data": "col1" }
+        // ]
     });
 }

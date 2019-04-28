@@ -6,15 +6,6 @@ import com.licence.config.properties.QueryProperties;
 import com.licence.web.models.Keyspace;
 import com.licence.web.models.pojo.KeyspaceContent;
 import com.licence.web.models.pojo.KeyspaceContentObject;
-import com.licence.web.models.pojo.system_schema.Aggregate;
-import com.licence.web.models.pojo.system_schema.Column;
-import com.licence.web.models.pojo.system_schema.DroppedColumn;
-import com.licence.web.models.pojo.system_schema.Function;
-import com.licence.web.models.pojo.system_schema.Index;
-import com.licence.web.models.pojo.system_schema.Table;
-import com.licence.web.models.pojo.system_schema.Trigger;
-import com.licence.web.models.pojo.system_schema.Type;
-import com.licence.web.models.pojo.system_schema.View;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.cassandra.core.CassandraAdminOperations;
@@ -23,8 +14,8 @@ import org.springframework.lang.Nullable;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -100,25 +91,25 @@ public class KeyspaceService {
         String queryTypes = String.format(queryProperties.getSelectKeyspace().get("types"), "*", keyspaceName);
 
         KeyspaceContent keyspaceContent = KeyspaceContent.builder()
-                .tables(getKeyspaceContentObject(queryTables))
-                .aggregates(getKeyspaceContentObject(queryAggregates))
-                .functions(getKeyspaceContentObject(queryFunctions))
-                .types(getKeyspaceContentObject(queryTypes))
-                .views(getKeyspaceContentObject(queryViews))
-                .columns(new KeyspaceContentObject(null, new ArrayList<>()))
-                .droppedColumns(new KeyspaceContentObject(null, new ArrayList<>()))
-                .indexes(new KeyspaceContentObject(null, new ArrayList<>()))
-                .triggers(new KeyspaceContentObject(null, new ArrayList<>()))
+                .tables(getKeyspaceContentObject(queryTables, "tables"))
+                .aggregates(getKeyspaceContentObject(queryAggregates, "aggregates"))
+                .functions(getKeyspaceContentObject(queryFunctions, "functions"))
+                .types(getKeyspaceContentObject(queryTypes, "types"))
+                .views(getKeyspaceContentObject(queryViews, "views"))
+                .columns(new KeyspaceContentObject("columns", null, new ArrayList<>()))
+                .droppedColumns(new KeyspaceContentObject("dropped columns", null, new ArrayList<>()))
+                .indexes(new KeyspaceContentObject("indexes", null, new ArrayList<>()))
+                .triggers(new KeyspaceContentObject("triggers", null, new ArrayList<>()))
                 .build();
         keyspaceContent.getTables().getContent().forEach(m -> {
             String queryTriggers = String.format(queryProperties.getSelectKeyspace().get("tableTriggers"), "*", keyspaceName, m.get("table_name"));
             String queryIndexes = String.format(queryProperties.getSelectKeyspace().get("tableIndexes"), "*", keyspaceName, m.get("table_name"));
             String queryDroppedColumns = String.format(queryProperties.getSelectKeyspace().get("tableDroppedColumns"), "*", keyspaceName, m.get("table_name"));
             String queryColumns = String.format(queryProperties.getSelectKeyspace().get("tableColumns"), "*", keyspaceName, m.get("table_name"));
-            KeyspaceContentObject columnsObj = getKeyspaceContentObject(queryColumns);
-            KeyspaceContentObject droppedColumnsObj = getKeyspaceContentObject(queryDroppedColumns);
-            KeyspaceContentObject indexesObj = getKeyspaceContentObject(queryIndexes);
-            KeyspaceContentObject triggersObj = getKeyspaceContentObject(queryTriggers);
+            KeyspaceContentObject columnsObj = getKeyspaceContentObject(queryColumns, "columns");
+            KeyspaceContentObject droppedColumnsObj = getKeyspaceContentObject(queryDroppedColumns, "dropped columns");
+            KeyspaceContentObject indexesObj = getKeyspaceContentObject(queryIndexes, "indexes");
+            KeyspaceContentObject triggersObj = getKeyspaceContentObject(queryTriggers, "triggers");
             keyspaceContent.getColumns().getContent().addAll(columnsObj.getContent());
             keyspaceContent.getColumns().setColumnDefinitions(columnsObj.getColumnDefinitions());
             keyspaceContent.getDroppedColumns().getContent().addAll(droppedColumnsObj.getContent());
@@ -133,24 +124,30 @@ public class KeyspaceService {
 
     private Map<String, Object> getRowMap(Row row) {
         Map<String, Object> map = new LinkedHashMap<>();
-        row.getColumnDefinitions().forEach(p ->  {
+        row.getColumnDefinitions().forEach(p -> {
             map.put(p.getName(), row.getObject(p.getName()));
         });
         return map;
     }
 
-    public KeyspaceContentObject getKeyspaceContentObject(String query) {
+    public KeyspaceContentObject getKeyspaceContentObject(String query, String name) {
         KeyspaceContentObject keyspaceContentObject = new KeyspaceContentObject();
-        List<Map<String, Object>> contentList = adminOperations.getCqlOperations().query(query, new RowMapper<Map<String,Object>>() {
+        keyspaceContentObject.setTableName(name);
+        List<Map<String, Object>> contentList = adminOperations.getCqlOperations().query(query, new RowMapper<Map<String, Object>>() {
             @Nullable
             @Override
-            public Map<String,Object> mapRow(Row row, int rowNum) throws DriverException {
+            public Map<String, Object> mapRow(Row row, int rowNum) throws DriverException {
                 keyspaceContentObject.setColumnDefinitions(row.getColumnDefinitions());
                 return getRowMap(row);
             }
         });
         keyspaceContentObject.setContent(contentList);
         return keyspaceContentObject;
+    }
+
+    public KeyspaceContentObject getSelectSimple(String keyspace, String table, String whatToSelect) {
+        String query = String.format(queryProperties.getSelect().get("simple"), whatToSelect, keyspace + "." + table);
+        return getKeyspaceContentObject(query, table);
     }
 
 }
