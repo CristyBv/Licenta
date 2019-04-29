@@ -258,6 +258,7 @@ table.dataTable tbody td {
     word-wrap: break-word;
     /*word-break: break-all;*/
     vertical-align: top;
+    text-overflow: ellipsis;
 }
 table.dataTable thead th {
     word-wrap: break-word;

@@ -250,7 +250,7 @@ public class MyDatabaseController {
                 for (ColumnDefinitions.Definition definition : update.getColumnDefinitions()) {
                     if (p.get(definition.getName()) != null) {
                         if (definition.getType().getName().toString().equals("timestamp")) {
-                            p.put(definition.getName(), new SimpleDateFormat("yyyy/MM/dd HH:mm:ss").format(p.get(definition.getName())));
+                            //p.put(definition.getName(), new SimpleDateFormat("yyyy/MM/dd HH:mm:ss").format(p.get(definition.getName())));
                         }
                     }
                 }
@@ -258,8 +258,19 @@ public class MyDatabaseController {
 //                rowData.put("test", "dada");
 //                p.put("DT_RowData", rowData);
             });
+            List<Map<String,String>> updateString = new ArrayList<>();
+            update.getContent().forEach(p -> {
+                Map<String, String> map1 = new HashMap<>();
+                p.forEach((k,v) -> {
+                    if(v != null)
+                        map1.put(k, v.toString());
+                    else
+                        map1.put(k, null);
+                });
+                updateString.add(map1);
+            });
 
-            map.put("data", update.getContent().stream().map(Map::values).collect(Collectors.toList()));
+            map.put("data", updateString);
         }
         return map;
     }

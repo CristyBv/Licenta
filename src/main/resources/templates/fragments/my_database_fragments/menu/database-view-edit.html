@@ -355,59 +355,57 @@
             </div>
         </div>
         <div class="jumbotron database-data-div" id="content-div" th:with="dataContent=${session.dataContent}">
-            <p style="float:left; font-size: 1.75em;" class="font-weight-bold">
-                <strong th:if="${dataContent != null}" th:text="${dataContent.tableName}">Content</strong>
+            <p style="float:left; font-size: 1.75em;" class="table-title">
+                <strong style="cursor: pointer;" th:if="${dataContent != null}" th:text="${dataContent.tableName}">Content</strong>
                 <strong th:if="${dataContent == null}" th:text="'Content'">Content</strong>
             </p>
             <span style="float:right;" class="glyphicon glyphicon-minus btn btn-default keyspace-manage-minus"></span>
             <br style="clear:both;"><br>
             <div class="row" th:if="${dataContent != null}">
+                <script th:inline="javascript">
+                    var columnsTable = [];
+                    var columnsNamesDataTable = [];
+                </script>
+                <th:block th:if="${dataContent.columnDefinitions == null}">
+                    <th:block th:each="mapColumn:${keyspaceContent.columns.content}">
+                        <th:block th:if="${mapColumn.get('table_name') == dataContent.tableName}">
+                            <script th:inline="javascript">
+                                /*<![CDATA[*/
+                                var columnNameTable = /*[[${mapColumn.get('column_name')}]]*/ 'name';
+                                var columnTable = /*[[${mapColumn}]]*/ 'name';
+                                var map = {};
+                                map["data"] = columnNameTable;
+                                map["title"] = columnNameTable;
+                                map["contentPadding"] = "mmm";
+                                map["className"] = "text-center";
+                                columnsNamesDataTable.push(map);
+                                columnsTable.push(columnTable);
+                                /*]]>*/
+                            </script>
+                        </th:block>
+                    </th:block>
+                </th:block>
+                <th:block th:if="${dataContent.columnDefinitions != null}">
+                    <th:block th:each="column:${dataContent.columnDefinitions}">
+                        <script th:inline="javascript">
+                            /*<![CDATA[*/
+                            var columnNameTable = /*[[${column.name}]]*/ 'name';
+                            var columnTable = /*[[${column}]]*/ 'name';
+                            var map = {};
+                            map["data"] = columnNameTable;
+                            map["title"] = "<span class='th-span'>" + columnNameTable + "</span>";
+                            map["contentPadding"] = "mmm";
+                            map["className"] = "text-center";
+                            columnsNamesDataTable.push(map);
+                            columnsTable.push(columnTable);
+                            /*]]>*/
+                        </script>
+                    </th:block>
+                </th:block>
                 <table class="table table-striped table-bordered text-center" id="keyspace-data-content">
                     <thead>
-                    <tr>
-                        <th:block th:if="${dataContent.columnDefinitions == null}">
-                            <th:block th:each="mapColumn    :${keyspaceContent.columns.content}">
-                                <th th:if="${mapColumn.get('table_name') == dataContent.tableName}">
-                                    <span th:text="${mapColumn.get('column_name')}"></span>
-                                    <br>
-                                    <span style="font-weight: normal"
-                                          th:text="${'(' + mapColumn.get('type') + ')'}"></span>
-                                </th>
-                            </th:block>
-                        </th:block>
-                        <th:block th:if="${dataContent.columnDefinitions != null}">
-                            <script th:inline="javascript">
-                                var columnTypes = {};
-                                var columnNames = [];
-                            </script>
-                            <th:block th:each="column:${dataContent.columnDefinitions}">
-                                <script th:inline="javascript">
-                                    /*<![CDATA[*/
-                                    var columnName = /*[[${column.getName()}]]*/ 'name';
-                                    var columnType = /*[[${column.getType()}]]*/ 'type';
-                                    columnTypes[columnName] = columnType;
-                                    var nameMap = {"name": columnName};
-                                    columnNames.push(nameMap);
-                                    /*]]>*/
-                                </script>
-                                <th scope="col" class="text-center">
-                                    <span th:text="${column.getName()}"></span>
-                                    <br>
-                                    <span style="font-weight: normal"
-                                          th:text="${'(' + column.getType().asFunctionParameterString() + ')'}"></span>
-                                </th>
-                            </th:block>
-                        </th:block>
-                    </tr>
                     </thead>
                     <tbody>
-                    <!--<th:block th:each="mapColumn:${dataContent.content}">-->
-                    <!--<tr>-->
-                    <!--<th:block th:each="column:${dataContent.columnDefinitions}">-->
-                    <!--<td th:text="${mapColumn.get(column.name)}"></td>-->
-                    <!--</th:block>-->
-                    <!--</tr>-->
-                    <!--</th:block>-->
                     </tbody>
                 </table>
             </div>

@@ -21,7 +21,7 @@ $(document).ready(function () {
             $(".keyspace-panel").css("display", "none");
             $(".mini-keyspace").css("display", "block");
             $(".database-panel").css("width", "96%");
-            adjustDataTableColumns(tablesTop);
+            adjustDataTableColumns(tablesTop, false);
         }).fail(function () {
             alert("Server error!");
         });
@@ -39,7 +39,7 @@ $(document).ready(function () {
             $(".keyspace-panel").css("display", "block");
             $(".mini-keyspace").css("display", "none");
             $(".database-panel").css("width", "77%");
-            adjustDataTableColumns(tablesTop);
+            adjustDataTableColumns(tablesTop, false);
         }).fail(function () {
             alert("Server error!");
         });
@@ -179,7 +179,7 @@ $(document).ready(function () {
     });
 
     // DataTable for all tables in view-edit panel
-    var tablesTop =[];
+    var tablesTop = [];
     var tablesBottom = [];
     $("#data-div").find('table').each(function () {
         tablesTop.push(drawDataTableNoServerSide($(this).attr('id')));
@@ -187,9 +187,13 @@ $(document).ready(function () {
     $("#content-div").find('table').each(function () {
         tablesBottom.push(drawDataTableServerSide($(this).attr('id')));
     });
+    addMouseWheelAndContextMenuEvent(tablesBottom);
+
+
     // adjust columns on resize
     $(window).resize(function () {
-        adjustDataTableColumns(tablesTop);
+        adjustDataTableColumns(tablesTop, false);
+        adjustDataTableColumns(tablesBottom, false);
     });
 
     $(".data-table-submit").hover(function () {
@@ -198,47 +202,71 @@ $(document).ready(function () {
         $(this).closest("td").css('background', "transparent");
     });
 
-    // $("#content-div").on('mouseleave', 'textarea', function () {
-    //     adjustDataTableColumns(tables);
+    $("#content-div .table-title").on("click", function () {
+        tablesBottom[0].columns().every(function () {
+           tablesBottom[0].column(this).visible(true);
+        });
+        adjustDataTableColumns(tablesBottom);
+    });
+
+    // $("#content-div").on("click", 'td', function (e) {
+    //     var content = $(this).find(".content-table");
+    //     var input = $(this).find(".input-content");
+    //     if (content.css("display") == 'block') {
+    //         content.css("display", "none");
+    //         input.css("display", "block");
+    //         input.find("textarea").trigger('focus');
+    //     } else if (e.target == e.currentTarget) {
+    //         // content.css("display", "block");
+    //         // input.css("display", "none");
+    //         // adjustDataTableColumns(tablesBottom);
+    //     }
+    //     var d = tablesBottom[0].row( $(this).parent() ).data();
+    //     //alert(JSON.stringify(d));
+    //     //for(var i=0 ; i < d.length ; i++)
+    //     //    alert(JSON.stringify(d[i]));
     // });
 
-    // $(".datepicker").datepicker({
-    //     changeMonth: true,
-    //     changeYear: true,
-    //     changeTime: true,
-    //     autoclose: true,
-    //     dateFormat: 'yy-mm-dd',
-    //     timeformat: 'hh:mm:ss',
-    //     orientation: 'bottom auto'
+    // $("#content-div").on("blur", 'textarea', function () {
+    //     $(this).css("width", "100%");
+    //     $(this).css("height", "100%");
     // });
-
-    $("#content-div").on("click", 'td', function (e) {
-        var content = $(this).find(".content-table");
-        var input = $(this).find(".input-content");
-        if (content.css("display") == 'block') {
-            content.css("display", "none");
-            input.css("display", "block");
-            input.find("textarea").trigger('focus');
-        } else if (e.target == e.currentTarget) {
-            // content.css("display", "block");
-            // input.css("display", "none");
-            // adjustDataTableColumns(tablesBottom);
-        }
-        var d = tablesBottom[0].row( $(this).parent() ).data();
-        //alert(JSON.stringify(d));
-        //for(var i=0 ; i < d.length ; i++)
-        //    alert(JSON.stringify(d[i]));
-    });
-    $("#content-div").on("blur", 'textarea', function () {
-        $(this).css("width", "100%");
-        $(this).css("height", "100%");
-    });
 });
 
-function adjustDataTableColumns(tables) {
+function addMouseWheelAndContextMenuEvent(tablesBottom) {
+    $("#content-div table.dataTable thead th").on('mousewheel', function (e) {
+        e.preventDefault();
+        var padL, padR;
+        if (e.originalEvent.wheelDelta > 0) {
+            padL = parseInt($(this).find('.th-span').css("padding-left"));
+            padR = parseInt($(this).find('.th-span').css("padding-right"));
+            $(this).find('.th-span').css("padding-left", padL + 50 + 'px');
+            $(this).find('.th-span').css("padding-right", padR + 50 + 'px');
+            adjustDataTableColumns(tablesBottom, false);
+        } else {
+            padL = parseInt($(this).find('.th-span').css("padding-left"));
+            padR = parseInt($(this).find('.th-span').css("padding-right"));
+            if (padL - 50 >= 0 && padR - 50 >= 0) {
+                $(this).find('.th-span').css("padding-left", padL - 50 + 'px');
+                $(this).find('.th-span').css("padding-right", padR - 50 + 'px');
+                adjustDataTableColumns(tablesBottom, false);
+            }
+        }
+    });
+    $("#content-div table.dataTable thead th").on('contextmenu', function (e) {
+        e.preventDefault();
+        tablesBottom[0].column(this).visible(false);
+    });
+}
+
+function adjustDataTableColumns(tables, draw) {
     for (var i = 0; i < tables.length; i++) {
-        tables[i].columns.adjust().draw();
+        if(draw === undefined || draw == true)
+            tables[i].columns.adjust().draw();
+        else
+            tables[i].columns.adjust();
     }
+    //addMouseWheelAndContextMenuEvent(tables);
 }
 
 function drawDataTableNoServerSide(id) {
@@ -263,41 +291,37 @@ function drawDataTableNoServerSide(id) {
 }
 
 
-function formatData(data, key, type) {
-    var name = type.name.toLowerCase();
-    if (name == "boolean") {
-        if (data == true) {
-            return "<div class='form-group input-content' style='display: none;'> " +
-                "<select name='" + key + "' class='form-control'>" +
-                "<option selected value='true'>true</option>" +
-                "<option value='false'>false</option>" +
-                "</select>" +
-                "</div>" +
-                "<div class='content-table'>" + data + "</div>";
-        } else
-            return "<div class='form-group input-content' style='display: none;'> " +
-                "<select name='" + key + "' class='form-control'>" +
-                "<option value='true'>true</option>" +
-                "<option selected value='false'>false</option>" +
-                "</select>" +
-                "</div>" +
-                "<div class='content-table'>" + data + "</div>";
-    } else if (name == "timestamp") {
-        if(data == null)
-            return "<div class='form-group input-content' style='display: none;'> <textarea name='" + key + "' class='form-control'>yyyy/MM/dd HH:mm:ss</textarea></div> <div class='content-table'>" + data + "</div>";
-        return "<div class='form-group input-content' style='display: none;'> <textarea name='" + key + "' class='form-control'>" + data + "</textarea></div> <div class='content-table'>" + data + "</div>";
-    } else {
-        if(data == null)
-            return "<div class='form-group input-content' style='display: none;'> <textarea name='" + key + "' class='form-control'></textarea></div> <div class='content-table'>" + data + "</div>";
-        return "<div class='form-group input-content' style='display: none;'> <textarea name='" + key + "' class='form-control'>" + data + "</textarea></div> <div class='content-table'>" + data + "</div>";
-
-    }
-    return data;
-}
-
-function onResizeTextareaEvent() {
-    alert("da");
-}
+// function formatData(data, key, type) {
+//     var name = type.name.toLowerCase();
+//     if (name == "boolean") {
+//         if (data == true) {
+//             return "<div class='form-group input-content' style='display: none;'> " +
+//                 "<select name='" + key + "' class='form-control'>" +
+//                 "<option selected value='true'>true</option>" +
+//                 "<option value='false'>false</option>" +
+//                 "</select>" +
+//                 "</div>" +
+//                 "<div class='content-table'>" + data + "</div>";
+//         } else
+//             return "<div class='form-group input-content' style='display: none;'> " +
+//                 "<select name='" + key + "' class='form-control'>" +
+//                 "<option value='true'>true</option>" +
+//                 "<option selected value='false'>false</option>" +
+//                 "</select>" +
+//                 "</div>" +
+//                 "<div class='content-table'>" + data + "</div>";
+//     } else if (name == "timestamp") {
+//         if(data == null)
+//             return "<div class='form-group input-content' style='display: none;'> <textarea name='" + key + "' class='form-control'>yyyy/MM/dd HH:mm:ss</textarea></div> <div class='content-table'>" + data + "</div>";
+//         return "<div class='form-group input-content' style='display: none;'> <textarea name='" + key + "' class='form-control'>" + data + "</textarea></div> <div class='content-table'>" + data + "</div>";
+//     } else {
+//         if(data == null)
+//             return "<div class='form-group input-content' style='display: none;'> <textarea name='" + key + "' class='form-control'></textarea></div> <div class='content-table'>" + data + "</div>";
+//         return "<div class='form-group input-content' style='display: none;'> <textarea name='" + key + "' class='form-control'>" + data + "</textarea></div> <div class='content-table'>" + data + "</div>";
+//
+//     }
+//     return data;
+// }
 
 function drawDataTableServerSide(id) {
     return $("#" + id).DataTable({
@@ -321,24 +345,21 @@ function drawDataTableServerSide(id) {
             "type": "GET",
             "url": "/table-data",
             "dataSrc": function (json) {
-                if (columnTypes !== undefined) {
-                    for (var i = 0; i < json.data.length; i++) {
-                        var j = 0;
-                        Object.keys(columnTypes).forEach(function (key) {
-                            var column = columnTypes[key];
-                            json.data[i][j] = formatData(json.data[i][j], key, column);
-                            j++;
-                        });
-                    }
-                }
+                // if (columnTypes !== undefined) {
+                //     for (var i = 0; i < json.data.length; i++) {
+                //         var j = 0;
+                //         Object.keys(columnTypes).forEach(function (key) {
+                //             var column = columnTypes[key];
+                //             json.data[i][j] = formatData(json.data[i][j], key, column);
+                //             j++;
+                //         });
+                //     }
+                // }
                 return json.data;
             }
         },
         "initComplete": function (settings, json) {
         },
-        // "columns": [
-        //     { "data": "id" },
-        //     { "data": "col1" }
-        // ]
+        "columns": columnsNamesDataTable
     });
 }
