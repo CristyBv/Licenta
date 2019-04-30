@@ -204,36 +204,32 @@ $(document).ready(function () {
 
     $("#content-div .table-title").on("click", function () {
         tablesBottom[0].columns().every(function () {
-           tablesBottom[0].column(this).visible(true);
+            tablesBottom[0].column(this).visible(true);
+        });
+        $("#content-div table.dataTable thead th").each(function () {
+            $(this).find('.th-span').css("padding-left", "0px");
+            $(this).find('.th-span').css("padding-right", "0px");
         });
         adjustDataTableColumns(tablesBottom);
+        addMouseWheelAndContextMenuEvent(tablesBottom);
     });
 
-    // $("#content-div").on("click", 'td', function (e) {
-    //     var content = $(this).find(".content-table");
-    //     var input = $(this).find(".input-content");
-    //     if (content.css("display") == 'block') {
-    //         content.css("display", "none");
-    //         input.css("display", "block");
-    //         input.find("textarea").trigger('focus');
-    //     } else if (e.target == e.currentTarget) {
-    //         // content.css("display", "block");
-    //         // input.css("display", "none");
-    //         // adjustDataTableColumns(tablesBottom);
-    //     }
-    //     var d = tablesBottom[0].row( $(this).parent() ).data();
-    //     //alert(JSON.stringify(d));
-    //     //for(var i=0 ; i < d.length ; i++)
-    //     //    alert(JSON.stringify(d[i]));
-    // });
 
-    // $("#content-div").on("blur", 'textarea', function () {
-    //     $(this).css("width", "100%");
-    //     $(this).css("height", "100%");
-    // });
+    $("#content-div table.dataTable tbody").on("dblclick", 'tr', function () {
+        var rowData = tablesBottom[0].row(this).data();
+        Object.keys(rowData).forEach(function (key) {
+            if (key == "DT_RowId" && rowData[key] != null) {
+                $("#show-data-row-form").find("input[name='oldData']").val(rowData);
+            } else if (rowData[key] != null) {
+                $("#show-data-row-form").find("textarea[name='" + key + "']").val(rowData[key]);
+            }
+        });
+        $("#show-row-data-modal").modal("show");
+    });
 });
 
 function addMouseWheelAndContextMenuEvent(tablesBottom) {
+    $("#content-div table.dataTable thead th").prop("onmousewheel", null).off("mousewheel");
     $("#content-div table.dataTable thead th").on('mousewheel', function (e) {
         e.preventDefault();
         var padL, padR;
@@ -253,6 +249,7 @@ function addMouseWheelAndContextMenuEvent(tablesBottom) {
             }
         }
     });
+    $("#content-div table.dataTable thead th").prop("oncontextmenu", null).off("contextmenu");
     $("#content-div table.dataTable thead th").on('contextmenu', function (e) {
         e.preventDefault();
         tablesBottom[0].column(this).visible(false);
@@ -261,7 +258,7 @@ function addMouseWheelAndContextMenuEvent(tablesBottom) {
 
 function adjustDataTableColumns(tables, draw) {
     for (var i = 0; i < tables.length; i++) {
-        if(draw === undefined || draw == true)
+        if (draw === undefined || draw == true)
             tables[i].columns.adjust().draw();
         else
             tables[i].columns.adjust();
@@ -289,39 +286,6 @@ function drawDataTableNoServerSide(id) {
         // "ajax": "/table-data"
     });
 }
-
-
-// function formatData(data, key, type) {
-//     var name = type.name.toLowerCase();
-//     if (name == "boolean") {
-//         if (data == true) {
-//             return "<div class='form-group input-content' style='display: none;'> " +
-//                 "<select name='" + key + "' class='form-control'>" +
-//                 "<option selected value='true'>true</option>" +
-//                 "<option value='false'>false</option>" +
-//                 "</select>" +
-//                 "</div>" +
-//                 "<div class='content-table'>" + data + "</div>";
-//         } else
-//             return "<div class='form-group input-content' style='display: none;'> " +
-//                 "<select name='" + key + "' class='form-control'>" +
-//                 "<option value='true'>true</option>" +
-//                 "<option selected value='false'>false</option>" +
-//                 "</select>" +
-//                 "</div>" +
-//                 "<div class='content-table'>" + data + "</div>";
-//     } else if (name == "timestamp") {
-//         if(data == null)
-//             return "<div class='form-group input-content' style='display: none;'> <textarea name='" + key + "' class='form-control'>yyyy/MM/dd HH:mm:ss</textarea></div> <div class='content-table'>" + data + "</div>";
-//         return "<div class='form-group input-content' style='display: none;'> <textarea name='" + key + "' class='form-control'>" + data + "</textarea></div> <div class='content-table'>" + data + "</div>";
-//     } else {
-//         if(data == null)
-//             return "<div class='form-group input-content' style='display: none;'> <textarea name='" + key + "' class='form-control'></textarea></div> <div class='content-table'>" + data + "</div>";
-//         return "<div class='form-group input-content' style='display: none;'> <textarea name='" + key + "' class='form-control'>" + data + "</textarea></div> <div class='content-table'>" + data + "</div>";
-//
-//     }
-//     return data;
-// }
 
 function drawDataTableServerSide(id) {
     return $("#" + id).DataTable({

@@ -160,21 +160,21 @@ ul.nav-menu-list-style li .badge, ul.nav-menu-list-style li .pull-right, ul.nav-
 
 /*CREATE/CONNECT KEYSPACE START*/
 
-.panel-create-keyspace, .panel-connect-keyspace {
+.panel-create-keyspace, .panel-connect-keyspace, .panel-show-data-row {
     border-color: #ccc;
     -webkit-box-shadow: 0px 2px 3px 0px rgba(0, 0, 0, 0.2);
     -moz-box-shadow: 0px 2px 3px 0px rgba(0, 0, 0, 0.2);
     box-shadow: 0px 2px 3px 0px rgba(0, 0, 0, 0.2);
 }
 
-.panel-create-keyspace > .panel-heading, .panel-connect-keyspace > .panel-heading {
+.panel-create-keyspace > .panel-heading, .panel-connect-keyspace > .panel-heading, .panel-show-data-row > .panel-heading {
     color: #00415d;
     background-color: #fff;
     border-color: #fff;
     text-align: center;
 }
 
-.panel-create-keyspace > .panel-heading div, .panel-connect-keyspace > .panel-heading div {
+.panel-create-keyspace > .panel-heading div, .panel-connect-keyspace > .panel-heading div, .panel-show-data-row > .panel-heading div {
     text-decoration: none;
     color: #666;
     font-weight: bold;
@@ -184,12 +184,12 @@ ul.nav-menu-list-style li .badge, ul.nav-menu-list-style li .pull-right, ul.nav-
     transition: all 0.1s linear;
 }
 
-.panel-create-keyspace > .panel-heading div.active, .panel-connect-keyspace > .panel-heading div.active {
+.panel-create-keyspace > .panel-heading div.active, .panel-connect-keyspace > .panel-heading div.active, .panel-show-data-row > .panel-heading div.active {
     color: #029f5b;
     font-size: 18px;
 }
 
-.panel-create-keyspace > .panel-heading hr, .panel-connect-keyspace > .panel-heading hr {
+.panel-create-keyspace > .panel-heading hr, .panel-connect-keyspace > .panel-heading hr, .panel-show-data-row > .panel-heading hr {
     margin-top: 10px;
     margin-bottom: 0px;
     clear: both;
@@ -252,18 +252,22 @@ ul.nav-menu-list-style li .badge, ul.nav-menu-list-style li .pull-right, ul.nav-
     border-color: #ddd !important;
 }
 
-.dataTable {
+table.dataTable {
+    border: 2px solid black;
 }
+
 table.dataTable tbody td {
     word-wrap: break-word;
     /*word-break: break-all;*/
     vertical-align: top;
     text-overflow: ellipsis;
 }
+
 table.dataTable thead th {
     word-wrap: break-word;
     /*word-break: break-all;*/
     vertical-align: top;
+    border: 1px solid black;
 }
 
 .data-table-submit {
@@ -274,9 +278,7 @@ table.dataTable thead th {
     display: block;
 }
 
-
 /*DATA TABLE STOP*/
-
 
 /*MEDIA*/
 
@@ -285,10 +287,12 @@ table.dataTable thead th {
         width: 100%;
         float: none;
     }
+
     .database-panel {
         width: 100%;
         float: none;
     }
+
     .arrow-left-button {
         display: none;
     }

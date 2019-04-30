@@ -358,10 +358,17 @@
             <p style="float:left; font-size: 1.75em;" class="table-title">
                 <strong style="cursor: pointer;" th:if="${dataContent != null}" th:text="${dataContent.tableName}">Content</strong>
                 <strong th:if="${dataContent == null}" th:text="'Content'">Content</strong>
+                <span class="glyphicon glyphicon-info-sign" data-toggle="tooltip" data-placement="right"
+                      th:title="#{database.keyspaces.tableContent.title.info}"></span>
             </p>
             <span style="float:right;" class="glyphicon glyphicon-minus btn btn-default keyspace-manage-minus"></span>
             <br style="clear:both;"><br>
             <div class="row" th:if="${dataContent != null}">
+                <div class="modal fade" id="show-row-data-modal" tabindex="-1" role="dialog" aria-hidden="true">
+                    <div class="modal-dialog" style="width: 70% !important;" role="document">
+                        <div th:replace="fragments/my_database_fragments/data/data-row :: data-row(data=${dataContent})" id="show-row-div"></div>
+                    </div>
+                </div>
                 <script th:inline="javascript">
                     var columnsTable = [];
                     var columnsNamesDataTable = [];
@@ -376,7 +383,6 @@
                                 var map = {};
                                 map["data"] = columnNameTable;
                                 map["title"] = columnNameTable;
-                                map["contentPadding"] = "mmm";
                                 map["className"] = "text-center";
                                 columnsNamesDataTable.push(map);
                                 columnsTable.push(columnTable);

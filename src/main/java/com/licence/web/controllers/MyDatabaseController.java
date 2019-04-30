@@ -37,6 +37,7 @@ import javax.servlet.http.HttpSession;
 import javax.validation.Valid;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -154,6 +155,7 @@ public class MyDatabaseController {
     @GetMapping(value = "/table-data", produces = MediaType.APPLICATION_JSON_VALUE)
     public Map<String, Object> getTableData(WebRequest request,
                                             HttpSession session) {
+        //request.getParameterMap().forEach((k,v) -> System.out.println(k + " - " + Arrays.toString(v)));
         Map<String, Object> map = new HashMap<>();
         String draw = request.getParameter("draw");
         String start = request.getParameter("start");
@@ -165,6 +167,8 @@ public class MyDatabaseController {
         KeyspaceContentObject keyspaceContentObject = (KeyspaceContentObject) session.getAttribute("dataContent");
         if (userKeyspace != null && keyspaceContentObject != null) {
             KeyspaceContentObject update = getAllContent(userKeyspace.getKeyspace().getName().toLowerCase(), keyspaceContentObject.getTableName());
+            session.setAttribute("dataContent", update);
+            update.getContent().forEach(p -> p.put("DT_RowId", update.getTableName() + "#" + update.getContent().indexOf(p)));
             if (draw != null)
                 map.put("draw", Integer.parseInt(draw));
             map.put("recordsTotal", update.getContent().size());
@@ -236,15 +240,17 @@ public class MyDatabaseController {
             if (start != null && length != null) {
                 Integer startVal = Integer.parseInt(start);
                 Integer lengthVal = Integer.parseInt(length);
-                List<Map<String, Object>> updateNew = new ArrayList<>();
-                if (update.getContent().size() > startVal) {
-                    for (int i = startVal; i < startVal + lengthVal; i++) {
-                        if (i >= update.getContent().size())
-                            break;
-                        updateNew.add(update.getContent().get(i));
+                if(lengthVal != -1) {
+                    List<Map<String, Object>> updateNew = new ArrayList<>();
+                    if (update.getContent().size() > startVal) {
+                        for (int i = startVal; i < startVal + lengthVal; i++) {
+                            if (i >= update.getContent().size())
+                                break;
+                            updateNew.add(update.getContent().get(i));
+                        }
                     }
+                    update.setContent(updateNew);
                 }
-                update.setContent(updateNew);
             }
             update.getContent().forEach(p -> {
                 for (ColumnDefinitions.Definition definition : update.getColumnDefinitions()) {
@@ -605,6 +611,8 @@ public class MyDatabaseController {
     @GetMapping(value = "${route.disconnectKeyspace}")
     public String disconnectKeyspace(HttpSession session) {
         session.setAttribute("userKeyspace", null);
+        session.setAttribute("dataContent", null);
+        session.setAttribute("activePanel", null);
         return "redirect:" + routeProperties.getMyDatabase();
     }
 
@@ -653,13 +661,4 @@ public class MyDatabaseController {
         errors.put("matchingPasswordErrors", new ArrayList<>());
         return errors;
     }
-
-    // find the corespondent of session userKeyspace into auth
-//    private UserKeyspace getUserKeyspaceFromContext(Authentication authentication, HttpSession session) {
-//        CassandraUserDetails userDetails = (CassandraUserDetails) authentication.getPrincipal();
-//        User user = userDetails.getUser();
-//        UserKeyspace activeUserKeyspace = (UserKeyspace) session.getAttribute("userKeyspace");
-//        Optional<UserKeyspace> userKeyspaceOpt = user.getKeyspaces().stream().filter(p -> Objects.equals(p.getCreatorName(), activeUserKeyspace.getCreatorName()) && Objects.equals(p.getName(), activeUserKeyspace.getName())).findFirst();
-//        return userKeyspaceOpt.orElse(null);
-//    }
 }

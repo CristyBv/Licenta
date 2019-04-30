@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+</head>
+<body>
+<div th:fragment="data-row(data)" id="show-data-row-div">
+    <div class="row">
+        <div class="col-md">
+            <div class="panel panel-show-data-row">
+                <div class="panel-heading">
+                    <div class="row">
+                        <div class="col">
+                            <div class="active" id="show-data-row-form-link"
+                                 th:text="${data.tableName} + ' - row'"></div>
+                        </div>
+                    </div>
+                    <hr>
+                </div>
+                <div class="panel-body">
+                    <div class="row">
+                        <div class="col-lg-12">
+                            <form id="show-data-row-form"
+                                  th:action="${@environment.getProperty('route.updateDeleteRowContent')}" method="post"
+                                  role="form">
+                                <input type="hidden" name="oldData"/>
+                                <th:block th:each="column:${data.columnDefinitions}">
+                                    <th:block th:each="mapColumn:${keyspaceContent.columns.content}">
+                                        <th:block
+                                                th:if="${mapColumn.get('column_name') == column.name && mapColumn.get('table_name') == data.tableName}">
+                                            <hr/>
+                                            <div class="row row-eq-height">
+                                                <div class="col-sm-6">
+                                                    <ul class="list-group">
+                                                        <li class="list-group-item text-right" style="overflow: auto">
+                                                        <span class="pull-left">
+                                                            <strong>Name</strong>
+                                                        </span>
+                                                            <span th:text="${mapColumn.get('column_name')}"></span>
+                                                        </li>
+                                                        <li class="list-group-item text-right" style="overflow: auto">
+                                                        <span class="pull-left">
+                                                            <strong>Type</strong>
+                                                        </span>
+                                                            <span th:text="${mapColumn.get('type')}"></span>
+                                                        </li>
+                                                        <li class="list-group-item text-right">
+                                                        <span class="pull-left">
+                                                            <strong>Kind</strong>
+                                                        </span>
+                                                            <span th:text="${mapColumn.get('kind')}"></span>
+                                                        </li>
+                                                        <li class="list-group-item text-right"
+                                                            th:if="${mapColumn.get('position') != -1}">
+                                                        <span class="pull-left">
+                                                            <strong>Position</strong>
+                                                        </span>
+                                                            <span th:text="${mapColumn.get('position')}"></span>
+                                                        </li>
+                                                        <li class="list-group-item text-right"
+                                                            th:if="${mapColumn.get('clustering_order') != 'none'}">
+                                                        <span class="pull-left">
+                                                            <strong>Clustering Order</strong>
+                                                        </span>
+                                                            <span th:text="${mapColumn.get('clustering_order')}"></span>
+                                                        </li>
+                                                    </ul>
+                                                </div>
+                                                <div class="col-sm-6">
+                                                <textarea class="form-control"
+                                                          th:name="${mapColumn.get('column_name')}"></textarea>
+                                                </div>
+                                            </div>
+                                            <hr/>
+                                        </th:block>
+                                    </th:block>
+                                </th:block>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>
