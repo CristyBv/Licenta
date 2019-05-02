@@ -227,13 +227,21 @@ $(document).ready(function () {
         $("#show-row-data-modal").modal("show");
     });
 
-    $("#data-row-update-button").on('click', function () {
-        $("#request-type").val("update");
-        $("#show-data-row-form").submit();
+    $("#data-row-update-button").on('click', function (e) {
+        if(confirm("Are you sure you want to update?")) {
+            $("#request-type").val("update");
+            $("#show-data-row-form").submit();
+        } else {
+            e.preventDefault();
+        }
     });
-    $("#data-row-delete-button").on('click', function () {
-        $("#request-type").val("delete");
-        $("#show-data-row-form").submit();
+    $("#data-row-delete-button").on('click', function (e) {
+        if(confirm("Are you sure you want to delete?")) {
+            $("#request-type").val("delete");
+            $("#show-data-row-form").submit();
+        } else {
+            e.preventDefault();
+        }
     });
 });
 
@@ -300,7 +308,7 @@ function drawDataTableServerSide(id) {
     return $("#" + id).DataTable({
         "ordering": true,
         "lengthMenu": [[1, 3, 5, 10, 20, 50, 100, -1], [1, 3, 5, 10, 20, 50, 100, "All"]],
-        "pageLength": 3,
+        "pageLength": 10,
         "stateSave": true,
         responsive: true,
         "scrollY": true,

@@ -19,4 +19,5 @@ public class QueryProperties {
     private String selectUserByPartialUsername;
     private Map<String, String> select;
     private String update;
+    private String delete;
 }

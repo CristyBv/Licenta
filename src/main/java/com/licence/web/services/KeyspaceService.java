@@ -15,6 +15,9 @@ import org.springframework.lang.Nullable;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import javax.validation.constraints.NotEmpty;
+import javax.validation.constraints.Pattern;
+import javax.validation.constraints.Size;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.LinkedHashMap;
@@ -156,11 +159,18 @@ public class KeyspaceService {
         try {
             adminOperations.getCqlOperations().execute(query);
         } catch (Exception e) {
-            StringBuilder stringBuilder = new StringBuilder();
-            stringBuilder.append(query).append(" ---> ").append(e.getCause().getMessage());
-            throw new Exception(stringBuilder.toString());
+            throw new Exception(query + " ---> " + e.getCause().getMessage());
         }
 
     }
 
+    public void delete(String delete, String keyspace, String table, String options, String where) throws Exception {
+        String query = String.format(queryProperties.getDelete(), delete, keyspace + "." + table, options, where);
+        System.out.println(query);
+        try {
+            adminOperations.getCqlOperations().execute(query);
+        } catch (Exception e) {
+            throw new Exception(query + " ---> " + e.getCause().getMessage());
+        }
+    }
 }

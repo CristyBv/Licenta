@@ -39,16 +39,21 @@ import org.springframework.web.context.request.WebRequest;
 import javax.servlet.http.HttpSession;
 import javax.validation.Valid;
 import java.nio.ByteBuffer;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Controller
@@ -116,44 +121,69 @@ public class MyDatabaseController {
             List<Map<String, Object>> primaryKeys = getPrimaryKeysFromTable(keyspaceContent, keyspaceContentObject);
             Map<String, Object> findRow = findRowFromRequest(keyspaceContentObject, primaryKeys, request);
             if (findRow != null) {
-                if (requestType.equals("update")) {
-                    StringBuilder set = new StringBuilder("");
-                    StringBuilder where = new StringBuilder("");
-                    primaryKeys.forEach(p -> {
-                        DataType dataType = keyspaceContentObject.getColumnDefinitions().getType(p.get("column_name").toString());
-                        where.append(p.get("column_name")).append("=").append(databaseCorrespondence(findRow.get(p.get("column_name").toString()), dataType)).append(",");
-                    });
+                StringBuilder where = new StringBuilder("");
+                primaryKeys.forEach(p -> {
+                    DataType dataType = keyspaceContentObject.getColumnDefinitions().getType(p.get("column_name").toString());
+                    where.append(p.get("column_name")).append("=").append(databaseCorrespondence(findRow.get(p.get("column_name").toString()), dataType)).append(" AND ");
                     if (where.length() != 0)
-                        where.deleteCharAt(where.length() - 1);
-                    keyspaceContentObject.getColumnDefinitions().forEach(d -> {
-                        String param = request.getParameter(d.getName());
-                        if (param != null && !param.isEmpty()) {
-                            DataType dataType = keyspaceContentObject.getColumnDefinitions().getType(d.getName());
-                            set.append(d.getName()).append("=").append(databaseCorrespondenceByString(param, dataType.getName().toString())).append(",");
+                        where.delete(where.length() - 4, where.length());
+                });
+                try {
+                    if (requestType.equals("update")) {
+                        StringBuilder set = new StringBuilder("");
+                        keyspaceContentObject.getColumnDefinitions().forEach(d -> {
+                            String param = request.getParameter(d.getName());
+                            if (param != null && !param.isEmpty()) {
+                                DataType dataType = keyspaceContentObject.getColumnDefinitions().getType(d.getName());
+                                set.append(d.getName()).append("=").append(param).append(",");
+                            }
+                        });
+                        if (set.length() != 0)
+                            set.deleteCharAt(set.length() - 1);
+                        if (set.length() == 0 || where.length() == 0) {
+                            model.addAttribute("keyspaceViewEditError", "No columns selected for update!");
+                            return "forward:" + routeProperties.getMyDatabase();
                         }
-                    });
-                    if (set.length() != 0)
-                        set.deleteCharAt(set.length() - 1);
-                    if (set.length() == 0 || where.length() == 0) {
-                        model.addAttribute("keyspaceViewEditError", "No columns selected for update!");
-                        return "forward:" + routeProperties.getMyDatabase();
-                    }
-                    try {
                         keyspaceService.update(userKeyspace.getKeyspace().getName(), keyspaceContentObject.getTableName(), "", set.toString(), where.toString());
                         model.addAttribute("keyspaceViewEditSuccess", "Row updated!");
                         return "forward:" + routeProperties.getMyDatabase();
-                    } catch (Exception e) {
-                        model.addAttribute("keyspaceViewEditError", e.getMessage());
+                    } else if (requestType.equals("delete")) {
+                        final Boolean[] entireRow = {true};
+                        StringBuilder delete = new StringBuilder("");
+                        keyspaceContentObject.getColumnDefinitions().forEach(d -> {
+                            String param = request.getParameter(d.getName());
+                            if (param != null && !param.isEmpty() && param.equals("null")) {
+                                entireRow[0] = false;
+                                delete.append(d.getName()).append(",");
+                            }
+                        });
+                        if (!entireRow[0]) {
+                            if (delete.length() != 0)
+                                delete.deleteCharAt(delete.length() - 1);
+                            if (delete.length() == 0 || where.length() == 0) {
+                                model.addAttribute("keyspaceViewEditError", "No columns selected for delete!");
+                                return "forward:" + routeProperties.getMyDatabase();
+                            }
+                            keyspaceService.delete(delete.toString(), userKeyspace.getKeyspace().getName(), keyspaceContentObject.getTableName(), "", where.toString());
+                            model.addAttribute("keyspaceViewEditSuccess", "Columns deleted!");
+                        } else {
+                            keyspaceService.delete("", userKeyspace.getKeyspace().getName(), keyspaceContentObject.getTableName(), "", where.toString());
+                            model.addAttribute("keyspaceViewEditSuccess", "Row deleted!");
+                        }
                         return "forward:" + routeProperties.getMyDatabase();
                     }
+                } catch (Exception e) {
+                    model.addAttribute("keyspaceViewEditError", e.getMessage());
+                    return "forward:" + routeProperties.getMyDatabase();
                 }
+
             }
         }
         model.addAttribute("keyspaceViewEditError", "The row was not updated! Please refresh and try again!");
         return "forward:" + routeProperties.getMyDatabase();
     }
 
-    List<Map<String, Object>> getPrimaryKeysFromTable(KeyspaceContent keyspaceContent, KeyspaceContentObject keyspaceContentObject) {
+    private List<Map<String, Object>> getPrimaryKeysFromTable(KeyspaceContent keyspaceContent, KeyspaceContentObject keyspaceContentObject) {
         List<Map<String, Object>> primaryKeys = new ArrayList<>();
         keyspaceContent.getColumns().getContent().forEach(p -> {
             if (p.get("table_name").toString().equals(keyspaceContentObject.getTableName()) && !p.get("kind").toString().equals("regular"))
@@ -169,7 +199,12 @@ public class MyDatabaseController {
             Boolean ok = true;
             for (Map.Entry<String, Object> entry : p.entrySet()) {
                 DataType dataType = keyspaceContentObject.getColumnDefinitions().getType(entry.getKey());
-                if (primaryKeys.contains(p) && !Objects.equals(databaseCorrespondence(entry.getValue(), dataType), databaseCorrespondenceByString(request.getParameter(entry.getKey() + "_readonly"), dataType.getName().toString()))) {
+                final Boolean[] primaryKey = {false};
+                primaryKeys.forEach(q -> {
+                    if(q.get("column_name").toString().equals(entry.getKey()))
+                        primaryKey[0] = true;
+                });
+                if (primaryKey[0] && !Objects.equals(databaseCorrespondence(entry.getValue(), dataType), databaseCorrespondenceByString(request.getParameter(entry.getKey() + "_readonly"), dataType.getName().toString()))) {
                     ok = false;
                 }
             }
@@ -192,7 +227,8 @@ public class MyDatabaseController {
             } else if (object.getClass().equals(Date.class)) {
                 Date date = (Date) object;
                 if (type.equals("timestamp")) {
-                    stringBuilder.append(date.getTime());
+                    DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                    stringBuilder.append("\'").append(dateFormat.format(date)).append("\'");
                 }
             } else if (object.getClass().equals(LocalDate.class)) {
                 LocalDate localDate = (LocalDate) object;
@@ -206,11 +242,16 @@ public class MyDatabaseController {
                 ByteBuffer byteBuffer = (ByteBuffer) object;
                 byte[] bytes = byteBuffer.array();
                 for (byte b : bytes) {
-                    stringBuilder.append(String.format("%02x",b));
+                    stringBuilder.append(String.format("%02x", b));
                 }
             } else if (object.getClass().equals(Long.class) && type.equals("time")) {
                 Long lg = (Long) object;
-                stringBuilder.append("\'").append(LocalTime.ofNanoOfDay(lg)).append("\'");
+                DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss");
+                stringBuilder.append("\'").append(LocalTime.ofNanoOfDay(lg).format(dateTimeFormatter)).append("\'");
+            } else if (dataType.isCollection()) {
+                Object obj = editNDimentionCollectionObject(object, dataType);
+                if (obj != null)
+                    stringBuilder.append(obj.toString());
             } else {
                 stringBuilder.append(object.toString());
             }
@@ -218,6 +259,44 @@ public class MyDatabaseController {
             return null;
         }
         return stringBuilder.toString();
+    }
+
+    private Object editNDimentionCollectionObject(Object object, DataType dataType) {
+        if (!dataType.isCollection() && !dataType.isFrozen()) {
+            object = databaseCorrespondence(object, dataType);
+            return object;
+        } else if (dataType.isCollection() || dataType.isFrozen()) {
+            List<DataType> dataTypes = dataType.getTypeArguments();
+            try {
+                switch (dataType.getName().toString()) {
+                    case "list":
+                        List<Object> list = (ArrayList<Object>) object;
+                        List<Object> list2 = new ArrayList<>();
+                        for (Object o : list) {
+                            list2.add(editNDimentionCollectionObject(o, dataType.getTypeArguments().get(0)));
+                        }
+                        return list2;
+                    //break;
+                    case "set":
+                        Set<Object> set = (LinkedHashSet<Object>) object;
+                        Set<Object> set2 = new LinkedHashSet<>();
+                        for (Object o : set) {
+                            set2.add(editNDimentionCollectionObject(o, dataType.getTypeArguments().get(0)));
+                        }
+                        return set2;
+                    case "map":
+                        Map<Object, Object> map = (LinkedHashMap<Object, Object>) object;
+                        Map<Object, Object> map2 = new LinkedHashMap<>();
+                        for (Map.Entry<Object, Object> entry : map.entrySet()) {
+                            map2.put(editNDimentionCollectionObject(entry.getKey(), dataType.getTypeArguments().get(0)), editNDimentionCollectionObject(entry.getValue(), dataType.getTypeArguments().get(1)));
+                        }
+                        return map2;
+                }
+            } catch (ClassCastException e) {
+                return object;
+            }
+        }
+        return object;
     }
 
     private String databaseCorrespondenceByString(String object, String type) {
@@ -400,9 +479,12 @@ public class MyDatabaseController {
                 p.forEach((k, v) -> {
                     if (v != null) {
                         DataType type = update.getColumnDefinitions().getType(k);
-                        if (type.getName().toString().equals("blob") || type.getName().toString().equals("time"))
-                            map1.put(k, databaseCorrespondence(v, type));
-                        else
+                        if (type.getName().toString().equals("blob") || type.getName().toString().equals("time") || type.isCollection() || type.getName().toString().equals("timestamp")) {
+                            String obj = databaseCorrespondence(v, type);
+                            if (obj != null && obj.indexOf('\'') == 0 && obj.lastIndexOf('\'') == obj.length() - 1)
+                                obj = obj.substring(1, obj.length() - 1);
+                            map1.put(k, obj);
+                        } else
                             map1.put(k, v.toString());
                     } else
                         map1.put(k, null);
