@@ -2,6 +2,7 @@ package com.licence.web.services;
 
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.exceptions.DriverException;
+import com.datastax.driver.core.exceptions.SyntaxError;
 import com.licence.config.properties.QueryProperties;
 import com.licence.web.models.Keyspace;
 import com.licence.web.models.pojo.KeyspaceContent;
@@ -15,7 +16,6 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Calendar;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -148,6 +148,19 @@ public class KeyspaceService {
     public KeyspaceContentObject getSelectSimple(String keyspace, String table, String whatToSelect) {
         String query = String.format(queryProperties.getSelect().get("simple"), whatToSelect, keyspace + "." + table);
         return getKeyspaceContentObject(query, table);
+    }
+
+    public void update(String keyspace, String table, String options, String set, String where) throws Exception {
+        String query = String.format(queryProperties.getUpdate(), keyspace + "." + table, options, set, where);
+        System.out.println(query);
+        try {
+            adminOperations.getCqlOperations().execute(query);
+        } catch (Exception e) {
+            StringBuilder stringBuilder = new StringBuilder();
+            stringBuilder.append(query).append(" ---> ").append(e.getCause().getMessage());
+            throw new Exception(stringBuilder.toString());
+        }
+
     }
 
 }

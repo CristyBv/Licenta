@@ -18,4 +18,5 @@ public class QueryProperties {
     private String dropKeyspace;
     private String selectUserByPartialUsername;
     private Map<String, String> select;
+    private String update;
 }

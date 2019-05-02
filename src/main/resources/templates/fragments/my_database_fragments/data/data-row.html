@@ -10,8 +10,11 @@
                 <div class="panel-heading">
                     <div class="row">
                         <div class="col">
-                            <div class="active" id="show-data-row-form-link"
-                                 th:text="${data.tableName} + ' - row'"></div>
+                            <div class="active" id="show-data-row-form-link">
+                                <strong th:text="${data.tableName} + ' - row'"></strong>
+                                <!--<span class="glyphicon glyphicon-info-sign" data-toggle="tooltip" data-placement="right"-->
+                                      <!--th:title="#{database.keyspaces.tableContent.showRow.topInfo}"></span>-->
+                            </div>
                         </div>
                     </div>
                     <hr>
@@ -19,10 +22,12 @@
                 <div class="panel-body">
                     <div class="row">
                         <div class="col-lg-12">
+                            <p style="font-size: 1em;" class="alert alert-info" th:text="#{database.keyspaces.tableContent.showRow.topInfo}"></p>
                             <form id="show-data-row-form"
                                   th:action="${@environment.getProperty('route.updateDeleteRowContent')}" method="post"
                                   role="form">
                                 <input type="hidden" name="oldData"/>
+                                <input type="hidden" name="tableName" th:value="${data.tableName}"/>
                                 <th:block th:each="column:${data.columnDefinitions}">
                                     <th:block th:each="mapColumn:${keyspaceContent.columns.content}">
                                         <th:block
@@ -65,15 +70,38 @@
                                                         </li>
                                                     </ul>
                                                 </div>
-                                                <div class="col-sm-6">
-                                                <textarea class="form-control"
-                                                          th:name="${mapColumn.get('column_name')}"></textarea>
+                                                <div class="col-sm-6" style="overflow: auto" th:with="message=#{database.keyspaces.tableContent.showRow.textareaPlaceholder}">
+                                                    <textarea class="form-control"
+                                                              th:name="${mapColumn.get('column_name')+'_readonly'}"
+                                                              readonly></textarea>
+                                                    <textarea class="form-control"
+                                                              th:name="${mapColumn.get('column_name')}"
+                                                              th:readonly="${mapColumn.get('kind') != 'regular'}"
+                                                              th:placeholder="${mapColumn.get('kind') == 'regular' ? message  : 'Partition key and clustering key cannot be update!'}"
+                                                    ></textarea>
                                                 </div>
                                             </div>
                                             <hr/>
                                         </th:block>
                                     </th:block>
                                 </th:block>
+                                <input type="hidden" name="requestType" id="request-type"/>
+                                <div class="row">
+                                    <div class="col-sm-6">
+                                        <div class="from-group">
+                                            <button style="width: 100%;" id="data-row-update-button"
+                                                    class="btn btn-lg btn-success">Update
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <div clas="form-group">
+                                            <button style="width: 100%;" id="data-row-delete-button"
+                                                    class="btn btn-lg btn-danger">Delete
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
                             </form>
                         </div>
                     </div>

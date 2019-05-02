@@ -270,6 +270,20 @@ table.dataTable thead th {
     border: 1px solid black;
 }
 
+#content-div table.dataTable tbody tr {
+    cursor: pointer;
+    word-wrap: break-word;
+    /*word-break: break-all;*/
+    vertical-align: top;
+    border: 1px solid black;
+}
+
+#content-div table.dataTable tbody tr:hover td{
+    border: 1px solid #182645;
+    box-sizing: border-box;
+    /*color: white;*/
+}
+
 .data-table-submit {
     background: transparent;
     border: none;

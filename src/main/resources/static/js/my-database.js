@@ -215,16 +215,25 @@ $(document).ready(function () {
     });
 
 
-    $("#content-div table.dataTable tbody").on("dblclick", 'tr', function () {
+    $("#content-div table.dataTable tbody").on("dblclick", 'tr', function (e) {
+        e.preventDefault();
         var rowData = tablesBottom[0].row(this).data();
+        $("#show-data-row-form").find("input[name='oldData']").val(JSON.stringify(rowData));
         Object.keys(rowData).forEach(function (key) {
-            if (key == "DT_RowId" && rowData[key] != null) {
-                $("#show-data-row-form").find("input[name='oldData']").val(rowData);
-            } else if (rowData[key] != null) {
-                $("#show-data-row-form").find("textarea[name='" + key + "']").val(rowData[key]);
+            if (rowData[key] != null) {
+                $("#show-data-row-form").find("textarea[name='" + key + "_readonly']").val(rowData[key]);
             }
         });
         $("#show-row-data-modal").modal("show");
+    });
+
+    $("#data-row-update-button").on('click', function () {
+        $("#request-type").val("update");
+        $("#show-data-row-form").submit();
+    });
+    $("#data-row-delete-button").on('click', function () {
+        $("#request-type").val("delete");
+        $("#show-data-row-form").submit();
     });
 });
 
@@ -309,21 +318,23 @@ function drawDataTableServerSide(id) {
             "type": "GET",
             "url": "/table-data",
             "dataSrc": function (json) {
-                // if (columnTypes !== undefined) {
-                //     for (var i = 0; i < json.data.length; i++) {
-                //         var j = 0;
-                //         Object.keys(columnTypes).forEach(function (key) {
-                //             var column = columnTypes[key];
-                //             json.data[i][j] = formatData(json.data[i][j], key, column);
-                //             j++;
-                //         });
-                //     }
-                // }
                 return json.data;
             }
         },
         "initComplete": function (settings, json) {
         },
-        "columns": columnsNamesDataTable
+        "columns": columnsNamesDataTable,
+        "drawCallback": function( settings ) {
+            // highlight td if contains what was searched
+            var search = $("#content-div #keyspace-data-content_filter input[type='search']").val();
+            if(search != '') {
+                $("#content-div table.dataTable tbody td").each(function () {
+                    var content = $(this).html();
+                    if(content.indexOf(search) != -1) {
+                        $(this).css('border', '2px solid black');
+                    }
+                });
+            }
+        }
     });
 }
