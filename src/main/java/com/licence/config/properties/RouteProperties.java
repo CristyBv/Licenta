@@ -32,4 +32,9 @@ public class RouteProperties {
     private String changeDatabaseViewEditPanel;
     private String getDatabaseContent;
     private String updateDeleteRowContent;
+    private String changeMyKeyspacesPanel;
+    private String insertRowContent;
+    private String alterTableStructure;
+    private String dropTable;
+    private String createTableStructure;
 }

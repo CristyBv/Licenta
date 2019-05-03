@@ -160,21 +160,21 @@ ul.nav-menu-list-style li .badge, ul.nav-menu-list-style li .pull-right, ul.nav-
 
 /*CREATE/CONNECT KEYSPACE START*/
 
-.panel-create-keyspace, .panel-connect-keyspace, .panel-show-data-row {
+.panel-modal-style {
     border-color: #ccc;
     -webkit-box-shadow: 0px 2px 3px 0px rgba(0, 0, 0, 0.2);
     -moz-box-shadow: 0px 2px 3px 0px rgba(0, 0, 0, 0.2);
     box-shadow: 0px 2px 3px 0px rgba(0, 0, 0, 0.2);
 }
 
-.panel-create-keyspace > .panel-heading, .panel-connect-keyspace > .panel-heading, .panel-show-data-row > .panel-heading {
+.panel-modal-style > .panel-heading {
     color: #00415d;
     background-color: #fff;
     border-color: #fff;
     text-align: center;
 }
 
-.panel-create-keyspace > .panel-heading div, .panel-connect-keyspace > .panel-heading div, .panel-show-data-row > .panel-heading div {
+.panel-modal-style > .panel-heading div {
     text-decoration: none;
     color: #666;
     font-weight: bold;
@@ -184,12 +184,12 @@ ul.nav-menu-list-style li .badge, ul.nav-menu-list-style li .pull-right, ul.nav-
     transition: all 0.1s linear;
 }
 
-.panel-create-keyspace > .panel-heading div.active, .panel-connect-keyspace > .panel-heading div.active, .panel-show-data-row > .panel-heading div.active {
+.panel-modal-style > .panel-heading div.active {
     color: #029f5b;
     font-size: 18px;
 }
 
-.panel-create-keyspace > .panel-heading hr, .panel-connect-keyspace > .panel-heading hr, .panel-show-data-row > .panel-heading hr {
+.panel-modal-style > .panel-heading hr {
     margin-top: 10px;
     margin-bottom: 0px;
     clear: both;
@@ -201,7 +201,7 @@ ul.nav-menu-list-style li .badge, ul.nav-menu-list-style li .pull-right, ul.nav-
     background-image: -o-linear-gradient(left, rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.15), rgba(0, 0, 0, 0));
 }
 
-.panel-create-keyspace input[type="text"], .panel-create-keyspace input[type="email"], .panel-create-keyspace input[type="password"], .panel-connect-keyspace input[type="text"], .panel-connect-keyspace input[type="email"], .panel-connect-keyspace input[type="password"] {
+.panel-modal-style input[type="text"], .panel-modal-style input[type="email"], .panel-modal-style input[type="password"] {
     height: 45px;
     border: 1px solid #ddd;
     font-size: 16px;
@@ -210,8 +210,8 @@ ul.nav-menu-list-style li .badge, ul.nav-menu-list-style li .pull-right, ul.nav-
     transition: all 0.1s linear;
 }
 
-.panel-create-keyspace input:hover,
-.panel-create-keyspace input:focus {
+.panel-modal-style input:hover,
+.panel-modal-style input:focus {
     outline: none;
     -webkit-box-shadow: none;
     -moz-box-shadow: none;
@@ -278,13 +278,13 @@ table.dataTable thead th {
     border: 1px solid black;
 }
 
-#content-div table.dataTable tbody tr:hover td{
+#content-div table.dataTable tbody tr:hover td {
     border: 1px solid #182645;
     box-sizing: border-box;
     /*color: white;*/
 }
 
-.data-table-submit {
+.data-table-submit, .data-table-structure {
     background: transparent;
     border: none;
     width: 100%;

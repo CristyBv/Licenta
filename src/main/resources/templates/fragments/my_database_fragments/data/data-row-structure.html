@@ -3,17 +3,16 @@
 <head>
 </head>
 <body>
-<div th:fragment="data-row(data)" id="show-data-row-div">
+<div th:fragment="data-row(data)">
+
     <div class="row">
         <div class="col-md">
             <div class="panel panel-modal-style">
                 <div class="panel-heading">
                     <div class="row">
                         <div class="col">
-                            <div class="active" id="show-data-row-form-link">
-                                <strong th:text="${data.tableName} + ' - row'"></strong>
-                                <!--<span class="glyphicon glyphicon-info-sign" data-toggle="tooltip" data-placement="right"-->
-                                      <!--th:title="#{database.keyspaces.tableContent.showRow.topInfo}"></span>-->
+                            <div class="active" id="show-data-structure-row-form-link">
+                                <strong th:text="${data.tableName} + ' - structure'"></strong>
                             </div>
                         </div>
                     </div>
@@ -22,16 +21,17 @@
                 <div class="panel-body">
                     <div class="row">
                         <div class="col-lg-12">
-                            <p style="font-size: 1em;" class="alert alert-info" th:text="#{database.keyspaces.tableContent.showRow.topInfo}"></p>
-                            <form id="show-data-row-form"
-                                  th:action="${@environment.getProperty('route.updateDeleteRowContent')}" method="post"
+                            <p style="font-size: 1em;" class="alert alert-info"
+                               th:text="#{database.keyspaces.tableData.showRow.topInfo}"></p>
+                            <form id="show-data-structure-row-form"
+                                  th:action="${@environment.getProperty('route.alterTableStructure')}" method="post"
                                   role="form">
-                                <input type="hidden" name="tableName" th:value="${data.tableName}"/>
+                                <input type="hidden" name="tableName"/>
+                                <input type="hidden" name="requestType" th:value="'options'"/>
                                 <th:block th:each="column:${data.columnDefinitions}">
-                                    <th:block th:each="mapColumn:${keyspaceContent.columns.content}">
+                                    <th:block th:each="mapColumn:${systemSchemaContent.columns.content}">
                                         <th:block
                                                 th:if="${mapColumn.get('column_name') == column.name && mapColumn.get('table_name') == data.tableName}">
-                                            <hr/>
                                             <div class="row row-eq-height">
                                                 <div class="col-sm-5">
                                                     <ul class="list-group">
@@ -69,7 +69,8 @@
                                                         </li>
                                                     </ul>
                                                 </div>
-                                                <div class="col-sm-7" style="overflow: auto" th:with="message=#{database.keyspaces.tableContent.showRow.textareaPlaceholder}">
+                                                <div class="col-sm-7" style="overflow: auto"
+                                                     th:with="message=#{database.keyspaces.tableData.showRow.textareaPlaceholder}">
                                                     <textarea class="form-control"
                                                               th:name="${mapColumn.get('column_name')+'_readonly'}"
                                                               readonly rows="3"></textarea>
@@ -84,23 +85,25 @@
                                         </th:block>
                                     </th:block>
                                 </th:block>
-                                <input type="hidden" name="requestType" id="request-type"/>
                                 <div class="row">
                                     <div class="col-sm-6">
                                         <div class="from-group">
-                                            <button style="width: 100%;" id="data-row-update-button"
-                                                    class="btn btn-lg btn-success">Update
+                                            <button style="width: 100%;" id="data-structure-row-update-button"
+                                                    class="btn btn-lg btn-success">Update table options
                                             </button>
                                         </div>
                                     </div>
                                     <div class="col-sm-6">
-                                        <div clas="form-group">
-                                            <button style="width: 100%;" id="data-row-delete-button"
-                                                    class="btn btn-lg btn-danger">Delete
+                                        <div class="from-group">
+                                            <button style="width: 100%;" id="data-structure-delete-table-button"
+                                                    class="btn btn-lg btn-danger">Delete table
                                             </button>
                                         </div>
                                     </div>
                                 </div>
+                            </form>
+                            <form th:action="${@environment.getProperty('route.dropTable')}" method="post" id="delete-table-form">
+                                <input type="hidden" name="table" id="delete-table-name-input"/>
                             </form>
                         </div>
                     </div>

@@ -196,7 +196,7 @@ $(document).ready(function () {
         adjustDataTableColumns(tablesBottom, false);
     });
 
-    $(".data-table-submit").hover(function () {
+    $(".data-table-submit, .data-table-structure").hover(function () {
         $(this).closest("td").css('background', "darkgray");
     }, function () {
         $(this).closest("td").css('background', "transparent");
@@ -218,13 +218,50 @@ $(document).ready(function () {
     $("#content-div table.dataTable tbody").on("dblclick", 'tr', function (e) {
         e.preventDefault();
         var rowData = tablesBottom[0].row(this).data();
-        $("#show-data-row-form").find("input[name='oldData']").val(JSON.stringify(rowData));
         Object.keys(rowData).forEach(function (key) {
             if (rowData[key] != null) {
                 $("#show-data-row-form").find("textarea[name='" + key + "_readonly']").val(rowData[key]);
             }
         });
         $("#show-row-data-modal").modal("show");
+    });
+    $("#content-div #insert-row-button").on("click", function (e) {
+        $("#insert-row-data-modal").modal("show");
+    });
+    $("#create-table-button").on("click", function () {
+        $("#create-table-modal").modal("show");
+    });
+    $("#data-div table.dataTable tbody").on("click", '.data-table-structure', function (e) {
+        e.preventDefault();
+        var tr = $(this).closest("tr");
+        var structure = tr.attr("id").split("_")[0];
+        var name = tr.attr("id").split("_")[1];
+        var data = {
+            "structure": structure,
+            "name": name
+        };
+        $.ajax({
+            type: "post",
+            url: "/data-structure",
+            contentType: "application/json",
+            data: JSON.stringify({
+                "structure": structure,
+                "name": name
+            }),
+            dataType: "json"
+        }).done(function (json) {
+            Object.keys(json).forEach(function (key) {
+                if (json[key] != null) {
+                    if(typeof json[key] == "object")
+                        $("#show-data-structure-row-form").find("textarea[name='" + key + "_readonly']").val(JSON.stringify(json[key]).replace(/"/g,"\'"));
+                    else
+                        $("#show-data-structure-row-form").find("textarea[name='" + key + "_readonly']").val(json[key]);
+                }
+            });
+            $("#data-div").find(".row-modal").modal("show");
+        }).fail(function () {
+            alert("Server error!");
+        });
     });
 
     $("#data-row-update-button").on('click', function (e) {
@@ -243,6 +280,21 @@ $(document).ready(function () {
             e.preventDefault();
         }
     });
+    $("#data-structure-row-update-button").on('click', function (e) {
+        if(confirm("Are you sure you want to update?")) {
+            $("#show-data-structure-row-form").submit();
+        } else {
+            e.preventDefault();
+        }
+    });
+    $("#data-structure-delete-table-button").on("click", function (e) {
+        if(confirm("Are you sure you want to delete this table? All the data will be lost!")) {
+            var tableName = $("#show-data-structure-row-form").find("textarea[name='table_name_readonly']").val();
+            $("#delete-table-name-input").val(tableName);
+            $("#delete-table-form").submit();
+        }
+        e.preventDefault();
+    })
 });
 
 function addMouseWheelAndContextMenuEvent(tablesBottom) {
@@ -287,7 +339,7 @@ function drawDataTableNoServerSide(id) {
     return $("#" + id).DataTable({
         "ordering": true,
         "lengthMenu": [[1, 3, 5, 10, 20, 50, 100, -1], [1, 3, 5, 10, 20, 50, 100, "All"]],
-        "pageLength": 3,
+        "pageLength": 10,
         "stateSave": true,
         responsive: true,
         "scrollY": true,

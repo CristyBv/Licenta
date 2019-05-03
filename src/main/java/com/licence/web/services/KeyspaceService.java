@@ -2,7 +2,6 @@ package com.licence.web.services;
 
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.exceptions.DriverException;
-import com.datastax.driver.core.exceptions.SyntaxError;
 import com.licence.config.properties.QueryProperties;
 import com.licence.web.models.Keyspace;
 import com.licence.web.models.pojo.KeyspaceContent;
@@ -166,6 +165,46 @@ public class KeyspaceService {
 
     public void delete(String delete, String keyspace, String table, String options, String where) throws Exception {
         String query = String.format(queryProperties.getDelete(), delete, keyspace + "." + table, options, where);
+        System.out.println(query);
+        try {
+            adminOperations.getCqlOperations().execute(query);
+        } catch (Exception e) {
+            throw new Exception(query + " ---> " + e.getCause().getMessage());
+        }
+    }
+
+    public void insert(String keyspace, String table, String insertColumns, String insertValues, String options) throws Exception {
+        String query = String.format(queryProperties.getInsert(), keyspace + "." + table, insertColumns, insertValues, options);
+        System.out.println(query);
+        try {
+            adminOperations.getCqlOperations().execute(query);
+        } catch (Exception e) {
+            throw new Exception(query + " ---> " + e.getCause().getMessage());
+        }
+    }
+
+    public void alterOptions(String keyspace, String table, String with) throws Exception {
+        String query = String.format(queryProperties.getAlter().get("options"), keyspace + "." + table, with);
+        System.out.println(query);
+        try {
+            adminOperations.getCqlOperations().execute(query);
+        } catch (Exception e) {
+            throw new Exception(query + " ---> " + e.getCause().getMessage());
+        }
+    }
+
+    public void dropTable(String keyspace, String table) throws Exception {
+        String query = String.format(queryProperties.getDrop().get("table"), keyspace + "." + table);
+        System.out.println(query);
+        try {
+            adminOperations.getCqlOperations().execute(query);
+        } catch (Exception e) {
+            throw new Exception(query + " ---> " + e.getCause().getMessage());
+        }
+    }
+
+    public void createTable(String keyspace, String table, String columnsDefinitions, String keys) throws Exception {
+        String query = String.format(queryProperties.getCreate().get("table"), keyspace+"."+table, columnsDefinitions, keys);
         System.out.println(query);
         try {
             adminOperations.getCqlOperations().execute(query);

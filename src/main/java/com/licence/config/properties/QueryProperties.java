@@ -20,4 +20,8 @@ public class QueryProperties {
     private Map<String, String> select;
     private String update;
     private String delete;
+    private String insert;
+    private Map<String, String> alter;
+    private Map<String, String> drop;
+    private Map<String, String> create;
 }

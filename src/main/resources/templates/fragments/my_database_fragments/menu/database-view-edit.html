@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!--suppress XmlDuplicatedId -->
 <html xmlns:th="http://www.thymeleaf.org" lang="en">
 <head>
 
@@ -62,38 +63,46 @@
             </ul>
             <br/>
             <div class="tab-content row" th:if="${keyspaceContent != null}">
+                <script th:inline="javascript">
+                    /*<![CDATA[*/
+                    var keyspaceContent = /*[[${keyspaceContent}]]*/ null;
+                    /*]]>*/
+                </script>
                 <div th:class="'tab-pane ' + ${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[tables]') ? 'active' : ''}"
                      id="tables"
                      th:if="${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[tables]')}">
+                    <button class="btn btn-lg btn-default" id="create-table-button">Create Table</button>
+                    <hr/>
+                    <div class="modal fade" id="create-table-modal" tabindex="-1" role="dialog" aria-hidden="true">
+                        <div class="modal-dialog" role="document">
+                            <div th:replace="fragments/my_database_fragments/data/create-table-structure :: data-row(data=${keyspaceContent.tables})"
+                                 id="create-table-div"></div>
+                        </div>
+                    </div>
+                    <div class="modal fade row-modal" id="show-row-tables-modal" tabindex="-1" role="dialog" aria-hidden="true">
+                        <div class="modal-dialog" style="width: 70% !important;" role="document">
+                            <div th:replace="fragments/my_database_fragments/data/data-row-structure :: data-row(data=${keyspaceContent.tables})"
+                                 id="show-row-tables-div"></div>
+                        </div>
+                    </div>
                     <table class="table table-striped table-bordered text-center" id="keyspace-data-tables">
                         <thead>
                         <tr>
                             <th scope="col" class="text-center">Table Name</th>
-                            <!--<th scope="col" class="text-center"></th>-->
-                            <th scope="col" class="text-center"></th>
                             <th scope="col" class="text-center"></th>
                         </tr>
                         </thead>
                         <tbody>
                         <th:block th:each="mapTable:${keyspaceContent.tables.content}">
-                            <tr th:with="tableName=${mapTable.get('table_name')}">
-                                <!--<td style="font-weight: bold; border: 1px solid black;">-->
-                                <!--<form th:action="${@environment.getProperty('route.getDatabaseContent')}">-->
-                                <!--<input type="hidden" name="table" th:value="${tableName}"/>-->
-                                <!--<button type="submit" class="btn btn-info" th:text="${tableName}"></button>-->
-                                <!--</form>-->
-                                <!--</td>-->
+                            <tr th:with="tableName=${mapTable.get('table_name')}" th:id="${'tables_'+mapTable.get('table_name')}">
                                 <td style="font-weight: bold; border: 1px solid black;">
-                                    <th:block
-                                            th:replace="fragments/my_database_fragments/data/tables-data :: content-form(tableName=${tableName})"></th:block>
+                                    <form th:action="${@environment.getProperty('route.getDatabaseContent')}">
+                                        <input type="hidden" name="table" th:value="${tableName}"/>
+                                        <button type="submit" class="data-table-submit" th:text="${tableName}"></button>
+                                    </form>
                                 </td>
                                 <td>
-                                    <th:block
-                                            th:replace="fragments/my_database_fragments/data/tables-data :: structure-form(tableName=${tableName})"></th:block>
-                                </td>
-                                <td>
-                                    <th:block
-                                            th:replace="fragments/my_database_fragments/data/tables-data :: delete-form(tableName=${tableName})"></th:block>
+                                    <button class="data-table-structure">Options</button>
                                 </td>
                             </tr>
                         </th:block>
@@ -364,9 +373,12 @@
             <span style="float:right;" class="glyphicon glyphicon-minus btn btn-default keyspace-manage-minus"></span>
             <br style="clear:both;"><br>
             <div class="row" th:if="${dataContent != null}">
+                <button class="btn btn-lg btn-default" id="insert-row-button">Add Row</button>
+                <hr/>
                 <div class="modal fade" id="show-row-data-modal" tabindex="-1" role="dialog" aria-hidden="true">
                     <div class="modal-dialog" style="width: 70% !important;" role="document">
-                        <div th:replace="fragments/my_database_fragments/data/data-row :: data-row(data=${dataContent})" id="show-row-div"></div>
+                        <div th:replace="fragments/my_database_fragments/data/data-row :: data-row(data=${dataContent})"
+                             id="show-row-div"></div>
                     </div>
                 </div>
                 <script th:inline="javascript">
@@ -374,24 +386,36 @@
                     var columnsNamesDataTable = [];
                 </script>
                 <th:block th:if="${dataContent.columnDefinitions == null}">
+                    <div class="modal fade" id="insert-row-data-modal" tabindex="-1" role="dialog" aria-hidden="true">
+                        <div class="modal-dialog" style="width: 70% !important;" role="document">
+                            <div th:replace="fragments/my_database_fragments/data/insert-row :: insert-row(data=${dataContent}, columns=true)"
+                                 id="insert-row-div"></div>
+                        </div>
+                    </div>
                     <th:block th:each="mapColumn:${keyspaceContent.columns.content}">
                         <th:block th:if="${mapColumn.get('table_name') == dataContent.tableName}">
                             <script th:inline="javascript">
                                 /*<![CDATA[*/
-                                var columnNameTable = /*[[${mapColumn.get('column_name')}]]*/ 'name';
-                                var columnTable = /*[[${mapColumn}]]*/ 'name';
-                                var map = {};
-                                map["data"] = columnNameTable;
-                                map["title"] = columnNameTable;
-                                map["className"] = "text-center";
-                                columnsNamesDataTable.push(map);
-                                columnsTable.push(columnTable);
-                                /*]]>*/
+                            var columnNameTable = /*[[${mapColumn.get('column_name')}]]*/ 'name';
+                            var columnTable = /*[[${mapColumn}]]*/ 'name';
+                            var map = {};
+                            map["data"] = columnNameTable;
+                            map["title"] = columnNameTable;
+                            map["className"] = "text-center";
+                            columnsNamesDataTable.push(map);
+                            columnsTable.push(columnTable);
+                            /*]]>*/
                             </script>
                         </th:block>
                     </th:block>
                 </th:block>
                 <th:block th:if="${dataContent.columnDefinitions != null}">
+                    <div class="modal fade" id="insert-row-data-modal" tabindex="-1" role="dialog" aria-hidden="true">
+                        <div class="modal-dialog" style="width: 70% !important;" role="document">
+                            <div th:replace="fragments/my_database_fragments/data/insert-row :: insert-row(data=${dataContent}, columns=false)"
+                                 id="insert-row-div"></div>
+                        </div>
+                    </div>
                     <th:block th:each="column:${dataContent.columnDefinitions}">
                         <script th:inline="javascript">
                             /*<![CDATA[*/

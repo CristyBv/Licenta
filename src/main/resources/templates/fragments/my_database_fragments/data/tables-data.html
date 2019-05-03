@@ -12,7 +12,7 @@
 <div th:fragment="structure-form(tableName)">
     <form th:action="${@environment.getProperty('route.getDatabaseContent')}">
         <input type="hidden" name="table" th:value="${tableName}"/>
-        <input type="submit" value="Structure" class="btn btn-primary"/>
+        <input type="submit" value="Options" class="btn btn-primary"/>
     </form>
 </div>
 <div th:fragment="delete-form(tableName)">
