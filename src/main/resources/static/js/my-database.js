@@ -228,25 +228,19 @@ $(document).ready(function () {
     $("#content-div #insert-row-button").on("click", function (e) {
         $("#insert-row-data-modal").modal("show");
     });
-    $("#create-table-button").on("click", function () {
-        $("#create-table-modal").modal("show");
+    $(".create-row-button").on("click", function () {
+        $("#data-div").find(".create-row-modal").modal("show");
     });
     $("#data-div table.dataTable tbody").on("click", '.data-table-structure', function (e) {
         e.preventDefault();
         var tr = $(this).closest("tr");
-        var structure = tr.attr("id").split("_")[0];
-        var name = tr.attr("id").split("_")[1];
-        var data = {
-            "structure": structure,
-            "name": name
-        };
+        var data = tr.attr("id");
         $.ajax({
             type: "post",
             url: "/data-structure",
             contentType: "application/json",
             data: JSON.stringify({
-                "structure": structure,
-                "name": name
+                "data" : data
             }),
             dataType: "json"
         }).done(function (json) {
@@ -280,21 +274,45 @@ $(document).ready(function () {
             e.preventDefault();
         }
     });
-    $("#data-structure-row-update-button").on('click', function (e) {
+    $("#data-structure-update-tables-button").on('click', function (e) {
         if(confirm("Are you sure you want to update?")) {
             $("#show-data-structure-row-form").submit();
         } else {
             e.preventDefault();
         }
     });
-    $("#data-structure-delete-table-button").on("click", function (e) {
+    $("#data-structure-delete-tables-button").on("click", function (e) {
         if(confirm("Are you sure you want to delete this table? All the data will be lost!")) {
             var tableName = $("#show-data-structure-row-form").find("textarea[name='table_name_readonly']").val();
-            $("#delete-table-name-input").val(tableName);
-            $("#delete-table-form").submit();
+            $("#delete-tables-name-input").val(tableName);
+            $("#delete-tables-form").submit();
         }
         e.preventDefault();
-    })
+    });
+    $("#data-structure-update-columns-button").on("click", function (e) {
+        if(confirm("Are you sure you want to update this column?")) {
+            var requestType = $("#show-data-structure-row-form").find("input[name='requestType']");
+            requestType.val(requestType.val()+"@update");
+            $("#show-data-structure-row-form").submit();
+        }
+        e.preventDefault();
+    });
+    $("#data-structure-delete-columns-button").on("click", function (e) {
+        if(confirm("Are you sure you want to delete this column?")) {
+            var requestType = $("#show-data-structure-row-form").find("input[name='requestType']");
+            requestType.val(requestType.val()+"@delete");
+            $("#show-data-structure-row-form").submit();
+        }
+        e.preventDefault();
+    });
+    $("#data-structure-delete-types-button").on("click", function (e) {
+        if(confirm("Are you sure you want to delete this type?")) {
+            var typeName = $("#show-data-structure-row-form").find("textarea[name='type_name_readonly']").val();
+            $("#delete-types-name-input").val(typeName);
+            $("#delete-types-form").submit();
+        }
+        e.preventDefault();
+    });
 });
 
 function addMouseWheelAndContextMenuEvent(tablesBottom) {

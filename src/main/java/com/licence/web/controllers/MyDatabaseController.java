@@ -17,7 +17,6 @@ import com.licence.web.services.KeyspaceService;
 import com.licence.web.services.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.boot.configurationprocessor.json.JSONException;
 import org.springframework.boot.configurationprocessor.json.JSONObject;
 import org.springframework.context.MessageSource;
 import org.springframework.http.MediaType;
@@ -33,7 +32,6 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.context.request.WebRequest;
@@ -46,7 +44,6 @@ import java.text.SimpleDateFormat;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -93,8 +90,9 @@ public class MyDatabaseController {
                 model.addAttribute("keyspaceNotAvailable", "Keyspace not available anymore!");
             } else {
                 String activePanel = (String) session.getAttribute("activePanel");
+                KeyspaceContent keyspaceContent = keyspaceService.getKeyspaceContent(userKeyspace.getKeyspace().getName().toLowerCase());
                 if (Objects.equals(activePanel, keyspaceProperties.getPanel().get("manage")) || Objects.equals(activePanel, keyspaceProperties.getPanel().get("viewEdit"))) {
-                    model.addAttribute("keyspaceContent", keyspaceService.getKeyspaceContent(userKeyspace.getKeyspace().getName().toLowerCase()));
+                    model.addAttribute("keyspaceContent", keyspaceContent);
                 }
                 if (Objects.equals(activePanel, keyspaceProperties.getPanel().get("viewEdit"))) {
                     session.setAttribute("systemSchemaContent", keyspaceService.getKeyspaceContent("system_schema"));
@@ -110,16 +108,136 @@ public class MyDatabaseController {
         return routeProperties.getMyDatabase();
     }
 
+    @PostMapping(value = "${route.dropType}")
+    public String dropType(@RequestParam String type,
+                           Authentication authentication,
+                           HttpSession session,
+                           Model model) {
+        UserKeyspace userKeyspace = updateUserKeyspaces(authentication, session);
+        if (userKeyspace != null) {
+            try {
+                keyspaceService.dropType(userKeyspace.getKeyspace().getName(), type);
+                model.addAttribute("keyspaceViewEditSuccess", "Type deleted!");
+                return "forward:" + routeProperties.getMyDatabase();
+            } catch (Exception e) {
+                model.addAttribute("keyspaceViewEditError", e.getMessage());
+                return "forward:" + routeProperties.getMyDatabase();
+            }
+        }
+        model.addAttribute("keyspaceViewEditError", "The type was not deleted! Please refresh and try again!");
+        return "forward:" + routeProperties.getMyDatabase();
+    }
+
+    @PostMapping(value = "${route.alterType}")
+    public String alterType(Authentication authentication,
+                            WebRequest request,
+                            HttpSession session,
+                            Model model) {
+        UserKeyspace userKeyspace = updateUserKeyspaces(authentication, session);
+        String typeName = request.getParameter("type_name_readonly");
+        String field = request.getParameter("field_names");
+        if (userKeyspace != null) {
+            if (field == null || field.isEmpty()) {
+                model.addAttribute("keyspaceViewEditError", "No options selected for update!");
+                return "forward:" + routeProperties.getMyDatabase();
+            }
+            if (field.substring(0, 1).contains("[") && field.substring(field.length() - 1, field.length()).contains("]")) {
+                field = field.substring(1, field.length() - 1);
+                String[] fields = field.split(",");
+                StringBuilder fieldsList = new StringBuilder();
+                for (String s : fields) {
+                    if(s.split("@").length == 2) {
+                        fieldsList.append(s.split("@")[0]).append(" TO ").append(s.split("@")[1]).append(" AND ");
+                    }
+                }
+                if (fieldsList.length() != 0)
+                    fieldsList.delete(fieldsList.length() - 4, fieldsList.length());
+                try {
+                    keyspaceService.alterTypeRenameFields(userKeyspace.getKeyspace().getName(), typeName, fieldsList.toString());
+                    model.addAttribute("keyspaceViewEditSuccess", "Field(s) renamed!");
+                    return "forward:" + routeProperties.getMyDatabase();
+                } catch (Exception e) {
+                    model.addAttribute("keyspaceViewEditError", e.getMessage());
+                    return "forward:" + routeProperties.getMyDatabase();
+                }
+            } else if (field.split("@").length == 2) {
+                try {
+                    keyspaceService.alterTypeAddField(userKeyspace.getKeyspace().getName(), typeName, field.split("@")[0], field.split("@")[1]);
+                    model.addAttribute("keyspaceViewEditSuccess", "Field added!");
+                    return "forward:" + routeProperties.getMyDatabase();
+                } catch (Exception e) {
+                    model.addAttribute("keyspaceViewEditError", e.getMessage());
+                    return "forward:" + routeProperties.getMyDatabase();
+                }
+            }
+        }
+        model.addAttribute("keyspaceViewEditError", "The type was not updated! Please refresh and try again!");
+        return "forward:" + routeProperties.getMyDatabase();
+    }
+
+//    @PostMapping(value = "${route.createType}")
+//    public String createType() {
+//
+//    }
+
+    @PostMapping(value = "${route.createIndex}")
+    public String createIndex(@RequestParam String tableName,
+                              @RequestParam String indexName,
+                              @RequestParam String columnName,
+                              @RequestParam(required = false) String custom,
+                              @RequestParam String options,
+                              Authentication authentication,
+                              HttpSession session,
+                              Model model) {
+        UserKeyspace userKeyspace = updateUserKeyspaces(authentication, session);
+        if (userKeyspace != null) {
+            try {
+                if (custom == null) {
+                    keyspaceService.createIndex(userKeyspace.getKeyspace().getName(), indexName, tableName, columnName);
+                } else {
+                    keyspaceService.createCustomIndex(userKeyspace.getKeyspace().getName(), indexName, tableName, columnName, options);
+                }
+                model.addAttribute("keyspaceViewEditSuccess", "Index created!");
+                return "forward:" + routeProperties.getMyDatabase();
+            } catch (Exception e) {
+                model.addAttribute("keyspaceViewEditError", e.getMessage());
+                return "forward:" + routeProperties.getMyDatabase();
+            }
+        }
+        model.addAttribute("keyspaceViewEditError", "The index was not created! Please refresh and try again!");
+        return "forward:" + routeProperties.getMyDatabase();
+    }
+
+    @PostMapping(value = "${route.dropIndex}")
+    public String dropIndex(@RequestParam String tableName,
+                            @RequestParam String indexName,
+                            Authentication authentication,
+                            HttpSession session,
+                            Model model) {
+        UserKeyspace userKeyspace = updateUserKeyspaces(authentication, session);
+        if (userKeyspace != null) {
+            try {
+                keyspaceService.dropIndex(userKeyspace.getKeyspace().getName(), indexName);
+                model.addAttribute("keyspaceViewEditSuccess", "Index deleted!");
+                return "forward:" + routeProperties.getMyDatabase();
+            } catch (Exception e) {
+                model.addAttribute("keyspaceViewEditError", e.getMessage());
+                return "forward:" + routeProperties.getMyDatabase();
+            }
+        }
+        model.addAttribute("keyspaceViewEditError", "The index was not deleted! Please refresh and try again!");
+        return "forward:" + routeProperties.getMyDatabase();
+    }
+
     @PostMapping(value = "${route.createTableStructure}")
     public String createTable(@RequestParam String tableName,
                               @RequestParam String columnsDefinitions,
                               @RequestParam String keys,
                               Authentication authentication,
-                              WebRequest request,
                               HttpSession session,
                               Model model) {
         UserKeyspace userKeyspace = updateUserKeyspaces(authentication, session);
-        if(userKeyspace != null) {
+        if (userKeyspace != null) {
             try {
                 keyspaceService.createTable(userKeyspace.getKeyspace().getName(), tableName, columnsDefinitions, keys);
                 model.addAttribute("keyspaceViewEditSuccess", "Table created!");
@@ -140,7 +258,7 @@ public class MyDatabaseController {
                             HttpSession session,
                             Model model) {
         UserKeyspace userKeyspace = updateUserKeyspaces(authentication, session);
-        if(userKeyspace != null) {
+        if (userKeyspace != null) {
             try {
                 keyspaceService.dropTable(userKeyspace.getKeyspace().getName(), table);
                 model.addAttribute("keyspaceViewEditSuccess", "Table deleted!");
@@ -160,18 +278,18 @@ public class MyDatabaseController {
                                       WebRequest request,
                                       HttpSession session,
                                       Model model) {
-        request.getParameterMap().forEach((k, v) -> System.out.println(k + " --- " + Arrays.toString(v)));
+        //request.getParameterMap().forEach((k, v) -> System.out.println(k + " --- " + Arrays.toString(v)));
         UserKeyspace userKeyspace = updateUserKeyspaces(authentication, session);
-        if(userKeyspace != null) {
+        if (userKeyspace != null) {
             KeyspaceContent keyspaceContent = keyspaceService.getKeyspaceContent(userKeyspace.getKeyspace().getName().toLowerCase());
-            if(requestType.equals("options")) {
+            if (requestType.contains("options")) {
                 Map<String, Object> map = keyspaceContent.getTables().getContent().stream().filter(p -> p.get("table_name").toString().equals(request.getParameter("table_name_readonly"))).findAny().orElse(null);
-                if(map != null) {
+                if (map != null) {
                     StringBuilder with = new StringBuilder();
                     final Boolean[] somethingToUpdate = {false};
-                    map.forEach((k,v) -> {
+                    map.forEach((k, v) -> {
                         String param = request.getParameter(k);
-                        if(param != null && !param.isEmpty()) {
+                        if (param != null && !param.isEmpty()) {
                             with.append(k).append("=").append(param).append(" AND ");
                             somethingToUpdate[0] = true;
                         }
@@ -179,12 +297,69 @@ public class MyDatabaseController {
                     if (with.length() != 0)
                         with.delete(with.length() - 4, with.length());
                     if (with.length() == 0 && !somethingToUpdate[0]) {
-                        model.addAttribute("keyspaceViewEditSuccess", "No options selected for update!");
+                        model.addAttribute("keyspaceViewEditError", "No options selected for update!");
                         return "forward:" + routeProperties.getMyDatabase();
                     }
                     try {
                         keyspaceService.alterOptions(userKeyspace.getKeyspace().getName(), request.getParameter("table_name_readonly"), with.toString());
                         model.addAttribute("keyspaceViewEditSuccess", "Table options updated!");
+                        return "forward:" + routeProperties.getMyDatabase();
+                    } catch (Exception e) {
+                        model.addAttribute("keyspaceViewEditError", e.getMessage());
+                        return "forward:" + routeProperties.getMyDatabase();
+                    }
+                }
+            } else if (requestType.contains("columns")) {
+                String columnsRequestType = requestType.split("@").length > 1 ? requestType.split("@")[1] : null;
+                String tableName = request.getParameter("table_name_readonly");
+                String columnName = request.getParameter("column_name_readonly");
+                if (Objects.equals(columnsRequestType, "update")) {
+                    Map<String, Object> map = keyspaceContent.getColumns().getContent().stream().filter(p -> p.get("table_name").toString().equals(tableName) && p.get("column_name").toString().equals(columnName)).findAny().orElse(null);
+                    if (map != null) {
+                        String columnNameToUpdate = request.getParameter("column_name");
+                        String typeToUpdate = request.getParameter("type");
+                        if ((columnNameToUpdate != null && columnNameToUpdate.isEmpty()) && (typeToUpdate != null && typeToUpdate.isEmpty())) {
+                            model.addAttribute("keyspaceViewEditError", "No fields selected for update!");
+                            return "forward:" + routeProperties.getMyDatabase();
+                        } else {
+                            StringBuilder messageSuccess = new StringBuilder();
+                            StringBuilder messageError = new StringBuilder();
+                            if (columnNameToUpdate != null && !columnNameToUpdate.isEmpty()) {
+                                try {
+                                    keyspaceService.alterColumnName(userKeyspace.getKeyspace().getName(), tableName, columnName, columnNameToUpdate);
+                                    messageSuccess.append("Column renamed!");
+                                    model.addAttribute("keyspaceViewEditSuccess", messageSuccess.toString());
+                                } catch (Exception e) {
+                                    messageError.append(e.getMessage());
+                                    model.addAttribute("keyspaceViewEditError", messageError.toString());
+                                }
+                            }
+                            if (typeToUpdate != null && !typeToUpdate.isEmpty()) {
+                                try {
+                                    keyspaceService.alterColumnType(userKeyspace.getKeyspace().getName(), tableName, columnName, typeToUpdate);
+                                    messageSuccess.append("Column type changed!");
+                                    model.addAttribute("keyspaceViewEditSuccess", messageSuccess.toString());
+                                } catch (Exception e) {
+                                    messageError.append(e.getMessage());
+                                    model.addAttribute("keyspaceViewEditError", messageError.toString());
+                                }
+                            }
+                            return "forward:" + routeProperties.getMyDatabase();
+                        }
+                    }
+                } else if (Objects.equals(columnsRequestType, "delete")) {
+                    try {
+                        keyspaceService.alterDropColumn(userKeyspace.getKeyspace().getName(), tableName, columnName);
+                        model.addAttribute("keyspaceViewEditSuccess", "Column deleted!");
+                        return "forward:" + routeProperties.getMyDatabase();
+                    } catch (Exception e) {
+                        model.addAttribute("keyspaceViewEditError", e.getMessage());
+                        return "forward:" + routeProperties.getMyDatabase();
+                    }
+                } else if (Objects.equals(columnsRequestType, "add")) {
+                    try {
+                        keyspaceService.alterAddColumn(userKeyspace.getKeyspace().getName(), request.getParameter("tableName"), request.getParameter("columnsDefinitions"));
+                        model.addAttribute("keyspaceViewEditSuccess", "Column(s) added!");
                         return "forward:" + routeProperties.getMyDatabase();
                     } catch (Exception e) {
                         model.addAttribute("keyspaceViewEditError", e.getMessage());
@@ -197,54 +372,36 @@ public class MyDatabaseController {
         return "forward:" + routeProperties.getMyDatabase();
     }
 
-//    @ResponseBody
-//    @PostMapping(value = "/data-row", produces = "application/json")
-//    public Map<String, Object> getDataRow(@RequestBody Map<String, Object> data,
-//                                                Authentication authentication,
-//                                                WebRequest request,
-//                                                HttpSession session) {
-//        UserKeyspace userKeyspace = updateUserKeyspaces(authentication, session);
-//        KeyspaceContentObject keyspaceContentObject = (KeyspaceContentObject) session.getAttribute("dataContent");
-//        Map<String, Object> map = null;
-//        if (userKeyspace != null && keyspaceContentObject != null) {
-//            KeyspaceContent keyspaceContent = keyspaceService.getKeyspaceContent(userKeyspace.getKeyspace().getName().toLowerCase());
-//            List<Map<String, Object>> primaryKeys = getPrimaryKeysFromTable(keyspaceContent, keyspaceContentObject);
-//            for (Map<String, Object> p : keyspaceContentObject.getContent()) {
-//                Boolean ok = true;
-//                for (Map.Entry<String, Object> entry : p.entrySet()) {
-//                    DataType dataType = keyspaceContentObject.getColumnDefinitions().getType(entry.getKey());
-//                    final Boolean[] primaryKey = {false};
-//                    primaryKeys.forEach(q -> {
-//                        if (q.get("column_name").toString().equals(entry.getKey()))
-//                            primaryKey[0] = true;
-//                    });
-//                    if (primaryKey[0] && !Objects.equals(databaseCorrespondence(entry.getValue(), dataType), databaseCorrespondenceByString(data.get(entry.getKey()).toString(), dataType.getName().toString()))) {
-//                        ok = false;
-//                    }
-//                }
-//                if (ok) {
-//                    map = p;
-//                }
-//            }
-//        }
-//        return map;
-//    }
-
     @ResponseBody
     @PostMapping(value = "/data-structure", produces = "application/json")
     public Map<String, Object> getDataStructure(@RequestBody Map<String, String> data,
                                                 Authentication authentication,
                                                 WebRequest request,
                                                 HttpSession session) {
-        String structure = data.get("structure");
-        String name = data.get("name");
+        String[] dataValues = data.get("data").split("@");
         UserKeyspace userKeyspace = updateUserKeyspaces(authentication, session);
         Map<String, Object> map = null;
-        if (structure != null && name != null && userKeyspace != null) {
+        if (dataValues[0] != null && userKeyspace != null) {
             KeyspaceContent keyspaceContent = keyspaceService.getKeyspaceContent(userKeyspace.getKeyspace().getName().toLowerCase());
-            switch (structure) {
+            switch (dataValues[0]) {
                 case "tables":
-                    map = keyspaceContent.getTables().getContent().stream().filter(p -> p.get("table_name").toString().equals(name)).findAny().orElse(null);
+                    if (dataValues.length > 1) {
+                        String tableName = dataValues[1];
+                        map = keyspaceContent.getTables().getContent().stream().filter(p -> p.get("table_name").toString().equals(tableName)).findAny().orElse(null);
+                    }
+                    break;
+                case "columns":
+                    if (dataValues.length > 2) {
+                        String tableName = dataValues[1];
+                        String columnName = dataValues[2];
+                        map = keyspaceContent.getColumns().getContent().stream().filter(p -> p.get("table_name").toString().equals(tableName) && p.get("column_name").toString().equals(columnName)).findAny().orElse(null);
+                    }
+                    break;
+                case "types":
+                    if (dataValues.length > 1) {
+                        String typeName = dataValues[1];
+                        map = keyspaceContent.getTypes().getContent().stream().filter(p -> p.get("type_name").toString().equals(typeName)).findAny().orElse(null);
+                    }
                     break;
             }
         }
@@ -378,7 +535,8 @@ public class MyDatabaseController {
         return "forward:" + routeProperties.getMyDatabase();
     }
 
-    private List<Map<String, Object>> getPrimaryKeysFromTable(KeyspaceContent keyspaceContent, KeyspaceContentObject keyspaceContentObject) {
+    private List<Map<String, Object>> getPrimaryKeysFromTable(KeyspaceContent
+                                                                      keyspaceContent, KeyspaceContentObject keyspaceContentObject) {
         List<Map<String, Object>> primaryKeys = new ArrayList<>();
         keyspaceContent.getColumns().getContent().forEach(p -> {
             if (p.get("table_name").toString().equals(keyspaceContentObject.getTableName()) && !p.get("kind").toString().equals("regular"))
@@ -387,7 +545,8 @@ public class MyDatabaseController {
         return primaryKeys;
     }
 
-    private Map<String, Object> findRowFromRequest(KeyspaceContentObject keyspaceContentObject, List<Map<String, Object>> primaryKeys, WebRequest request) {
+    private Map<String, Object> findRowFromRequest(KeyspaceContentObject
+                                                           keyspaceContentObject, List<Map<String, Object>> primaryKeys, WebRequest request) {
         Map<String, Object> map;
         for (Map<String, Object> p : keyspaceContentObject.getContent()) {
             Boolean ok = true;
@@ -677,7 +836,7 @@ public class MyDatabaseController {
 //                                    map1.put(k, obj);
 //                                }
 //                            } else
-                                map1.put(k, obj);
+                            map1.put(k, obj);
                         } else
                             map1.put(k, v.toString());
                     } else

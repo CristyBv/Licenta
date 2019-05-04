@@ -1,9 +1,10 @@
 <!DOCTYPE html>
+<!--suppress XmlDuplicatedId -->
 <html xmlns:th="http://www.thymeleaf.org" lang="en">
 <head>
 </head>
 <body>
-<div th:fragment="data-row(data)">
+<div th:fragment="data-row(data,type,action)">
 
     <div class="row">
         <div class="col-md">
@@ -24,10 +25,11 @@
                             <p style="font-size: 1em;" class="alert alert-info"
                                th:text="#{database.keyspaces.tableData.showRow.topInfo}"></p>
                             <form id="show-data-structure-row-form"
-                                  th:action="${@environment.getProperty('route.alterTableStructure')}" method="post"
+                                  th:action="${action}" method="post"
                                   role="form">
-                                <input type="hidden" name="tableName"/>
-                                <input type="hidden" name="requestType" th:value="'options'"/>
+                                <input th:if="${type=='tables'}" type="hidden" name="requestType" th:value="'options'"/>
+                                <input th:if="${type=='columns'}" type="hidden" name="requestType"
+                                       th:value="'columns'"/>
                                 <th:block th:each="column:${data.columnDefinitions}">
                                     <th:block th:each="mapColumn:${systemSchemaContent.columns.content}">
                                         <th:block
@@ -69,16 +71,37 @@
                                                         </li>
                                                     </ul>
                                                 </div>
-                                                <div class="col-sm-7" style="overflow: auto"
-                                                     th:with="message=#{database.keyspaces.tableData.showRow.textareaPlaceholder}">
+                                                <div class="col-sm-7" style="overflow: auto">
                                                     <textarea class="form-control"
                                                               th:name="${mapColumn.get('column_name')+'_readonly'}"
                                                               readonly rows="3"></textarea>
-                                                    <textarea class="form-control" rows="3"
-                                                              th:name="${mapColumn.get('column_name')}"
-                                                              th:readonly="${mapColumn.get('kind') != 'regular'}"
-                                                              th:placeholder="${mapColumn.get('kind') == 'regular' ? message  : 'Partition key and clustering key cannot be update!'}"
-                                                    ></textarea>
+                                                    <th:block th:switch="${type}">
+                                                        <th:block th:case="'columns'"
+                                                                  th:with="message=#{database.keyspaces.columnsData.showRow.textareaPlaceholder}">
+                                                            <textarea th:if="${mapColumn.get('column_name') ==
+                                                            'column_name' || mapColumn.get('column_name') == 'type'}"
+                                                                      class="form-control" rows="3"
+                                                                      th:name="${mapColumn.get('column_name')}"
+                                                                      th:placeholder="${mapColumn.get('column_name') !=
+                                                            'column_name' && mapColumn.get('column_name') != 'type' ? 'This field cannot be updated!' : message}"
+                                                            ></textarea>
+                                                        </th:block>
+                                                        <th:block th:case="'types'">
+                                                            <textarea
+                                                                    th:if="${mapColumn.get('column_name') == 'field_names'}"
+                                                                    class="form-control" rows="3"
+                                                                    th:name="${mapColumn.get('column_name')}"
+                                                                    th:placeholder="#{database.keyspaces.typeData.showRow.textareaPlaceholder}"></textarea>
+                                                        </th:block>
+                                                        <th:block th:case="*"
+                                                                  th:with="message=#{database.keyspaces.tableData.showRow.textareaPlaceholder}">
+                                                            <textarea class="form-control" rows="3"
+                                                                      th:name="${mapColumn.get('column_name')}"
+                                                                      th:readonly="${mapColumn.get('kind') != 'regular'}"
+                                                                      th:placeholder="${mapColumn.get('kind') == 'regular' ? message  : 'Partition key and clustering key cannot be update!'}"></textarea>
+                                                        </th:block>
+                                                    </th:block>
+
                                                 </div>
                                             </div>
                                             <hr/>
@@ -88,23 +111,37 @@
                                 <div class="row">
                                     <div class="col-sm-6">
                                         <div class="from-group">
-                                            <button style="width: 100%;" id="data-structure-row-update-button"
-                                                    class="btn btn-lg btn-success">Update table options
+                                            <button style="width: 100%;"
+                                                    th:id="'data-structure-update-'+${data.tableName}+'-button'"
+                                                    class="btn btn-lg btn-success">Update
                                             </button>
                                         </div>
                                     </div>
                                     <div class="col-sm-6">
                                         <div class="from-group">
-                                            <button style="width: 100%;" id="data-structure-delete-table-button"
-                                                    class="btn btn-lg btn-danger">Delete table
+                                            <button style="width: 100%;"
+                                                    th:id="'data-structure-delete-'+${data.tableName}+'-button'"
+                                                    class="btn btn-lg btn-danger">Delete
                                             </button>
                                         </div>
                                     </div>
                                 </div>
                             </form>
-                            <form th:action="${@environment.getProperty('route.dropTable')}" method="post" id="delete-table-form">
-                                <input type="hidden" name="table" id="delete-table-name-input"/>
-                            </form>
+                            <th:block th:switch="${type}">
+                                <th:block th:case="'tables'">
+                                    <form th:action="${@environment.getProperty('route.dropTable')}" method="post"
+                                          th:id="'delete-tables-form'">
+                                        <input type="hidden" name="table" id="delete-tables-name-input"/>
+                                    </form>
+                                </th:block>
+                                <th:block th:case="'types'">
+                                    <form th:action="${@environment.getProperty('route.dropType')}" method="post"
+                                          th:id="'delete-types-form'">
+                                        <input type="hidden" name="type" id="delete-types-name-input"/>
+                                    </form>
+                                </th:block>
+                            </th:block>
+
                         </div>
                     </div>
                 </div>

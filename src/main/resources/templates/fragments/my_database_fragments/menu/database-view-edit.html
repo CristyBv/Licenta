@@ -71,17 +71,20 @@
                 <div th:class="'tab-pane ' + ${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[tables]') ? 'active' : ''}"
                      id="tables"
                      th:if="${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[tables]')}">
-                    <button class="btn btn-lg btn-default" id="create-table-button">Create Table</button>
+                    <button class="btn btn-lg btn-default create-row-button" id="create-table-button">Create Table
+                    </button>
                     <hr/>
-                    <div class="modal fade" id="create-table-modal" tabindex="-1" role="dialog" aria-hidden="true">
+                    <div class="modal fade create-row-modal" id="create-table-modal" tabindex="-1" role="dialog"
+                         aria-hidden="true">
                         <div class="modal-dialog" role="document">
                             <div th:replace="fragments/my_database_fragments/data/create-table-structure :: data-row(data=${keyspaceContent.tables})"
                                  id="create-table-div"></div>
                         </div>
                     </div>
-                    <div class="modal fade row-modal" id="show-row-tables-modal" tabindex="-1" role="dialog" aria-hidden="true">
+                    <div class="modal fade row-modal" id="show-row-tables-modal" tabindex="-1" role="dialog"
+                         aria-hidden="true">
                         <div class="modal-dialog" style="width: 70% !important;" role="document">
-                            <div th:replace="fragments/my_database_fragments/data/data-row-structure :: data-row(data=${keyspaceContent.tables})"
+                            <div th:replace="fragments/my_database_fragments/data/data-row-structure :: data-row(data=${keyspaceContent.tables},type='tables', action=${@environment.getProperty('route.alterTableStructure')})"
                                  id="show-row-tables-div"></div>
                         </div>
                     </div>
@@ -94,7 +97,8 @@
                         </thead>
                         <tbody>
                         <th:block th:each="mapTable:${keyspaceContent.tables.content}">
-                            <tr th:with="tableName=${mapTable.get('table_name')}" th:id="${'tables_'+mapTable.get('table_name')}">
+                            <tr th:with="tableName=${mapTable.get('table_name')}"
+                                th:id="${'tables@'+mapTable.get('table_name')}">
                                 <td style="font-weight: bold; border: 1px solid black;">
                                     <form th:action="${@environment.getProperty('route.getDatabaseContent')}">
                                         <input type="hidden" name="table" th:value="${tableName}"/>
@@ -112,27 +116,43 @@
                 <div th:class="'tab-pane ' + ${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[columns]') ? 'active' : ''}"
                      id="columns"
                      th:if="${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[columns]')}">
+                    <button class="btn btn-lg btn-default create-row-button" id="create-column-button">Add Column(s)
+                    </button>
+                    <hr/>
+                    <div class="modal fade create-row-modal" id="create-column-modal" tabindex="-1" role="dialog"
+                         aria-hidden="true">
+                        <div class="modal-dialog" role="document">
+                            <div th:replace="fragments/my_database_fragments/data/create-column-structure :: data-row(data=${keyspaceContent.columns})"
+                                 id="create-column-div"></div>
+                        </div>
+                    </div>
+                    <div class="modal fade row-modal" id="show-row-tables-modal" tabindex="-1" role="dialog"
+                         aria-hidden="true">
+                        <div class="modal-dialog" style="width: 70% !important;" role="document">
+                            <div th:replace="fragments/my_database_fragments/data/data-row-structure :: data-row(data=${keyspaceContent.columns},type='columns', action=${@environment.getProperty('route.alterTableStructure')})"
+                                 id="show-row-tables-div"></div>
+                        </div>
+                    </div>
                     <table class="table table-striped table-bordered text-center" id="keyspace-data-columns">
                         <thead>
                         <tr>
                             <th scope="col" class="text-center">Column Name</th>
                             <th scope="col" class="text-center">Table Name</th>
-                            <th scope="col" class="text-center"></th>
+                            <th scope="col" class="text-center">Type</th>
+                            <th scope="col" class="text-center">Kind</th>
                             <th scope="col" class="text-center"></th>
                         </tr>
                         </thead>
                         <tbody>
                         <th:block th:each="mapColumn:${keyspaceContent.columns.content}">
-                            <tr th:with="columnName=${mapColumn.get('column_name')},tableName=${mapColumn.get('table_name')}">
+                            <tr th:with="columnName=${mapColumn.get('column_name')},tableName=${mapColumn.get('table_name')}"
+                                th:id="${'columns@'+mapColumn.get('table_name')+'@'+mapColumn.get('column_name')}">
                                 <td style="font-weight: bold; border: 1px solid black;" th:text="${columnName}"></td>
                                 <td style="font-weight: bold;" th:text="${tableName}"></td>
+                                <td th:text="${mapColumn.get('type')}"></td>
+                                <td th:text="${mapColumn.get('kind')}"></td>
                                 <td>
-                                    <th:block
-                                            th:replace="fragments/my_database_fragments/data/columns-data :: structure-form(columnName=${columnName},tableName=${tableName})"></th:block>
-                                </td>
-                                <td>
-                                    <th:block
-                                            th:replace="fragments/my_database_fragments/data/columns-data :: delete-form(columnName=${columnName},tableName=${tableName})"></th:block>
+                                    <button class="data-table-structure">Options</button>
                                 </td>
                             </tr>
                         </th:block>
@@ -147,24 +167,20 @@
                         <tr>
                             <th scope="col" class="text-center">Dropped Column Name</th>
                             <th scope="col" class="text-center">Table Name</th>
-                            <th scope="col" class="text-center"></th>
-                            <th scope="col" class="text-center"></th>
+                            <th scope="col" class="text-center">Type</th>
+                            <th scope="col" class="text-center">Dropped Time</th>
+
                         </tr>
                         </thead>
                         <tbody>
                         <th:block th:each="mapColumn:${keyspaceContent.droppedColumns.content}">
-                            <tr th:with="droppedColumnName=${mapColumn.get('column_name')},tableName=${mapColumn.get('table_name')}">
+                            <tr th:with="droppedColumnName=${mapColumn.get('column_name')},tableName=${mapColumn.get('table_name')}"
+                                th:id="${'columns@'+mapColumn.get('table_name')+'@'+mapColumn.get('column_name')}">
                                 <td style="font-weight: bold; border: 1px solid black;"
                                     th:text="${droppedColumnName}"></td>
                                 <td style="font-weight: bold;" th:text="${tableName}"></td>
-                                <td>
-                                    <th:block
-                                            th:replace="fragments/my_database_fragments/data/dropped-columns-data :: structure-form(columnName=${droppedColumnName},tableName=${tableName})"></th:block>
-                                </td>
-                                <td>1
-                                    <th:block
-                                            th:replace="fragments/my_database_fragments/data/dropped-columns-data :: delete-form(columnName=${droppedColumnName},tableName=${tableName})"></th:block>
-                                </td>
+                                <td th:text="${mapColumn.get('type')}"></td>
+                                <td th:text="${mapColumn.get('dropped_time')}"></td>
                             </tr>
                         </th:block>
                         </tbody>
@@ -173,28 +189,44 @@
                 <div th:class="'tab-pane ' + ${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[indexes]') ? 'active' : ''}"
                      id="indexes"
                      th:if="${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[indexes]')}">
+                    <button class="btn btn-lg btn-default create-row-button" id="create-index-button">Create Index
+                    </button>
+                    <hr/>
+                    <div class="modal fade create-row-modal" id="create-index-modal" tabindex="-1" role="dialog"
+                         aria-hidden="true">
+                        <div class="modal-dialog" role="document">
+                            <div th:replace="fragments/my_database_fragments/data/create-index-structure :: data-row(data=${keyspaceContent.indexes})"
+                                 id="create-index-div"></div>
+                        </div>
+                    </div>
                     <table class="table table-striped table-bordered text-center" id="keyspace-data-indexes">
                         <thead>
                         <tr>
                             <th scope="col" class="text-center">Index Name</th>
                             <th scope="col" class="text-center">Table Name</th>
-                            <th scope="col" class="text-center"></th>
+                            <th scope="col" class="text-center">Kind</th>
+                            <th scope="col" class="text-center">Options</th>
                             <th scope="col" class="text-center"></th>
                         </tr>
                         </thead>
                         <tbody>
                         <th:block th:each="mapColumn:${keyspaceContent.indexes.content}">
-                            <tr th:with="indexName=${mapColumn.get('index_name')},tableName=${mapColumn.get('table_name')}">
+                            <tr th:with="indexName=${mapColumn.get('index_name')},tableName=${mapColumn.get('table_name')}"
+                                th:id="${'columns@'+mapColumn.get('table_name')+'@'+mapColumn.get('index_name')}">
                                 <td style="font-weight: bold; border: 1px solid black;"
                                     th:text="${indexName}"></td>
                                 <td style="font-weight: bold;" th:text="${tableName}"></td>
+                                <td th:text="${mapColumn.get('kind')}"></td>
+                                <td th:text="${mapColumn.get('options')}"></td>
                                 <td>
-                                    <th:block
-                                            th:replace="fragments/my_database_fragments/data/indexes-data :: structure-form(indexName=${indexName},tableName=${tableName})"></th:block>
-                                </td>
-                                <td>
-                                    <th:block
-                                            th:replace="fragments/my_database_fragments/data/indexes-data :: delete-form(indexName=${indexName},tableName=${tableName})"></th:block>
+                                    <form th:action="${@environment.getProperty('route.dropIndex')}" method="post">
+                                        <input type="hidden" name="indexName" th:value="${indexName}"/>
+                                        <input type="hidden" name="tableName" th:value="${tableName}"/>
+                                        <button type="submit"
+                                                onclick="return confirm('Are you sure you want to delete this index?');"
+                                                value="Delete" class="btn btn-danger">Delete
+                                        </button>
+                                    </form>
                                 </td>
                             </tr>
                         </th:block>
@@ -204,26 +236,42 @@
                 <div th:class="'tab-pane ' + ${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[types]') ? 'active' : ''}"
                      id="types"
                      th:if="${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[types]')}">
+                    <button class="btn btn-lg btn-default create-row-button" id="create-type-button">Create Type
+                    </button>
+                    <hr/>
+                    <div class="modal fade create-row-modal" id="create-type-modal" tabindex="-1" role="dialog"
+                         aria-hidden="true">
+                        <div class="modal-dialog" role="document">
+                            <div th:replace="fragments/my_database_fragments/data/create-type-structure :: data-row(data=${keyspaceContent.types})"
+                                 id="create-type-div"></div>
+                        </div>
+                    </div>
+                    <div class="modal fade row-modal" id="show-row-tables-modal" tabindex="-1" role="dialog"
+                         aria-hidden="true">
+                        <div class="modal-dialog" style="width: 70% !important;" role="document">
+                            <div th:replace="fragments/my_database_fragments/data/data-row-structure :: data-row(data=${keyspaceContent.types},type='types', action=${@environment.getProperty('route.alterType')})"
+                                 id="show-row-tables-div"></div>
+                        </div>
+                    </div>
                     <table class="table table-striped table-bordered text-center" id="keyspace-data-types">
                         <thead>
                         <tr>
                             <th scope="col" class="text-center">Type Name</th>
-                            <th scope="col" class="text-center"></th>
+                            <th scope="col" class="text-center">Field Names</th>
+                            <th scope="col" class="text-center">Field Types</th>
                             <th scope="col" class="text-center"></th>
                         </tr>
                         </thead>
                         <tbody>
                         <th:block th:each="mapColumn:${keyspaceContent.types.content}">
-                            <tr th:with="typeName=${mapColumn.get('type_name')}">
+                            <tr th:with="typeName=${mapColumn.get('type_name')}"
+                                th:id="${'types@'+mapColumn.get('type_name')}">
                                 <td style="font-weight: bold; border: 1px solid black;"
                                     th:text="${typeName}"></td>
+                                <td th:text="${mapColumn.get('field_names')}"></td>
+                                <td th:text="${mapColumn.get('field_types')}"></td>
                                 <td>
-                                    <th:block
-                                            th:replace="fragments/my_database_fragments/data/types-data :: structure-form(typeName=${typeName})"></th:block>
-                                </td>
-                                <td>
-                                    <th:block
-                                            th:replace="fragments/my_database_fragments/data/types-data :: delete-form(typeName=${typeName})"></th:block>
+                                    <button class="data-table-structure">Options</button>
                                 </td>
                             </tr>
                         </th:block>
@@ -396,15 +444,15 @@
                         <th:block th:if="${mapColumn.get('table_name') == dataContent.tableName}">
                             <script th:inline="javascript">
                                 /*<![CDATA[*/
-                            var columnNameTable = /*[[${mapColumn.get('column_name')}]]*/ 'name';
-                            var columnTable = /*[[${mapColumn}]]*/ 'name';
-                            var map = {};
-                            map["data"] = columnNameTable;
-                            map["title"] = columnNameTable;
-                            map["className"] = "text-center";
-                            columnsNamesDataTable.push(map);
-                            columnsTable.push(columnTable);
-                            /*]]>*/
+                                var columnNameTable = /*[[${mapColumn.get('column_name')}]]*/ 'name';
+                                var columnTable = /*[[${mapColumn}]]*/ 'name';
+                                var map = {};
+                                map["data"] = columnNameTable;
+                                map["title"] = columnNameTable;
+                                map["className"] = "text-center";
+                                columnsNamesDataTable.push(map);
+                                columnsTable.push(columnTable);
+                                /*]]>*/
                             </script>
                         </th:block>
                     </th:block>

@@ -135,16 +135,20 @@ public class KeyspaceService {
     public KeyspaceContentObject getKeyspaceContentObject(String query, String name) {
         KeyspaceContentObject keyspaceContentObject = new KeyspaceContentObject();
         keyspaceContentObject.setTableName(name);
-        List<Map<String, Object>> contentList = adminOperations.getCqlOperations().query(query, new RowMapper<Map<String, Object>>() {
-            @Nullable
-            @Override
-            public Map<String, Object> mapRow(Row row, int rowNum) throws DriverException {
-                keyspaceContentObject.setColumnDefinitions(row.getColumnDefinitions());
-                return getRowMap(row);
-            }
-        });
-        keyspaceContentObject.setContent(contentList);
-        return keyspaceContentObject;
+        try {
+            List<Map<String, Object>> contentList = adminOperations.getCqlOperations().query(query, new RowMapper<Map<String, Object>>() {
+                @Nullable
+                @Override
+                public Map<String, Object> mapRow(Row row, int rowNum) throws DriverException {
+                    keyspaceContentObject.setColumnDefinitions(row.getColumnDefinitions());
+                    return getRowMap(row);
+                }
+            });
+            keyspaceContentObject.setContent(contentList);
+            return keyspaceContentObject;
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     public KeyspaceContentObject getSelectSimple(String keyspace, String table, String whatToSelect) {
@@ -204,7 +208,107 @@ public class KeyspaceService {
     }
 
     public void createTable(String keyspace, String table, String columnsDefinitions, String keys) throws Exception {
-        String query = String.format(queryProperties.getCreate().get("table"), keyspace+"."+table, columnsDefinitions, keys);
+        String query = String.format(queryProperties.getCreate().get("table"), keyspace + "." + table, columnsDefinitions, keys);
+        System.out.println(query);
+        try {
+            adminOperations.getCqlOperations().execute(query);
+        } catch (Exception e) {
+            throw new Exception(query + " ---> " + e.getCause().getMessage());
+        }
+    }
+
+    public void alterColumnName(String keyspace, String table, String columnName, String columnNameToUpdate) throws Exception {
+        String query = String.format(queryProperties.getAlter().get("column_name"), keyspace + "." + table, columnName, columnNameToUpdate);
+        System.out.println(query);
+        try {
+            adminOperations.getCqlOperations().execute(query);
+        } catch (Exception e) {
+            throw new Exception(query + " ---> " + e.getCause().getMessage());
+        }
+    }
+
+    public void alterColumnType(String keyspace, String table, String columnName, String typeToUpdate) throws Exception {
+        String query = String.format(queryProperties.getAlter().get("column_type"), keyspace + "." + table, columnName, typeToUpdate);
+        System.out.println(query);
+        try {
+            adminOperations.getCqlOperations().execute(query);
+        } catch (Exception e) {
+            throw new Exception(query + " ---> " + e.getCause().getMessage());
+        }
+    }
+
+    public void alterDropColumn(String keyspace, String table, String columnName) throws Exception {
+        String query = String.format(queryProperties.getAlter().get("drop_column"), keyspace + "." + table, columnName);
+        System.out.println(query);
+        try {
+            adminOperations.getCqlOperations().execute(query);
+        } catch (Exception e) {
+            throw new Exception(query + " ---> " + e.getCause().getMessage());
+        }
+    }
+
+    public void alterAddColumn(String keyspace, String table, String columnsDefinitions) throws Exception {
+        String query = String.format(queryProperties.getAlter().get("add_column"), keyspace + "." + table, columnsDefinitions);
+        System.out.println(query);
+        try {
+            adminOperations.getCqlOperations().execute(query);
+        } catch (Exception e) {
+            throw new Exception(query + " ---> " + e.getCause().getMessage());
+        }
+    }
+
+    public void createIndex(String keyspace, String indexName, String table, String columnName) throws Exception {
+        String query = String.format(queryProperties.getCreate().get("index"), indexName, keyspace + "." + table, columnName);
+        System.out.println(query);
+        try {
+            adminOperations.getCqlOperations().execute(query);
+        } catch (Exception e) {
+            throw new Exception(query + " ---> " + e.getCause().getMessage());
+        }
+    }
+
+    public void createCustomIndex(String keyspace, String indexName, String table, String columnName, String options) throws Exception {
+        String query = String.format(queryProperties.getCreate().get("custom_index"), indexName, keyspace + "." + table, columnName, options);
+        System.out.println(query);
+        try {
+            adminOperations.getCqlOperations().execute(query);
+        } catch (Exception e) {
+            throw new Exception(query + " ---> " + e.getCause().getMessage());
+        }
+    }
+
+    public void dropIndex(String keyspace, String indexName) throws Exception {
+        String query = String.format(queryProperties.getDrop().get("index"), keyspace + "." + indexName);
+        System.out.println(query);
+        try {
+            adminOperations.getCqlOperations().execute(query);
+        } catch (Exception e) {
+            throw new Exception(query + " ---> " + e.getCause().getMessage());
+        }
+    }
+
+    public void alterTypeRenameFields(String keyspace, String typeName, String renames) throws Exception {
+        String query = String.format(queryProperties.getAlter().get("type_rename"), keyspace + "." + typeName, renames);
+        System.out.println(query);
+        try {
+            adminOperations.getCqlOperations().execute(query);
+        } catch (Exception e) {
+            throw new Exception(query + " ---> " + e.getCause().getMessage());
+        }
+    }
+
+    public void alterTypeAddField(String keyspace, String typeName, String fieldName, String fieldType) throws Exception {
+        String query = String.format(queryProperties.getAlter().get("type_add_field"), keyspace + "." + typeName, fieldName + " " + fieldType);
+        System.out.println(query);
+        try {
+            adminOperations.getCqlOperations().execute(query);
+        } catch (Exception e) {
+            throw new Exception(query + " ---> " + e.getCause().getMessage());
+        }
+    }
+
+    public void dropType(String keyspace, String type) throws Exception {
+        String query = String.format(queryProperties.getDrop().get("type"), keyspace + "." + type);
         System.out.println(query);
         try {
             adminOperations.getCqlOperations().execute(query);

@@ -4,6 +4,7 @@
 </head>
 <body>
 <div th:fragment="data-row(data)">
+
     <div class="row">
         <div class="col-md">
             <div class="panel panel-modal-style">
@@ -20,35 +21,41 @@
                 <div class="panel-body">
                     <div class="row">
                         <div class="col-lg-12">
-                            <!--<p style="font-size: 1em;" class="alert alert-info"-->
-                            <!--th:text="#{database.keyspaces.tableData.showRow.topInfo}"></p>-->
                             <form id="create-table-form"
-                                  th:action="${@environment.getProperty('route.createTableStructure')}" method="post"
+                                  th:action="${@environment.getProperty('route.createIndex')}" method="post"
                                   role="form">
-
                                 <div class="form-group">
                                     <label style="width: 100%;">
                                         Table Name:
                                         <input class="form-control" type="text" name="tableName"/>
                                     </label>
                                 </div>
-
                                 <div class="form-group">
                                     <label style="width: 100%;">
-                                        Columns definitions (use ',' as separator):
-                                        <textarea class="form-control" name="columnsDefinitions"></textarea>
+                                        Index Name:
+                                        <input type="text" class="form-control" name="indexName"/>
                                     </label>
                                 </div>
-
                                 <div class="form-group">
                                     <label style="width: 100%;">
-                                        Partition and Clustering Key(s)
-                                        <textarea class="form-control" name="keys"></textarea>
+                                        Column Name:
+                                        <input type="text" class="form-control" name="columnName"/>
                                     </label>
                                 </div>
-
                                 <div class="form-group">
-                                    <button type="submit" class="btn btn-lg btn-success" style="width: 100%">Create Table</button>
+                                    <label style="width: 100%;">
+                                        Custom Index (USING 'org.apache.cassandra.index.sasi.SASIIndex')
+                                        <input type="checkbox" class="form-control" name="custom">
+                                    </label>
+                                </div>
+                                <div class="form-group">
+                                    <label style="width: 100%;">
+                                        Options (use ',' as separator)
+                                        <textarea class="form-control" name="options"></textarea>
+                                    </label>
+                                </div>
+                                <div class="form-group">
+                                    <button type="submit" class="btn btn-lg btn-success" style="width: 100%">Create Index)</button>
                                 </div>
                             </form>
                         </div>

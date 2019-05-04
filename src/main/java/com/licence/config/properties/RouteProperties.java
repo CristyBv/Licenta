@@ -37,4 +37,6 @@ public class RouteProperties {
     private String alterTableStructure;
     private String dropTable;
     private String createTableStructure;
+    private String createIndex;
+    private String dropIndex;
 }
