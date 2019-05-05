@@ -121,6 +121,24 @@ public class KeyspaceService {
             keyspaceContent.getTriggers().getContent().addAll(triggersObj.getContent());
             keyspaceContent.getTriggers().setColumnDefinitions(triggersObj.getColumnDefinitions());
         });
+        keyspaceContent.getViews().getContent().forEach(m -> {
+            String queryTriggers = String.format(queryProperties.getSelectKeyspace().get("tableTriggers"), "*", keyspaceName, m.get("view_name"));
+            String queryIndexes = String.format(queryProperties.getSelectKeyspace().get("tableIndexes"), "*", keyspaceName, m.get("view_name"));
+            String queryDroppedColumns = String.format(queryProperties.getSelectKeyspace().get("tableDroppedColumns"), "*", keyspaceName, m.get("view_name"));
+            String queryColumns = String.format(queryProperties.getSelectKeyspace().get("tableColumns"), "*", keyspaceName, m.get("view_name"));
+            KeyspaceContentObject columnsObj = getKeyspaceContentObject(queryColumns, "columns");
+            KeyspaceContentObject droppedColumnsObj = getKeyspaceContentObject(queryDroppedColumns, "dropped columns");
+            KeyspaceContentObject indexesObj = getKeyspaceContentObject(queryIndexes, "indexes");
+            KeyspaceContentObject triggersObj = getKeyspaceContentObject(queryTriggers, "triggers");
+            keyspaceContent.getColumns().getContent().addAll(columnsObj.getContent());
+            keyspaceContent.getColumns().setColumnDefinitions(columnsObj.getColumnDefinitions());
+            keyspaceContent.getDroppedColumns().getContent().addAll(droppedColumnsObj.getContent());
+            keyspaceContent.getDroppedColumns().setColumnDefinitions(droppedColumnsObj.getColumnDefinitions());
+            keyspaceContent.getIndexes().getContent().addAll(indexesObj.getContent());
+            keyspaceContent.getIndexes().setColumnDefinitions(indexesObj.getColumnDefinitions());
+            keyspaceContent.getTriggers().getContent().addAll(triggersObj.getContent());
+            keyspaceContent.getTriggers().setColumnDefinitions(triggersObj.getColumnDefinitions());
+        });
         return keyspaceContent;
     }
 
@@ -197,6 +215,16 @@ public class KeyspaceService {
         }
     }
 
+    public void alterViewOptions(String keyspace, String view, String with) throws Exception {
+        String query = String.format(queryProperties.getAlter().get("view"), keyspace + "." + view, with);
+        System.out.println(query);
+        try {
+            adminOperations.getCqlOperations().execute(query);
+        } catch (Exception e) {
+            throw new Exception(query + " ---> " + e.getCause().getMessage());
+        }
+    }
+
     public void dropTable(String keyspace, String table) throws Exception {
         String query = String.format(queryProperties.getDrop().get("table"), keyspace + "." + table);
         System.out.println(query);
@@ -207,8 +235,12 @@ public class KeyspaceService {
         }
     }
 
-    public void createTable(String keyspace, String table, String columnsDefinitions, String keys) throws Exception {
-        String query = String.format(queryProperties.getCreate().get("table"), keyspace + "." + table, columnsDefinitions, keys);
+    public void createTable(String keyspace, String table, String columnsDefinitions, String keys, String clusteringOrder) throws Exception {
+        String query;
+        if(clusteringOrder != null)
+            query = String.format(queryProperties.getCreate().get("table_clustering"), keyspace + "." + table, columnsDefinitions, keys, clusteringOrder);
+        else
+            query = String.format(queryProperties.getCreate().get("table"), keyspace + "." + table, columnsDefinitions, keys);
         System.out.println(query);
         try {
             adminOperations.getCqlOperations().execute(query);
@@ -309,6 +341,30 @@ public class KeyspaceService {
 
     public void dropType(String keyspace, String type) throws Exception {
         String query = String.format(queryProperties.getDrop().get("type"), keyspace + "." + type);
+        System.out.println(query);
+        try {
+            adminOperations.getCqlOperations().execute(query);
+        } catch (Exception e) {
+            throw new Exception(query + " ---> " + e.getCause().getMessage());
+        }
+    }
+
+    public void dropView(String keyspace, String view) throws Exception {
+        String query = String.format(queryProperties.getDrop().get("view"), keyspace + "." + view);
+        System.out.println(query);
+        try {
+            adminOperations.getCqlOperations().execute(query);
+        } catch (Exception e) {
+            throw new Exception(query + " ---> " + e.getCause().getMessage());
+        }
+    }
+
+    public void createView(String keyspace, String baseTable, String view, String columnsSelected, String whereClause, String keys, String clusteringOrder) throws Exception {
+        String query;
+        if(clusteringOrder != null)
+            query = String.format(queryProperties.getCreate().get("view_clustering"), view, columnsSelected, keyspace + "." + baseTable, whereClause, keys, clusteringOrder);
+        else
+            query = String.format(queryProperties.getCreate().get("view"), view, columnsSelected, keyspace + "." + baseTable, whereClause, keys);
         System.out.println(query);
         try {
             adminOperations.getCqlOperations().execute(query);

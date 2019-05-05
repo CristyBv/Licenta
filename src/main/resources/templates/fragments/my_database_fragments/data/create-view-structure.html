@@ -23,26 +23,40 @@
                             <!--<p style="font-size: 1em;" class="alert alert-info"-->
                             <!--th:text="#{database.keyspaces.tableData.showRow.topInfo}"></p>-->
                             <form id="create-table-form"
-                                  th:action="${@environment.getProperty('route.createTableStructure')}" method="post"
+                                  th:action="${@environment.getProperty('route.createView')}" method="post"
                                   role="form">
 
                                 <div class="form-group">
                                     <label style="width: 100%;">
-                                        Table Name:
-                                        <input class="form-control" type="text" name="tableName"/>
+                                        View Name:
+                                        <input class="form-control" type="text" name="viewName"/>
                                     </label>
                                 </div>
 
                                 <div class="form-group">
                                     <label style="width: 100%;">
-                                        Columns definitions (use ',' as separator):
-                                        <textarea class="form-control" name="columnsDefinitions"></textarea>
+                                        Base Table Name:
+                                        <input class="form-control" type="text" name="baseTableName"/>
                                     </label>
                                 </div>
 
                                 <div class="form-group">
                                     <label style="width: 100%;">
-                                        Partition and Clustering Key(s)
+                                        Columns selected (use ',' as separator):
+                                        <textarea class="form-control" name="columnsSelected"></textarea>
+                                    </label>
+                                </div>
+
+                                <div class="form-group">
+                                    <label style="width: 100%;">
+                                        Where Clause:
+                                        <textarea class="form-control" name="whereClause"></textarea>
+                                    </label>
+                                </div>
+
+                                <div class="form-group">
+                                    <label style="width: 100%;">
+                                        Primary Key
                                         <textarea class="form-control" name="keys"></textarea>
                                     </label>
                                 </div>
@@ -55,7 +69,7 @@
                                 </div>
 
                                 <div class="form-group">
-                                    <button type="submit" class="btn btn-lg btn-success" style="width: 100%">Create Table</button>
+                                    <button type="submit" class="btn btn-lg btn-success" style="width: 100%">Create View</button>
                                 </div>
                             </form>
                         </div>

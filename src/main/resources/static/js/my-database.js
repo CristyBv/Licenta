@@ -274,7 +274,7 @@ $(document).ready(function () {
             e.preventDefault();
         }
     });
-    $("#data-structure-update-tables-button").on('click', function (e) {
+    $("#data-structure-update-tables-button, #data-structure-update-views-button").on('click', function (e) {
         if(confirm("Are you sure you want to update?")) {
             $("#show-data-structure-row-form").submit();
         } else {
@@ -286,6 +286,14 @@ $(document).ready(function () {
             var tableName = $("#show-data-structure-row-form").find("textarea[name='table_name_readonly']").val();
             $("#delete-tables-name-input").val(tableName);
             $("#delete-tables-form").submit();
+        }
+        e.preventDefault();
+    });
+    $("#data-structure-delete-views-button").on("click", function (e) {
+        if(confirm("Are you sure you want to delete this view?")) {
+            var viewName = $("#show-data-structure-row-form").find("textarea[name='view_name_readonly']").val();
+            $("#delete-views-name-input").val(viewName);
+            $("#delete-views-form").submit();
         }
         e.preventDefault();
     });

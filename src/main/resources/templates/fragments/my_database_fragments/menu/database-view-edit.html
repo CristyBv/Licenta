@@ -281,33 +281,44 @@
                 <div th:class="'tab-pane ' + ${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[views]') ? 'active' : ''}"
                      id="views"
                      th:if="${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[views]')}">
+                    <button class="btn btn-lg btn-default create-row-button" id="create-view-button">Create View
+                    </button>
+                    <hr/>
+                    <div class="modal fade create-row-modal" id="create-view-modal" tabindex="-1" role="dialog"
+                         aria-hidden="true">
+                        <div class="modal-dialog" role="document">
+                            <div th:replace="fragments/my_database_fragments/data/create-view-structure :: data-row(data=${keyspaceContent.tables})"
+                                 id="create-view-div"></div>
+                        </div>
+                    </div>
+                    <div class="modal fade row-modal" id="show-row-views-modal" tabindex="-1" role="dialog"
+                         aria-hidden="true">
+                        <div class="modal-dialog" style="width: 70% !important;" role="document">
+                            <div th:replace="fragments/my_database_fragments/data/data-row-structure :: data-row(data=${keyspaceContent.views},type='views', action=${@environment.getProperty('route.alterTableStructure')})"
+                                 id="show-row-views-div"></div>
+                        </div>
+                    </div>
                     <table class="table table-striped table-bordered text-center" id="keyspace-data-views">
                         <thead>
                         <tr>
                             <th scope="col" class="text-center">View Name</th>
                             <th scope="col" class="text-center">Base Table Name</th>
                             <th scope="col" class="text-center"></th>
-                            <th scope="col" class="text-center"></th>
-                            <th scope="col" class="text-center"></th>
                         </tr>
                         </thead>
                         <tbody>
                         <th:block th:each="mapColumn:${keyspaceContent.views.content}">
-                            <tr th:with="viewName=${mapColumn.get('view_name')},tableName=${mapColumn.get('base_table_name')}">
-                                <td style="font-weight: bold; border: 1px solid black;"
-                                    th:text="${viewName}"></td>
+                            <tr th:with="viewName=${mapColumn.get('view_name')},tableName=${mapColumn.get('base_table_name')}"
+                                th:id="${'views@'+mapColumn.get('view_name')}">
+                                <td style="font-weight: bold; border: 1px solid black;">
+                                    <form th:action="${@environment.getProperty('route.getDatabaseContent')}">
+                                        <input type="hidden" name="table" th:value="${viewName}"/>
+                                        <button type="submit" class="data-table-submit" th:text="${viewName}"></button>
+                                    </form>
+                                </td>
                                 <td style="font-weight: bold;" th:text="${tableName}"></td>
                                 <td>
-                                    <th:block
-                                            th:replace="fragments/my_database_fragments/data/views-data :: content-form(viewName=${indexName},tableName=${tableName})"></th:block>
-                                </td>
-                                <td>
-                                    <th:block
-                                            th:replace="fragments/my_database_fragments/data/views-data :: structure-form(viewName=${indexName},tableName=${tableName})"></th:block>
-                                </td>
-                                <td>
-                                    <th:block
-                                            th:replace="fragments/my_database_fragments/data/views-data :: delete-form(viewName=${indexName},tableName=${tableName})"></th:block>
+                                    <button class="data-table-structure">Options</button>
                                 </td>
                             </tr>
                         </th:block>

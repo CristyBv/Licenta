@@ -28,6 +28,7 @@
                                   th:action="${action}" method="post"
                                   role="form">
                                 <input th:if="${type=='tables'}" type="hidden" name="requestType" th:value="'options'"/>
+                                <input th:if="${type=='views'}" type="hidden" th:value="'views@options'" name="requestType" />
                                 <input th:if="${type=='columns'}" type="hidden" name="requestType"
                                        th:value="'columns'"/>
                                 <th:block th:each="column:${data.columnDefinitions}">
@@ -132,6 +133,12 @@
                                     <form th:action="${@environment.getProperty('route.dropTable')}" method="post"
                                           th:id="'delete-tables-form'">
                                         <input type="hidden" name="table" id="delete-tables-name-input"/>
+                                    </form>
+                                </th:block>
+                                <th:block th:case="'views'">
+                                    <form th:action="${@environment.getProperty('route.dropView')}" method="post"
+                                          th:id="'delete-views-form'">
+                                        <input type="hidden" name="view" id="delete-views-name-input"/>
                                     </form>
                                 </th:block>
                                 <th:block th:case="'types'">
