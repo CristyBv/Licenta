@@ -4,6 +4,8 @@ import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
+import java.util.Map;
+
 @Data
 @Component
 @ConfigurationProperties(prefix = "route")
@@ -26,7 +28,7 @@ public class RouteProperties {
     private String changeDatabasePanel;
     private String addUserToKeyspace;
     private String removeUserFromKeyspace;
-    private String searchUserLive;
+    private Map<String, String> searchLive;
     private String deleteKeyspace;
     private String changeKeyspacePassword;
     private String changeDatabaseViewEditPanel;
@@ -39,4 +41,6 @@ public class RouteProperties {
     private String createTableStructure;
     private String createIndex;
     private String dropIndex;
+    private Map<String, String> create;
+    private Map<String, String> drop;
 }

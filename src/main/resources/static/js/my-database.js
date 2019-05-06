@@ -126,7 +126,7 @@ $(document).ready(function () {
                 var query = {
                     search: params.term,
                     from: "database"
-                }
+                };
                 return query;
             },
             processResults: function (data) {
@@ -146,7 +146,156 @@ $(document).ready(function () {
                 var query = {
                     search: params.term,
                     from: "keyspace"
+                };
+                return query;
+            },
+            processResults: function (data) {
+                return data;
+            }
+        }
+    });
+
+    $("#add-column-select-table").select2({
+        width: '100%',
+        placeholder: "Select a Table",
+        allowClear: true,
+        dropdownParent: $("#create-column-modal"),
+        ajax: {
+            url: searchTableLiveUrl,
+            dataType: 'json',
+            data: function (params) {
+                var query = {
+                    search: params.term
+                };
+                return query;
+            },
+            processResults: function (data) {
+                return data;
+            }
+        }
+    });
+
+    $("#add-index-select-table").select2({
+        width: '100%',
+        placeholder: "Select a Table",
+        allowClear: true,
+        dropdownParent: $("#create-index-modal"),
+        ajax: {
+            url: searchTableLiveUrl,
+            dataType: 'json',
+            data: function (params) {
+                var query = {
+                    search: params.term
+                };
+                return query;
+            },
+            processResults: function (data) {
+                return data;
+            }
+        }
+    });
+
+    $("#add-index-select-column").select2({
+        width: '100%',
+        placeholder: "Select a Column",
+        allowClear: true,
+        dropdownParent: $("#create-index-modal"),
+        ajax: {
+            url: searchColumnLiveUrl,
+            dataType: 'json',
+            data: function (params) {
+                var table = $("#add-index-select-table").find(":selected").text();
+                var query = null;
+                if(table != null && table != "") {
+                    query = {
+                        search: params.term,
+                        tableName: table
+                    };
+                } else {
+                    query = {
+                        search: params.term
+                    };
                 }
+                return query;
+            },
+            processResults: function (data) {
+                return data;
+            }
+        }
+    });
+
+    $("#add-view-select-table").select2({
+        width: '100%',
+        placeholder: "Select a Table",
+        allowClear: true,
+        dropdownParent: $("#create-view-modal"),
+        ajax: {
+            url: searchTableLiveUrl,
+            dataType: 'json',
+            data: function (params) {
+                var query = {
+                    search: params.term
+                };
+                return query;
+            },
+            processResults: function (data) {
+                return data;
+            }
+        }
+    });
+
+    $("#add-trigger-select-table").select2({
+        width: '100%',
+        placeholder: "Select a Table",
+        allowClear: true,
+        dropdownParent: $("#create-trigger-modal"),
+        ajax: {
+            url: searchTableLiveUrl,
+            dataType: 'json',
+            data: function (params) {
+                var query = {
+                    search: params.term
+                };
+                return query;
+            },
+            processResults: function (data) {
+                return data;
+            }
+        }
+    });
+
+    $("#add-aggregate-select-state-function").select2({
+        width: '100%',
+        placeholder: "Select a Function",
+        allowClear: true,
+        dropdownParent: $("#create-aggregate-modal"),
+        ajax: {
+            url: searchFunctionLiveUrl,
+            dataType: 'json',
+            data: function (params) {
+                var query = {
+                    search: params.term
+                };
+                return query;
+            },
+            processResults: function (data) {
+                return data;
+            }
+        }
+    });
+
+    $("#add-aggregate-select-final-function").select2({
+        width: '100%',
+        placeholder: "Select a Function",
+        allowClear: true,
+        dropdownParent: $("#create-aggregate-modal"),
+        ajax: {
+            url: searchFunctionLiveUrl,
+            dataType: 'json',
+            data: function (params) {
+                var query = {
+                    search: params.term
+                };
                 return query;
             },
             processResults: function (data) {
@@ -321,7 +470,21 @@ $(document).ready(function () {
         }
         e.preventDefault();
     });
+
+    $("#create-trigger-button").on("click", function () {
+        addTriggersToSelect();
+    });
 });
+
+function addTriggersToSelect() {
+    if(triggers != null) {
+        var triggersList = triggers.split(";");
+        for(var i = 0 ; i < triggersList.length ; i++) {
+            var option = $('<option value="\''+ triggersList[i] + '\'">' + triggersList[i] + '</option>');
+            $("#triggers-create-select").append(option);
+        }
+    }
+}
 
 function addMouseWheelAndContextMenuEvent(tablesBottom) {
     $("#content-div table.dataTable thead th").prop("onmousewheel", null).off("mousewheel");

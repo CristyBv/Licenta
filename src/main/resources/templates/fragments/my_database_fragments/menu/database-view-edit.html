@@ -71,10 +71,10 @@
                 <div th:class="'tab-pane ' + ${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[tables]') ? 'active' : ''}"
                      id="tables"
                      th:if="${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[tables]')}">
-                    <button class="btn btn-lg btn-default create-row-button" id="create-table-button">Create Table
+                    <button th:if="${key.access != member}" class="btn btn-lg btn-default create-row-button" id="create-table-button">Create Table
                     </button>
                     <hr/>
-                    <div class="modal fade create-row-modal" id="create-table-modal" tabindex="-1" role="dialog"
+                    <div th:if="${key.access != member}" class="modal fade create-row-modal" tabindex="-1" id="create-table-modal" role="dialog"
                          aria-hidden="true">
                         <div class="modal-dialog" role="document">
                             <div th:replace="fragments/my_database_fragments/data/create-table-structure :: data-row(data=${keyspaceContent.tables})"
@@ -116,10 +116,10 @@
                 <div th:class="'tab-pane ' + ${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[columns]') ? 'active' : ''}"
                      id="columns"
                      th:if="${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[columns]')}">
-                    <button class="btn btn-lg btn-default create-row-button" id="create-column-button">Add Column(s)
+                    <button th:if="${key.access != member}" class="btn btn-lg btn-default create-row-button" id="create-column-button">Add Column(s)
                     </button>
                     <hr/>
-                    <div class="modal fade create-row-modal" id="create-column-modal" tabindex="-1" role="dialog"
+                    <div th:if="${key.access != member}" class="modal fade create-row-modal" tabindex="-1" id="create-column-modal" role="dialog"
                          aria-hidden="true">
                         <div class="modal-dialog" role="document">
                             <div th:replace="fragments/my_database_fragments/data/create-column-structure :: data-row(data=${keyspaceContent.columns})"
@@ -189,10 +189,10 @@
                 <div th:class="'tab-pane ' + ${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[indexes]') ? 'active' : ''}"
                      id="indexes"
                      th:if="${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[indexes]')}">
-                    <button class="btn btn-lg btn-default create-row-button" id="create-index-button">Create Index
+                    <button th:if="${key.access != member}" class="btn btn-lg btn-default create-row-button" id="create-index-button">Create Index
                     </button>
                     <hr/>
-                    <div class="modal fade create-row-modal" id="create-index-modal" tabindex="-1" role="dialog"
+                    <div th:if="${key.access != member}" class="modal fade create-row-modal" tabindex="-1" id="create-index-modal" role="dialog"
                          aria-hidden="true">
                         <div class="modal-dialog" role="document">
                             <div th:replace="fragments/my_database_fragments/data/create-index-structure :: data-row(data=${keyspaceContent.indexes})"
@@ -206,7 +206,7 @@
                             <th scope="col" class="text-center">Table Name</th>
                             <th scope="col" class="text-center">Kind</th>
                             <th scope="col" class="text-center">Options</th>
-                            <th scope="col" class="text-center"></th>
+                            <th scope="col" class="text-center" th:if="${key.access != member}"></th>
                         </tr>
                         </thead>
                         <tbody>
@@ -218,10 +218,9 @@
                                 <td style="font-weight: bold;" th:text="${tableName}"></td>
                                 <td th:text="${mapColumn.get('kind')}"></td>
                                 <td th:text="${mapColumn.get('options')}"></td>
-                                <td>
+                                <td th:if="${key.access != member}">
                                     <form th:action="${@environment.getProperty('route.dropIndex')}" method="post">
                                         <input type="hidden" name="indexName" th:value="${indexName}"/>
-                                        <input type="hidden" name="tableName" th:value="${tableName}"/>
                                         <button type="submit"
                                                 onclick="return confirm('Are you sure you want to delete this index?');"
                                                 value="Delete" class="btn btn-danger">Delete
@@ -236,10 +235,10 @@
                 <div th:class="'tab-pane ' + ${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[types]') ? 'active' : ''}"
                      id="types"
                      th:if="${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[types]')}">
-                    <button class="btn btn-lg btn-default create-row-button" id="create-type-button">Create Type
+                    <button th:if="${key.access != member}" class="btn btn-lg btn-default create-row-button" id="create-type-button">Create Type
                     </button>
                     <hr/>
-                    <div class="modal fade create-row-modal" id="create-type-modal" tabindex="-1" role="dialog"
+                    <div th:if="${key.access != member}" class="modal fade create-row-modal" tabindex="-1" id="create-type-modal" role="dialog"
                          aria-hidden="true">
                         <div class="modal-dialog" role="document">
                             <div th:replace="fragments/my_database_fragments/data/create-type-structure :: data-row(data=${keyspaceContent.types})"
@@ -281,10 +280,10 @@
                 <div th:class="'tab-pane ' + ${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[views]') ? 'active' : ''}"
                      id="views"
                      th:if="${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[views]')}">
-                    <button class="btn btn-lg btn-default create-row-button" id="create-view-button">Create View
+                    <button th:if="${key.access != member}" class="btn btn-lg btn-default create-row-button" id="create-view-button">Create View
                     </button>
                     <hr/>
-                    <div class="modal fade create-row-modal" id="create-view-modal" tabindex="-1" role="dialog"
+                    <div th:if="${key.access != member}" class="modal fade create-row-modal" tabindex="-1" id="create-view-modal" role="dialog"
                          aria-hidden="true">
                         <div class="modal-dialog" role="document">
                             <div th:replace="fragments/my_database_fragments/data/create-view-structure :: data-row(data=${keyspaceContent.tables})"
@@ -328,12 +327,27 @@
                 <div th:class="'tab-pane ' + ${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[functions]') ? 'active' : ''}"
                      id="functions"
                      th:if="${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[functions]')}">
+                    <button th:if="${key.access != member}" class="btn btn-lg btn-default create-row-button" id="create-function-button">Create Function
+                    </button>
+                    <hr/>
+                    <div th:if="${key.access != member}" class="modal fade create-row-modal" tabindex="-1" id="create-function-modal" role="dialog"
+                         aria-hidden="true">
+                        <div class="modal-dialog" role="document">
+                            <div th:replace="fragments/my_database_fragments/data/create-function-structure :: data-row(data=${keyspaceContent.functions})"
+                                 id="create-function-div"></div>
+                        </div>
+                    </div>
                     <table class="table table-striped table-bordered text-center" id="keyspace-data-functions">
                         <thead>
                         <tr>
                             <th scope="col" class="text-center">Function Name</th>
-                            <th scope="col" class="text-center"></th>
-                            <th scope="col" class="text-center"></th>
+                            <th scope="col" class="text-center">Argument Names</th>
+                            <th scope="col" class="text-center">Argument Types</th>
+                            <th scope="col" class="text-center">Body</th>
+                            <th scope="col" class="text-center">Return Type</th>
+                            <th scope="col" class="text-center">Called on NULL Input</th>
+                            <th scope="col" class="text-center">Language</th>
+                            <th scope="col" class="text-center" th:if="${key.access != member}"></th>
                         </tr>
                         </thead>
                         <tbody>
@@ -341,13 +355,20 @@
                             <tr th:with="functionName=${mapColumn.get('function_name')}">
                                 <td style="font-weight: bold; border: 1px solid black;"
                                     th:text="${functionName}"></td>
-                                <td>
-                                    <th:block
-                                            th:replace="fragments/my_database_fragments/data/functions-data :: structure-form(functionName=${functionName})"></th:block>
-                                </td>
-                                <td>
-                                    <th:block
-                                            th:replace="fragments/my_database_fragments/data/functions-data :: delete-form(functionName=${functionName})"></th:block>
+                                <td th:text="${mapColumn.get('argument_names')}"></td>
+                                <td th:text="${mapColumn.get('argument_types')}"></td>
+                                <td th:text="${mapColumn.get('body')}"></td>
+                                <td th:text="${mapColumn.get('return_type')}"></td>
+                                <td th:text="${mapColumn.get('called_on_null_input')}"></td>
+                                <td th:text="${mapColumn.get('language')}"></td>
+                                <td th:if="${key.access != member}">
+                                    <form th:action="${@environment.getProperty('route.drop[function]')}" method="post">
+                                        <input type="hidden" name="functionName" th:value="${functionName}"/>
+                                        <button type="submit"
+                                                onclick="return confirm('Are you sure you want to delete this function?');"
+                                                value="Delete" class="btn btn-danger">Delete
+                                        </button>
+                                    </form>
                                 </td>
                             </tr>
                         </th:block>
@@ -357,12 +378,27 @@
                 <div th:class="'tab-pane ' + ${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[aggregates]') ? 'active' : ''}"
                      id="aggregates"
                      th:if="${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[aggregates]')}">
+                    <button th:if="${key.access != member}" class="btn btn-lg btn-default create-row-button" id="create-aggregate-button">Create Aggregate
+                    </button>
+                    <hr/>
+                    <div th:if="${key.access != member}" class="modal fade create-row-modal" tabindex="-1" id="create-aggregate-modal" role="dialog"
+                         aria-hidden="true">
+                        <div class="modal-dialog" role="document">
+                            <div th:replace="fragments/my_database_fragments/data/create-aggregate-structure :: data-row(data=${keyspaceContent.aggregates})"
+                                 id="create-aggregate-div"></div>
+                        </div>
+                    </div>
                     <table class="table table-striped table-bordered text-center" id="keyspace-data-aggregates">
                         <thead>
                         <tr>
                             <th scope="col" class="text-center">Aggregate Name</th>
-                            <th scope="col" class="text-center"></th>
-                            <th scope="col" class="text-center"></th>
+                            <th scope="col" class="text-center">Argument Types</th>
+                            <th scope="col" class="text-center">State Function</th>
+                            <th scope="col" class="text-center">State Type</th>
+                            <th scope="col" class="text-center">Final Function</th>
+                            <th scope="col" class="text-center">Return Type</th>
+                            <th scope="col" class="text-center">Initial Condition </th>
+                            <th scope="col" class="text-center" th:if="${key.access != member}"></th>
                         </tr>
                         </thead>
                         <tbody>
@@ -370,13 +406,20 @@
                             <tr th:with="aggregateName=${mapColumn.get('aggregate_name')}">
                                 <td style="font-weight: bold; border: 1px solid black;"
                                     th:text="${aggregateName}"></td>
-                                <td>
-                                    <th:block
-                                            th:replace="fragments/my_database_fragments/data/aggregates-data :: structure-form(aggregateName=${aggregateName})"></th:block>
-                                </td>
-                                <td>
-                                    <th:block
-                                            th:replace="fragments/my_database_fragments/data/aggregates-data :: delete-form(aggregateName=${aggregateName})"></th:block>
+                                <td th:text="${mapColumn.get('argument_types')}"></td>
+                                <td th:text="${mapColumn.get('state_func')}"></td>
+                                <td th:text="${mapColumn.get('state_type')}"></td>
+                                <td th:text="${mapColumn.get('final_func')}"></td>
+                                <td th:text="${mapColumn.get('return_type')}"></td>
+                                <td th:text="${mapColumn.get('initcond')}"></td>
+                                <td th:if="${key.access != member}">
+                                    <form th:action="${@environment.getProperty('route.drop[aggregate]')}" method="post">
+                                        <input type="hidden" name="aggregateName" th:value="${aggregateName}"/>
+                                        <button type="submit"
+                                                onclick="return confirm('Are you sure you want to delete this aggregate?');"
+                                                value="Delete" class="btn btn-danger">Delete
+                                        </button>
+                                    </form>
                                 </td>
                             </tr>
                         </th:block>
@@ -386,13 +429,23 @@
                 <div th:class="'tab-pane ' + ${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[triggers]') ? 'active' : ''}"
                      id="triggers"
                      th:if="${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[triggers]')}">
+                    <button th:if="${key.access != member}" class="btn btn-lg btn-default create-row-button" id="create-trigger-button">Create Trigger
+                    </button>
+                    <hr/>
+                    <div th:if="${key.access != member}" class="modal fade create-row-modal" tabindex="-1" id="create-trigger-modal" role="dialog"
+                         aria-hidden="true">
+                        <div class="modal-dialog" role="document">
+                            <div th:replace="fragments/my_database_fragments/data/create-trigger-structure :: data-row(data=${keyspaceContent.triggers})"
+                                 id="create-trigger-div"></div>
+                        </div>
+                    </div>
                     <table class="table table-striped table-bordered text-center" id="keyspace-data-triggers">
                         <thead>
                         <tr>
                             <th scope="col" class="text-center">Aggregate Name</th>
                             <th scope="col" class="text-center">Table Name</th>
-                            <th scope="col" class="text-center"></th>
-                            <th scope="col" class="text-center"></th>
+                            <th scope="col" class="text-center">Options</th>
+                            <th scope="col" class="text-center" th:if="${key.access != member}"></th>
                         </tr>
                         </thead>
                         <tbody>
@@ -404,12 +457,16 @@
                                 <td style="font-weight: bold;"
                                     th:text="${tableName}"></td>
                                 <td>
-                                    <th:block
-                                            th:replace="fragments/my_database_fragments/data/triggers-data :: structure-form(triggerName=${triggerName},tableName=${tableName})"></th:block>
-                                </td>
-                                <td>
-                                    <th:block
-                                            th:replace="fragments/my_database_fragments/data/triggers-data :: delete-form(triggerName=${triggerName},tableName=${tableName})"></th:block>
+                                <td th:text="${mapColumn.get('options')}"></td>
+                                <td th:if="${key.access != member}">
+                                    <form th:action="${@environment.getProperty('route.drop[trigger]')}" method="post">
+                                        <input type="hidden" name="triggerName" th:value="${triggerName}"/>
+                                        <input type="hidden" name="tableName" th:value="${tableName}"/>
+                                        <button type="submit"
+                                                onclick="return confirm('Are you sure you want to delete this trigger?');"
+                                                value="Delete" class="btn btn-danger">Delete
+                                        </button>
+                                    </form>
                                 </td>
                             </tr>
                         </th:block>
@@ -432,7 +489,7 @@
             <span style="float:right;" class="glyphicon glyphicon-minus btn btn-default keyspace-manage-minus"></span>
             <br style="clear:both;"><br>
             <div class="row" th:if="${dataContent != null}">
-                <button class="btn btn-lg btn-default" id="insert-row-button">Add Row</button>
+                <button th:if="${key.access != member}" class="btn btn-lg btn-default" id="insert-row-button">Add Row</button>
                 <hr/>
                 <div class="modal fade" id="show-row-data-modal" tabindex="-1" role="dialog" aria-hidden="true">
                     <div class="modal-dialog" style="width: 70% !important;" role="document">
@@ -445,7 +502,7 @@
                     var columnsNamesDataTable = [];
                 </script>
                 <th:block th:if="${dataContent.columnDefinitions == null}">
-                    <div class="modal fade" id="insert-row-data-modal" tabindex="-1" role="dialog" aria-hidden="true">
+                    <div th:if="${key.access != member}" class="modal fade" id="insert-row-data-modal" tabindex="-1" role="dialog" aria-hidden="true">
                         <div class="modal-dialog" style="width: 70% !important;" role="document">
                             <div th:replace="fragments/my_database_fragments/data/insert-row :: insert-row(data=${dataContent}, columns=true)"
                                  id="insert-row-div"></div>
@@ -469,7 +526,7 @@
                     </th:block>
                 </th:block>
                 <th:block th:if="${dataContent.columnDefinitions != null}">
-                    <div class="modal fade" id="insert-row-data-modal" tabindex="-1" role="dialog" aria-hidden="true">
+                    <div th:if="${key.access != member}" class="modal fade" id="insert-row-data-modal" tabindex="-1" role="dialog" aria-hidden="true">
                         <div class="modal-dialog" style="width: 70% !important;" role="document">
                             <div th:replace="fragments/my_database_fragments/data/insert-row :: insert-row(data=${dataContent}, columns=false)"
                                  id="insert-row-div"></div>

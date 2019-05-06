@@ -237,7 +237,7 @@ public class KeyspaceService {
 
     public void createTable(String keyspace, String table, String columnsDefinitions, String keys, String clusteringOrder) throws Exception {
         String query;
-        if(clusteringOrder != null)
+        if (clusteringOrder != null)
             query = String.format(queryProperties.getCreate().get("table_clustering"), keyspace + "." + table, columnsDefinitions, keys, clusteringOrder);
         else
             query = String.format(queryProperties.getCreate().get("table"), keyspace + "." + table, columnsDefinitions, keys);
@@ -361,10 +361,84 @@ public class KeyspaceService {
 
     public void createView(String keyspace, String baseTable, String view, String columnsSelected, String whereClause, String keys, String clusteringOrder) throws Exception {
         String query;
-        if(clusteringOrder != null)
+        if (clusteringOrder != null)
             query = String.format(queryProperties.getCreate().get("view_clustering"), view, columnsSelected, keyspace + "." + baseTable, whereClause, keys, clusteringOrder);
         else
             query = String.format(queryProperties.getCreate().get("view"), view, columnsSelected, keyspace + "." + baseTable, whereClause, keys);
+        System.out.println(query);
+        try {
+            adminOperations.getCqlOperations().execute(query);
+        } catch (Exception e) {
+            throw new Exception(query + " ---> " + e.getCause().getMessage());
+        }
+    }
+
+    public void createType(String keyspace, String type, String fields) throws Exception {
+        String query = String.format(queryProperties.getCreate().get("type"), keyspace + "." + type, fields);
+        System.out.println(query);
+        try {
+            adminOperations.getCqlOperations().execute(query);
+        } catch (Exception e) {
+            throw new Exception(query + " ---> " + e.getCause().getMessage());
+        }
+    }
+
+    public void createFunction(String keyspace, String functionName, String replace, String inputs, String onNullInput, String returns, String language, String codeBlock) throws Exception {
+        String query = String.format(queryProperties.getCreate().get("function"), replace, keyspace + "." + functionName, inputs, onNullInput, returns, language, codeBlock);
+        System.out.println(query);
+        try {
+            adminOperations.getCqlOperations().execute(query);
+        } catch (Exception e) {
+            throw new Exception(query + " ---> " + e.getCause().getMessage());
+        }
+    }
+
+    public void dropFunction(String keyspace, String functionName) throws Exception {
+        String query = String.format(queryProperties.getDrop().get("function"), keyspace + "." + functionName);
+        System.out.println(query);
+        try {
+            adminOperations.getCqlOperations().execute(query);
+        } catch (Exception e) {
+            throw new Exception(query + " ---> " + e.getCause().getMessage());
+        }
+    }
+
+    public void createAggregate(String keyspace, String aggregateName, String replace, String returnType, String stateFunction, String stateType, String finalFunction, String initialCondition) throws Exception {
+        String query;
+        if (finalFunction == null || finalFunction.isEmpty())
+            query = String.format(queryProperties.getCreate().get("aggregate"), replace, keyspace + "." + aggregateName, returnType, stateFunction, stateType, initialCondition);
+        else
+            query = String.format(queryProperties.getCreate().get("aggregate_finalfunc"), replace, keyspace + "." + aggregateName, returnType, stateFunction, stateType, finalFunction, initialCondition);
+        System.out.println(query);
+        try {
+            adminOperations.getCqlOperations().execute(query);
+        } catch (Exception e) {
+            throw new Exception(query + " ---> " + e.getCause().getMessage());
+        }
+    }
+
+    public void dropAggregate(String keyspace, String aggregateName) throws Exception {
+        String query = String.format(queryProperties.getDrop().get("aggregate"), keyspace + "." + aggregateName);
+        System.out.println(query);
+        try {
+            adminOperations.getCqlOperations().execute(query);
+        } catch (Exception e) {
+            throw new Exception(query + " ---> " + e.getCause().getMessage());
+        }
+    }
+
+    public void dropTrigger(String keyspace, String tableName, String triggerName) throws Exception {
+        String query = String.format(queryProperties.getDrop().get("trigger"), triggerName, keyspace + "." + tableName);
+        System.out.println(query);
+        try {
+            adminOperations.getCqlOperations().execute(query);
+        } catch (Exception e) {
+            throw new Exception(query + " ---> " + e.getCause().getMessage());
+        }
+    }
+
+    public void createTrigger(String keyspace, String tableName, String triggerName, String triggerClass) throws Exception {
+        String query = String.format(queryProperties.getCreate().get("trigger"), triggerName, keyspace + "." + tableName, triggerClass);
         System.out.println(query);
         try {
             adminOperations.getCqlOperations().execute(query);

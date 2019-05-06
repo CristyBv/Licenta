@@ -14,8 +14,11 @@
         <script th:src="@{/js/tables/colResizable.js}"></script>
         <script th:inline="javascript">
             /*<![CDATA[*/
-            var searchUserLiveUrl = /*[[${@environment.getProperty('route.searchUserLive')}]]*/ 'url';
+            var searchUserLiveUrl = /*[[${@environment.getProperty('route.searchLive[user]')}]]*/ 'url';
             var myKeyspacesPanelUrl = /*[[${@environment.getProperty('route.changeMyKeyspacesPanel')}]]*/ 'url';
+            var searchTableLiveUrl = /*[[${@environment.getProperty('route.searchLive[table]')}]]*/ 'url';
+            var searchColumnLiveUrl = /*[[${@environment.getProperty('route.searchLive[column]')}]]*/ 'url';
+            var searchFunctionLiveUrl = /*[[${@environment.getProperty('route.searchLive[function]')}]]*/ 'url';
             /*]]>*/
         </script>
     </th:block>

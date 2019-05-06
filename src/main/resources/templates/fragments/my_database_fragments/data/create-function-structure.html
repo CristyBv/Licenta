@@ -22,40 +22,56 @@
                     <div class="row">
                         <div class="col-lg-12">
                             <form id="create-table-form"
-                                  th:action="${@environment.getProperty('route.createIndex')}" method="post"
+                                  th:action="${@environment.getProperty('route.create[function]')}" method="post"
                                   role="form">
                                 <div class="form-group">
                                     <label style="width: 100%;">
-                                        Table Name:
-                                        <select class="form-control" name="tableName" id="add-index-select-table"></select>
+                                        Replace:
+                                        <input class="form-control" type="checkbox" value="OR REPLACE" name="replace"/>
                                     </label>
                                 </div>
                                 <div class="form-group">
                                     <label style="width: 100%;">
-                                        Index Name:
-                                        <input type="text" class="form-control" name="indexName"/>
+                                        Function Name:
+                                        <input type="text" class="form-control" name="functionName"/>
                                     </label>
                                 </div>
                                 <div class="form-group">
                                     <label style="width: 100%;">
-                                        Column Name:
-                                        <select class="form-control" name="columnName" id="add-index-select-column"></select>
+                                        Input: name type (use , as separator):
+                                        <textarea class="form-control" name="inputs"></textarea>
                                     </label>
                                 </div>
                                 <div class="form-group">
                                     <label style="width: 100%;">
-                                        Custom Index (USING 'org.apache.cassandra.index.sasi.SASIIndex')
-                                        <input type="checkbox" class="form-control" name="custom">
+                                        Called ON NULL INPUT:
+                                        <input class="form-control" type="radio" name="onNullInput" value="CALLED"/>
+                                    </label>
+                                    <label style="width: 100%;">
+                                        RETURNS NULL ON NULL INPUT:
+                                        <input class="form-control" type="radio" checked name="onNullInput" value="RETURNS NULL"/>
                                     </label>
                                 </div>
                                 <div class="form-group">
                                     <label style="width: 100%;">
-                                        Options (use ',' as separator)
-                                        <textarea class="form-control" name="options"></textarea>
+                                        Returns:
+                                        <input type="text" class="form-control" name="returns"/>
                                     </label>
                                 </div>
                                 <div class="form-group">
-                                    <button type="submit" class="btn btn-lg btn-success" style="width: 100%">Create Index</button>
+                                    <label style="width: 100%;">
+                                        Language:
+                                        <input type="text" class="form-control" name="language"/>
+                                    </label>
+                                </div>
+                                <div class="form-group">
+                                    <label style="width: 100%;">
+                                        Code Block (use the exact CQL syntax with '...' or $$ ... $$)
+                                        <textarea class="form-control" name="codeBlock"></textarea>
+                                    </label>
+                                </div>
+                                <div class="form-group">
+                                    <button type="submit" class="btn btn-lg btn-success" style="width: 100%">Create Function</button>
                                 </div>
                             </form>
                         </div>

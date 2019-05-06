@@ -76,7 +76,7 @@
                                                     <textarea class="form-control"
                                                               th:name="${mapColumn.get('column_name')+'_readonly'}"
                                                               readonly rows="3"></textarea>
-                                                    <th:block th:switch="${type}">
+                                                    <th:block th:switch="${type}" th:if="${key.access != member}">
                                                         <th:block th:case="'columns'"
                                                                   th:with="message=#{database.keyspaces.columnsData.showRow.textareaPlaceholder}">
                                                             <textarea th:if="${mapColumn.get('column_name') ==
@@ -109,7 +109,7 @@
                                         </th:block>
                                     </th:block>
                                 </th:block>
-                                <div class="row">
+                                <div class="row" th:if="${key.access != member}">
                                     <div class="col-sm-6">
                                         <div class="from-group">
                                             <button style="width: 100%;"

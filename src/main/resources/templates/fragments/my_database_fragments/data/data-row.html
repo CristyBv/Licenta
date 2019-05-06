@@ -74,6 +74,7 @@
                                                               th:name="${mapColumn.get('column_name')+'_readonly'}"
                                                               readonly rows="3"></textarea>
                                                     <textarea class="form-control" rows="3"
+                                                              th:if="${key.access != member}"
                                                               th:name="${mapColumn.get('column_name')}"
                                                               th:readonly="${mapColumn.get('kind') != 'regular'}"
                                                               th:placeholder="${mapColumn.get('kind') == 'regular' ? message  : 'Partition key and clustering key cannot be update!'}"
@@ -85,7 +86,7 @@
                                     </th:block>
                                 </th:block>
                                 <input type="hidden" name="requestType" id="request-type"/>
-                                <div class="row">
+                                <div class="row" th:if="${key.access != member}">
                                     <div class="col-sm-6">
                                         <div class="from-group">
                                             <button style="width: 100%;" id="data-row-update-button"

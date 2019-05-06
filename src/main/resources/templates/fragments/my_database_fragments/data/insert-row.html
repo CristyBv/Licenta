@@ -13,7 +13,7 @@
                         <div class="row">
                             <div class="col">
                                 <div class="active" id="insert-row-form-link">
-                                    <strong th:text="${data.tableName} + ' - row'"></strong>
+                                    <strong th:text="${data.tableName} + ' - insert row'"></strong>
                                 </div>
                             </div>
                         </div>
@@ -74,7 +74,7 @@
                                                     <textarea class="form-control"
                                                               th:name="${mapColumn.get('column_name')}"
                                                               th:placeholder="${message}"
-                                                              cols="5"></textarea>
+                                                              rows="5"></textarea>
                                                 </div>
                                             </div>
                                             <hr/>
