@@ -12,7 +12,7 @@
         <script th:src="@{/js/profile.js}"></script>
         <script th:inline="javascript">
             /*<![CDATA[*/
-            var changeAvatarUrl = /*[[${@environment.getProperty('route.changeAvatar')}]]*/ 'url'
+            var changeAvatarUrl = /*[[${@environment.getProperty('route.change[avatar]')}]]*/ 'url'
             /*]]>*/
         </script>
     </th:block>
@@ -77,7 +77,7 @@
                              th:text="${changeEmailSuccess}"></div>
                         <div class="alert alert-danger" th:if="${changeEmailError}"
                              th:text="${changeEmailError}"></div>
-                        <form class="form jumbotron" th:action="${@environment.getProperty('route.changeEmail')}"
+                        <form class="form jumbotron" th:action="${@environment.getProperty('route.change[email]')}"
                               method="post" id="change-email-form">
                             <h3>Change your email</h3>
                             <div class="form-group">
@@ -97,7 +97,7 @@
                              th:text="${changePasswordSuccess}"></div>
                         <div class="alert alert-danger" th:if="${changePasswordError}"
                              th:text="${changePasswordError}"></div>
-                        <form class="form jumbotron" th:action="${@environment.getProperty('route.changePassword')}"
+                        <form class="form jumbotron" th:action="${@environment.getProperty('route.change[password]')}"
                               method="post" id="change-password-form">
                             <h3>Change your password</h3>
                             <div class="form-group">

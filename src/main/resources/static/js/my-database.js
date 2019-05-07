@@ -1,12 +1,85 @@
+var tablesTop = [];
+var tablesBottom = [];
+var terminal;
+var consoleStack = "";
 $(document).ready(function () {
 
-    var token = $("meta[name='_csrf']").attr("content");
-    var header = $("meta[name='_csrf_header']").attr("content");
-    $(document).ajaxSend(function (e, xhr, options) {
-        if (token && header)
-            xhr.setRequestHeader(header, token);
-    });
+    // Put the user-keyspace first in the list
+    $('.user-keyspaces-li').prependTo('.nav-menu-list-style');
+    // Auto select the 3rd option from select
+    $("#replication-factor-select > option:nth-child(3)").attr('selected', true);
+    // Auto check the durable writes checkbox
+    $("#durable-writes").attr("checked", true);
 
+    ajaxCSRFToken();
+    myKeyspacesOpenCloseTab();
+    initPopovers();
+    initToolTips();
+    initSelect2();
+    initDataTables();
+    addMouseWheelAndContextMenuEvent(tablesBottom);
+    ajaxDataTableStructure();
+    safeUpdateDelete();
+    onEvents();
+    initConsoleScript();
+});
+function initConsoleScript() {
+    if($('#terminal').html() != undefined) {
+        terminal = $('#terminal').terminal(function (cmd) {
+            cmd = cmd.trim();
+            if(cmd == "@script") {
+                $("#script-div").addClass("active");
+                $("#console-div").removeClass("active");
+                return;
+            }
+            if(cmd.substr(cmd.length-1) == ";") {
+                consoleStack += cmd;
+                $.ajax({
+                    type: "post",
+                    url: consoleInterpretorUrl,
+                    contentType: "application/json; charset=utf-8",
+                    data: JSON.stringify({
+                        "query": consoleStack,
+                        "view": this.export_view()
+                    }),
+                    dataType: "json"
+                }).done(function (result) {
+                    //alert(JSON.stringify(result));
+                }).fail(function () {
+                    alert("Server error!");
+                });
+
+                this.echo(consoleStack);
+                consoleStack = "";
+            } else {
+                consoleStack += cmd + " ";
+                this.echo(consoleStack + " ...");
+            }
+
+        }, {
+            greetings: "For script page type @script\n",
+            prompt: "[[g;white;black]>] ",
+            name: "text",
+            keymap: {
+                'CTRL+C': function (e, original) {
+                    original();
+                    consoleStack = "";
+                }
+            },
+            onBlur: function (term) {
+            },
+            onFocus: function (term) {
+
+            },
+            echoCommand: false
+        });
+
+        if(consoleViewContent != null && consoleViewContent != undefined) {
+            terminal.import_view(consoleViewContent);
+        }
+    }
+}
+function myKeyspacesOpenCloseTab() {
     // My keyspace open/close tab
     $(".arrow-left-button").on("click", function () {
         $.ajax({
@@ -43,33 +116,9 @@ $(document).ready(function () {
         }).fail(function () {
             alert("Server error!");
         });
-
     });
-
-    // JS for a tree nav model
-    $('.tree-toggle').click(function () {
-        $(this).parent().children('ul.tree').toggle(200);
-    });
-
-    // Put the user-keyspace first in the list
-    $('.user-keyspaces-li').prependTo('.nav-menu-list-style');
-
-    // Display or not the password inputs if the enable checbox is changed
-    $("#password-enabled").change(function () {
-        if (this.checked) {
-            $("#create-keyspace-password").css('display', 'block');
-        } else {
-            $("#password-create-keyspace").val(null);
-            $("#confirmPassword").val(null);
-            $("#create-keyspace-password").css('display', 'none');
-        }
-    });
-
-    // Auto select the 3rd option from select
-    $("#replication-factor-select > option:nth-child(3)").attr('selected', true);
-    // Auto check the durable writes checkbox
-    $("#durable-writes").attr("checked", true);
-
+}
+function initPopovers() {
     // popovers are closed when click anywhere else
     $('[data-toggle="popover"]').popover({
         trigger: "manual",
@@ -83,37 +132,9 @@ $(document).ready(function () {
                 pop.popover("hide")
             }, 4000);
         })
-    })
-
-    // initialize tooltips
-    $('[data-toggle="tooltip"]').tooltip();
-
-    // change panel
-    $(".database-menu-link").on("click", function (e) {
-        e.preventDefault();
-        $("#panel-input").val($(this).data("panel"));
-        $("#panel-form").submit();
     });
-
-    //change view-edit panel
-    $(".database-view-edit-panel-link").on("click", function (e) {
-        e.preventDefault();
-        $("#view-edit-panel-input").val($(this).data("panel"));
-        $("#view-edit-panel-form").submit();
-    });
-
-    // less info on click
-    $(".keyspace-manage-minus").on('click', function () {
-        $(this).parent().find(".row").slideToggle(150);
-        if ($(this).hasClass("glyphicon-minus")) {
-            $(this).removeClass("glyphicon-minus");
-            $(this).addClass("glyphicon-plus")
-        } else {
-            $(this).removeClass("glyphicon-plus");
-            $(this).addClass("glyphicon-minus")
-        }
-    });
-
+}
+function initSelect2() {
     // select2 (live search for users)
     $("#add-user-to-keyspace-username").select2({
         width: '100%',
@@ -206,7 +227,7 @@ $(document).ready(function () {
             data: function (params) {
                 var table = $("#add-index-select-table").find(":selected").text();
                 var query = null;
-                if(table != null && table != "") {
+                if (table != null && table != "") {
                     query = {
                         search: params.term,
                         tableName: table
@@ -303,6 +324,143 @@ $(document).ready(function () {
             }
         }
     });
+}
+function ajaxDataTableStructure() {
+    $("#data-div table.dataTable tbody").on("click", '.data-table-structure', function (e) {
+        e.preventDefault();
+        var tr = $(this).closest("tr");
+        var data = tr.attr("id");
+        $.ajax({
+            type: "post",
+            url: getTableStructureUrl,
+            contentType: "application/json",
+            data: JSON.stringify({
+                "data": data
+            }),
+            dataType: "json"
+        }).done(function (json) {
+            Object.keys(json).forEach(function (key) {
+                if (json[key] != null) {
+                    // if the value is a collection then we convert it to JSON string and replace " with '
+                    if (typeof json[key] == "object")
+                        $("#show-data-structure-row-form").find("textarea[name='" + key + "_readonly']").val(JSON.stringify(json[key]).replace(/"/g, "\'"));
+                    else
+                        $("#show-data-structure-row-form").find("textarea[name='" + key + "_readonly']").val(json[key]);
+                }
+            });
+            $("#data-div").find(".row-modal").modal("show");
+        }).fail(function () {
+            alert("Server error!");
+        });
+    });
+}
+function safeUpdateDelete() {
+    $("#data-row-update-button").on('click', function (e) {
+        if (confirm("Are you sure you want to update?")) {
+            $("#request-type").val("update");
+            $("#show-data-row-form").submit();
+        } else {
+            e.preventDefault();
+        }
+    });
+    $("#data-row-delete-button").on('click', function (e) {
+        if (confirm("Are you sure you want to delete?")) {
+            $("#request-type").val("delete");
+            $("#show-data-row-form").submit();
+        } else {
+            e.preventDefault();
+        }
+    });
+    $("#data-structure-update-tables-button, #data-structure-update-views-button").on('click', function (e) {
+        if (confirm("Are you sure you want to update?")) {
+            $("#show-data-structure-row-form").submit();
+        } else {
+            e.preventDefault();
+        }
+    });
+    $("#data-structure-delete-tables-button").on("click", function (e) {
+        if (confirm("Are you sure you want to delete this table? All the data will be lost!")) {
+            var tableName = $("#show-data-structure-row-form").find("textarea[name='table_name_readonly']").val();
+            $("#delete-tables-name-input").val(tableName);
+            $("#delete-tables-form").submit();
+        }
+        e.preventDefault();
+    });
+    $("#data-structure-delete-views-button").on("click", function (e) {
+        if (confirm("Are you sure you want to delete this view?")) {
+            var viewName = $("#show-data-structure-row-form").find("textarea[name='view_name_readonly']").val();
+            $("#delete-views-name-input").val(viewName);
+            $("#delete-views-form").submit();
+        }
+        e.preventDefault();
+    });
+    $("#data-structure-update-columns-button").on("click", function (e) {
+        if (confirm("Are you sure you want to update this column?")) {
+            var requestType = $("#show-data-structure-row-form").find("input[name='requestType']");
+            requestType.val(requestType.val() + "@update");
+            $("#show-data-structure-row-form").submit();
+        }
+        e.preventDefault();
+    });
+    $("#data-structure-delete-columns-button").on("click", function (e) {
+        if (confirm("Are you sure you want to delete this column?")) {
+            var requestType = $("#show-data-structure-row-form").find("input[name='requestType']");
+            requestType.val(requestType.val() + "@delete");
+            $("#show-data-structure-row-form").submit();
+        }
+        e.preventDefault();
+    });
+    $("#data-structure-delete-types-button").on("click", function (e) {
+        if (confirm("Are you sure you want to delete this type?")) {
+            var typeName = $("#show-data-structure-row-form").find("textarea[name='type_name_readonly']").val();
+            $("#delete-types-name-input").val(typeName);
+            $("#delete-types-form").submit();
+        }
+        e.preventDefault();
+    });
+}
+function onEvents() {
+    // JS for a tree nav model
+    $('.tree-toggle').click(function () {
+        $(this).parent().children('ul.tree').toggle(200);
+    });
+
+    // Display or not the password inputs if the enable checbox is changed
+    $("#password-enabled").change(function () {
+        if (this.checked) {
+            $("#create-keyspace-password").css('display', 'block');
+        } else {
+            $("#password-create-keyspace").val(null);
+            $("#confirmPassword").val(null);
+            $("#create-keyspace-password").css('display', 'none');
+        }
+    });
+
+    // change panel
+    $(".database-menu-link").on("click", function (e) {
+        e.preventDefault();
+        $("#panel-input").val($(this).data("panel"));
+        $("#panel-form").submit();
+    });
+
+    //change view-edit panel
+    $(".database-view-edit-panel-link").on("click", function (e) {
+        e.preventDefault();
+        $("#view-edit-panel-input").val($(this).data("panel"));
+        $("#view-edit-panel-form").submit();
+    });
+
+    // less info on click
+    $(".keyspace-manage-minus").on('click', function () {
+        $(this).parent().find(".row").slideToggle(150);
+        if ($(this).hasClass("glyphicon-minus")) {
+            $(this).removeClass("glyphicon-minus");
+            $(this).addClass("glyphicon-plus")
+        } else {
+            $(this).removeClass("glyphicon-plus");
+            $(this).addClass("glyphicon-minus")
+        }
+    });
 
     // safe delete for keyspace
     $("#delete-keyspace-form").on("submit", function (e) {
@@ -327,30 +485,7 @@ $(document).ready(function () {
         $("#keyspace-edit-submit").css("display", "block");
     });
 
-    // DataTable for all tables in view-edit panel
-    var tablesTop = [];
-    var tablesBottom = [];
-    $("#data-div").find('table').each(function () {
-        tablesTop.push(drawDataTableNoServerSide($(this).attr('id')));
-    });
-    $("#content-div").find('table').each(function () {
-        tablesBottom.push(drawDataTableServerSide($(this).attr('id')));
-    });
-    addMouseWheelAndContextMenuEvent(tablesBottom);
-
-
-    // adjust columns on resize
-    $(window).resize(function () {
-        adjustDataTableColumns(tablesTop, false);
-        adjustDataTableColumns(tablesBottom, false);
-    });
-
-    $(".data-table-submit, .data-table-structure").hover(function () {
-        $(this).closest("td").css('background', "darkgray");
-    }, function () {
-        $(this).closest("td").css('background', "transparent");
-    });
-
+    // reset table modifications
     $("#content-div .table-title").on("click", function () {
         tablesBottom[0].columns().every(function () {
             tablesBottom[0].column(this).visible(true);
@@ -360,10 +495,10 @@ $(document).ready(function () {
             $(this).find('.th-span').css("padding-right", "0px");
         });
         adjustDataTableColumns(tablesBottom);
-        addMouseWheelAndContextMenuEvent(tablesBottom);
+        addMouseWheelAndContextMenuEvent();
     });
 
-
+    // show row data on dblclick
     $("#content-div table.dataTable tbody").on("dblclick", 'tr', function (e) {
         e.preventDefault();
         var rowData = tablesBottom[0].row(this).data();
@@ -374,119 +509,64 @@ $(document).ready(function () {
         });
         $("#show-row-data-modal").modal("show");
     });
+
+    // show modals
     $("#content-div #insert-row-button").on("click", function (e) {
         $("#insert-row-data-modal").modal("show");
     });
     $(".create-row-button").on("click", function () {
         $("#data-div").find(".create-row-modal").modal("show");
     });
-    $("#data-div table.dataTable tbody").on("click", '.data-table-structure', function (e) {
-        e.preventDefault();
-        var tr = $(this).closest("tr");
-        var data = tr.attr("id");
-        $.ajax({
-            type: "post",
-            url: "/data-structure",
-            contentType: "application/json",
-            data: JSON.stringify({
-                "data" : data
-            }),
-            dataType: "json"
-        }).done(function (json) {
-            Object.keys(json).forEach(function (key) {
-                if (json[key] != null) {
-                    if(typeof json[key] == "object")
-                        $("#show-data-structure-row-form").find("textarea[name='" + key + "_readonly']").val(JSON.stringify(json[key]).replace(/"/g,"\'"));
-                    else
-                        $("#show-data-structure-row-form").find("textarea[name='" + key + "_readonly']").val(json[key]);
-                }
-            });
-            $("#data-div").find(".row-modal").modal("show");
-        }).fail(function () {
-            alert("Server error!");
-        });
-    });
-
-    $("#data-row-update-button").on('click', function (e) {
-        if(confirm("Are you sure you want to update?")) {
-            $("#request-type").val("update");
-            $("#show-data-row-form").submit();
-        } else {
-            e.preventDefault();
-        }
-    });
-    $("#data-row-delete-button").on('click', function (e) {
-        if(confirm("Are you sure you want to delete?")) {
-            $("#request-type").val("delete");
-            $("#show-data-row-form").submit();
-        } else {
-            e.preventDefault();
-        }
-    });
-    $("#data-structure-update-tables-button, #data-structure-update-views-button").on('click', function (e) {
-        if(confirm("Are you sure you want to update?")) {
-            $("#show-data-structure-row-form").submit();
-        } else {
-            e.preventDefault();
-        }
-    });
-    $("#data-structure-delete-tables-button").on("click", function (e) {
-        if(confirm("Are you sure you want to delete this table? All the data will be lost!")) {
-            var tableName = $("#show-data-structure-row-form").find("textarea[name='table_name_readonly']").val();
-            $("#delete-tables-name-input").val(tableName);
-            $("#delete-tables-form").submit();
-        }
-        e.preventDefault();
-    });
-    $("#data-structure-delete-views-button").on("click", function (e) {
-        if(confirm("Are you sure you want to delete this view?")) {
-            var viewName = $("#show-data-structure-row-form").find("textarea[name='view_name_readonly']").val();
-            $("#delete-views-name-input").val(viewName);
-            $("#delete-views-form").submit();
-        }
-        e.preventDefault();
-    });
-    $("#data-structure-update-columns-button").on("click", function (e) {
-        if(confirm("Are you sure you want to update this column?")) {
-            var requestType = $("#show-data-structure-row-form").find("input[name='requestType']");
-            requestType.val(requestType.val()+"@update");
-            $("#show-data-structure-row-form").submit();
-        }
-        e.preventDefault();
-    });
-    $("#data-structure-delete-columns-button").on("click", function (e) {
-        if(confirm("Are you sure you want to delete this column?")) {
-            var requestType = $("#show-data-structure-row-form").find("input[name='requestType']");
-            requestType.val(requestType.val()+"@delete");
-            $("#show-data-structure-row-form").submit();
-        }
-        e.preventDefault();
-    });
-    $("#data-structure-delete-types-button").on("click", function (e) {
-        if(confirm("Are you sure you want to delete this type?")) {
-            var typeName = $("#show-data-structure-row-form").find("textarea[name='type_name_readonly']").val();
-            $("#delete-types-name-input").val(typeName);
-            $("#delete-types-form").submit();
-        }
-        e.preventDefault();
-    });
 
     $("#create-trigger-button").on("click", function () {
         addTriggersToSelect();
     });
-});
 
+    // adjust columns on resize
+    $(window).resize(function () {
+        adjustDataTableColumns(tablesTop, false);
+        adjustDataTableColumns(tablesBottom, false);
+    });
+
+    // hover for table/view name td and options td
+    $(".data-table-submit, .data-table-structure").hover(function () {
+        $(this).closest("td").css('background', "darkgray");
+    }, function () {
+        $(this).closest("td").css('background', "transparent");
+    });
+}
+function initDataTables() {
+    // DataTable for all tables in view-edit panel
+    $("#data-div").find('table').each(function () {
+        tablesTop.push(drawDataTableNoServerSide($(this).attr('id')));
+    });
+    $("#content-div").find('table').each(function () {
+        tablesBottom.push(drawDataTableServerSide($(this).attr('id')));
+    });
+}
+function initToolTips() {
+    // initialize tooltips
+    $('[data-toggle="tooltip"]').tooltip();
+}
+function ajaxCSRFToken() {
+    var token = $("meta[name='_csrf']").attr("content");
+    var header = $("meta[name='_csrf_header']").attr("content");
+    $(document).ajaxSend(function (e, xhr, options) {
+        if (token && header)
+            xhr.setRequestHeader(header, token);
+    });
+}
 function addTriggersToSelect() {
-    if(triggers != null) {
+    if (triggers != null) {
         var triggersList = triggers.split(";");
-        for(var i = 0 ; i < triggersList.length ; i++) {
-            var option = $('<option value="\''+ triggersList[i] + '\'">' + triggersList[i] + '</option>');
+        for (var i = 0; i < triggersList.length; i++) {
+            var option = $('<option value="\'' + triggersList[i] + '\'">' + triggersList[i] + '</option>');
             $("#triggers-create-select").append(option);
         }
     }
 }
-
-function addMouseWheelAndContextMenuEvent(tablesBottom) {
+function addMouseWheelAndContextMenuEvent() {
+    // if the event already exists, we eliminate it to not add duplicates
     $("#content-div table.dataTable thead th").prop("onmousewheel", null).off("mousewheel");
     $("#content-div table.dataTable thead th").on('mousewheel', function (e) {
         e.preventDefault();
@@ -513,7 +593,6 @@ function addMouseWheelAndContextMenuEvent(tablesBottom) {
         tablesBottom[0].column(this).visible(false);
     });
 }
-
 function adjustDataTableColumns(tables, draw) {
     for (var i = 0; i < tables.length; i++) {
         if (draw === undefined || draw == true)
@@ -521,9 +600,7 @@ function adjustDataTableColumns(tables, draw) {
         else
             tables[i].columns.adjust();
     }
-    //addMouseWheelAndContextMenuEvent(tables);
 }
-
 function drawDataTableNoServerSide(id) {
     return $("#" + id).DataTable({
         "ordering": true,
@@ -540,11 +617,8 @@ function drawDataTableNoServerSide(id) {
             "leftColumns": 1
         },
         "autoWidth": true
-        // "serverSide": true,
-        // "ajax": "/table-data"
     });
 }
-
 function drawDataTableServerSide(id) {
     return $("#" + id).DataTable({
         "ordering": true,
@@ -565,7 +639,7 @@ function drawDataTableServerSide(id) {
         "serverSide": true,
         "ajax": {
             "type": "GET",
-            "url": "/table-data",
+            "url": getTableDataUrl,
             "dataSrc": function (json) {
                 return json.data;
             }
@@ -573,13 +647,13 @@ function drawDataTableServerSide(id) {
         "initComplete": function (settings, json) {
         },
         "columns": columnsNamesDataTable,
-        "drawCallback": function( settings ) {
+        "drawCallback": function (settings) {
             // highlight td if contains what was searched
             var search = $("#content-div #keyspace-data-content_filter input[type='search']").val();
-            if(search != '') {
+            if (search != '') {
                 $("#content-div table.dataTable tbody td").each(function () {
                     var content = $(this).html();
-                    if(content.indexOf(search) != -1) {
+                    if (content.indexOf(search) != -1) {
                         $(this).css('border', '2px solid black');
                     }
                 });

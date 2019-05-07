@@ -44,6 +44,7 @@
         </div>
     </div>
     </div>
+    <!--if it is not an active keyspace, hide the menu-->
     <div class="keyspace-inactive" th:if="${session.userKeyspace} == null">
         <div class="panel panel-default database-panel">
             <div class="panel-heading database-panel-heading">
@@ -54,6 +55,7 @@
             </div>
         </div>
     </div>
+    <!--change the width of the database panel by the position of the keyspaces bar-->
     <script th:inline="javascript" th:if="${session.myKeyspacesPanelPosition == 'close'}">
         $(".database-panel").css("width", "96%");
     </script>

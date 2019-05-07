@@ -16,7 +16,7 @@
             <span style="float:right;" class="glyphicon glyphicon-minus btn btn-default keyspace-manage-minus"></span>
             <br style="clear:both;">
             <div class="row">
-                <form class="form" th:action="${@environment.getProperty('route.editKeyspace')}"
+                <form class="form" th:action="${@environment.getProperty('route.keyspace[edit]')}"
                       method="post" id="edit-keyspace-form">
                 <div class="col-sm-6">
                         <div class="form-group">
@@ -89,7 +89,7 @@
                 <div class="col-sm-12">
                     <div class="row">
                         <div class="col-sm-6" th:if="${key.access == creator}">
-                            <form class="form" th:action="${@environment.getProperty('route.changeKeyspacePassword')}"
+                            <form class="form" th:action="${@environment.getProperty('route.change[keyspacePassword]')}"
                                   method="post" id="change-keyspace-password-form">
                                 <th:block th:if="${key.keyspace.passwordEnabled}">
                                     <p style="font-size: 1.5em">Disable Password Protection</p>
@@ -121,7 +121,7 @@
                             </form>
                         </div>
                         <div class="col-sm-6" th:if="${key.access == creator}">
-                            <form class="form" th:action="${@environment.getProperty('route.deleteKeyspace')}"
+                            <form class="form" th:action="${@environment.getProperty('route.delete[keyspace]')}"
                                   method="post" id="delete-keyspace-form">
                                 <p style="font-size: 1.5em">Delete Keyspace</p>
                                 <div class="form-group">
@@ -149,7 +149,7 @@
                 <div class="col-sm-12">
                     <div class="row">
                         <div class="col-sm-6">
-                            <form class="form" th:action="${@environment.getProperty('route.addUserToKeyspace')}"
+                            <form class="form" th:action="${@environment.getProperty('route.keyspace[addUser]')}"
                                   method="post" id="add-user-to-keyspace-form">
                                 <p style="font-size: 1.5em">Add user to keyspace</p>
                                 <div class="form-group">
@@ -173,7 +173,7 @@
                             </form>
                         </div>
                         <div class="col-sm-6">
-                            <form class="form" th:action="${@environment.getProperty('route.removeUserFromKeyspace')}"
+                            <form class="form" th:action="${@environment.getProperty('route.keyspace[removeUser]')}"
                                   method="post" id="remove-user-from-keyspace-form">
                                 <p style="font-size: 1.5em">Remove user from keyspace</p>
                                 <div class="form-group">

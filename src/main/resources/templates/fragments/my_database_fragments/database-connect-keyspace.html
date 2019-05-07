@@ -21,7 +21,7 @@
                     <div class="row">
                         <div class="col-lg-12">
                             <form th:id="'form-'+${keyspace.getCreatorName()}+'_'+${keyspace.getName()}"
-                                  th:action="${@environment.getProperty('route.connectKeyspace')}" method="post"
+                                  th:action="${@environment.getProperty('route.keyspace[connect]')}" method="post"
                                   role="form" style="display: block;">
                                 <input type="hidden" th:value="${keyspace.getCreatorName()}" name="creatorName">
                                 <div class="form-group">

@@ -19,7 +19,7 @@
                     <div class="row">
                         <div class="col-lg-12">
                             <form id="create-keyspace-form"
-                                  th:action="${@environment.getProperty('route.createKeyspace')}"
+                                  th:action="${@environment.getProperty('route.keyspace[create]')}"
                                   th:object="${keyspaceObject}" method="post" role="form" style="display: block;">
                                 <div class="form-group">
                                     <th:block th:if="${validateErrors}">

@@ -16,7 +16,7 @@
             <p style="float:left; font-size: 1.75em;" class="font-weight-bold"><strong>Data</strong></p>
             <span style="float:right;" class="glyphicon glyphicon-minus btn btn-default keyspace-manage-minus"></span>
             <br style="clear:both;"><br>
-            <form th:action="${@environment.getProperty('route.changeDatabaseViewEditPanel')}"
+            <form th:action="${@environment.getProperty('route.change[databaseViewEditPanel]')}"
                   id="view-edit-panel-form">
                 <input type="hidden" name="panel" id="view-edit-panel-input"/>
             </form>
@@ -28,46 +28,41 @@
                 </li>
                 <li th:class="${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[columns]') ? 'active' : ''}">
                     <a data-toggle="tab" href="#columns"
-                       th:class="'database-view-edit-panel-link ' + ${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[columns]') ? 'active' : ''}"
+                       th:class="'database-view-edit-panel-link'"
                        th:attr="data-panel=${@environment.getProperty('keyspace.panel[columns]')}">Columns</a></li>
                 <li th:class="${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[droppedColumns]') ? 'active' : ''}">
                     <a data-toggle="tab" href="#droppedColumns"
-                       th:class="'database-view-edit-panel-link ' + ${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[droppedColumns]') ? 'active' : ''}"
+                       th:class="'database-view-edit-panel-link'"
                        th:attr="data-panel=${@environment.getProperty('keyspace.panel[droppedColumns]')}">DroppedColumns</a>
                 </li>
                 <li th:class="${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[indexes]') ? 'active' : ''}">
                     <a data-toggle="tab" href="#indexes"
-                       th:class="'database-view-edit-panel-link ' + ${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[indexes]') ? 'active' : ''}"
+                       th:class="'database-view-edit-panel-link'"
                        th:attr="data-panel=${@environment.getProperty('keyspace.panel[indexes]')}">Indexes</a></li>
                 <li th:class="${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[types]') ? 'active' : ''}">
                     <a data-toggle="tab" href="#types"
-                       th:class="'database-view-edit-panel-link ' + ${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[types]') ? 'active' : ''}"
+                       th:class="'database-view-edit-panel-link'"
                        th:attr="data-panel=${@environment.getProperty('keyspace.panel[types]')}">Types</a></li>
                 <li th:class="${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[views]') ? 'active' : ''}">
                     <a data-toggle="tab" href="#views"
-                       th:class="'database-view-edit-panel-link ' + ${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[views]') ? 'active' : ''}"
+                       th:class="'database-view-edit-panel-link'"
                        th:attr="data-panel=${@environment.getProperty('keyspace.panel[views]')}">Views</a></li>
                 <li th:class="${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[functions]') ? 'active' : ''}">
                     <a data-toggle="tab" href="#functions"
-                       th:class="'database-view-edit-panel-link ' + ${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[functions]') ? 'active' : ''}"
+                       th:class="'database-view-edit-panel-link'"
                        th:attr="data-panel=${@environment.getProperty('keyspace.panel[functions]')}">Functions</a></li>
                 <li th:class="${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[aggregates]') ? 'active' : ''}">
                     <a data-toggle="tab" href="#aggregates"
-                       th:class="'database-view-edit-panel-link ' + ${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[aggregates]') ? 'active' : ''}"
+                       th:class="'database-view-edit-panel-link'"
                        th:attr="data-panel=${@environment.getProperty('keyspace.panel[aggregates]')}">Aggregates</a>
                 </li>
                 <li th:class="${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[triggers]') ? 'active' : ''}">
                     <a data-toggle="tab" href="#triggers"
-                       th:class="'database-view-edit-panel-link ' + ${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[triggers]') ? 'active' : ''}"
+                       th:class="'database-view-edit-panel-link'"
                        th:attr="data-panel=${@environment.getProperty('keyspace.panel[triggers]')}">Triggers</a></li>
             </ul>
             <br/>
             <div class="tab-content row" th:if="${keyspaceContent != null}">
-                <script th:inline="javascript">
-                    /*<![CDATA[*/
-                    var keyspaceContent = /*[[${keyspaceContent}]]*/ null;
-                    /*]]>*/
-                </script>
                 <div th:class="'tab-pane ' + ${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[tables]') ? 'active' : ''}"
                      id="tables"
                      th:if="${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[tables]')}">
@@ -84,7 +79,7 @@
                     <div class="modal fade row-modal" id="show-row-tables-modal" tabindex="-1" role="dialog"
                          aria-hidden="true">
                         <div class="modal-dialog" style="width: 70% !important;" role="document">
-                            <div th:replace="fragments/my_database_fragments/data/data-row-structure :: data-row(data=${keyspaceContent.tables},type='tables', action=${@environment.getProperty('route.alterTableStructure')})"
+                            <div th:replace="fragments/my_database_fragments/data/data-row-structure :: data-row(data=${keyspaceContent.tables},type='tables', action=${@environment.getProperty('route.alter[table]')})"
                                  id="show-row-tables-div"></div>
                         </div>
                     </div>
@@ -100,7 +95,7 @@
                             <tr th:with="tableName=${mapTable.get('table_name')}"
                                 th:id="${'tables@'+mapTable.get('table_name')}">
                                 <td style="font-weight: bold; border: 1px solid black;">
-                                    <form th:action="${@environment.getProperty('route.getDatabaseContent')}">
+                                    <form th:action="${@environment.getProperty('route.get[databaseContent]')}">
                                         <input type="hidden" name="table" th:value="${tableName}"/>
                                         <button type="submit" class="data-table-submit" th:text="${tableName}"></button>
                                     </form>
@@ -129,7 +124,7 @@
                     <div class="modal fade row-modal" id="show-row-tables-modal" tabindex="-1" role="dialog"
                          aria-hidden="true">
                         <div class="modal-dialog" style="width: 70% !important;" role="document">
-                            <div th:replace="fragments/my_database_fragments/data/data-row-structure :: data-row(data=${keyspaceContent.columns},type='columns', action=${@environment.getProperty('route.alterTableStructure')})"
+                            <div th:replace="fragments/my_database_fragments/data/data-row-structure :: data-row(data=${keyspaceContent.columns},type='columns', action=${@environment.getProperty('route.alter[table]')})"
                                  id="show-row-tables-div"></div>
                         </div>
                     </div>
@@ -219,7 +214,7 @@
                                 <td th:text="${mapColumn.get('kind')}"></td>
                                 <td th:text="${mapColumn.get('options')}"></td>
                                 <td th:if="${key.access != member}">
-                                    <form th:action="${@environment.getProperty('route.dropIndex')}" method="post">
+                                    <form th:action="${@environment.getProperty('route.drop[index]')}" method="post">
                                         <input type="hidden" name="indexName" th:value="${indexName}"/>
                                         <button type="submit"
                                                 onclick="return confirm('Are you sure you want to delete this index?');"
@@ -248,7 +243,7 @@
                     <div class="modal fade row-modal" id="show-row-tables-modal" tabindex="-1" role="dialog"
                          aria-hidden="true">
                         <div class="modal-dialog" style="width: 70% !important;" role="document">
-                            <div th:replace="fragments/my_database_fragments/data/data-row-structure :: data-row(data=${keyspaceContent.types},type='types', action=${@environment.getProperty('route.alterType')})"
+                            <div th:replace="fragments/my_database_fragments/data/data-row-structure :: data-row(data=${keyspaceContent.types},type='types', action=${@environment.getProperty('route.alter[type]')})"
                                  id="show-row-tables-div"></div>
                         </div>
                     </div>
@@ -293,7 +288,7 @@
                     <div class="modal fade row-modal" id="show-row-views-modal" tabindex="-1" role="dialog"
                          aria-hidden="true">
                         <div class="modal-dialog" style="width: 70% !important;" role="document">
-                            <div th:replace="fragments/my_database_fragments/data/data-row-structure :: data-row(data=${keyspaceContent.views},type='views', action=${@environment.getProperty('route.alterTableStructure')})"
+                            <div th:replace="fragments/my_database_fragments/data/data-row-structure :: data-row(data=${keyspaceContent.views},type='views', action=${@environment.getProperty('route.alter[table]')})"
                                  id="show-row-views-div"></div>
                         </div>
                     </div>
@@ -310,7 +305,7 @@
                             <tr th:with="viewName=${mapColumn.get('view_name')},tableName=${mapColumn.get('base_table_name')}"
                                 th:id="${'views@'+mapColumn.get('view_name')}">
                                 <td style="font-weight: bold; border: 1px solid black;">
-                                    <form th:action="${@environment.getProperty('route.getDatabaseContent')}">
+                                    <form th:action="${@environment.getProperty('route.get[databaseContent]')}">
                                         <input type="hidden" name="table" th:value="${viewName}"/>
                                         <button type="submit" class="data-table-submit" th:text="${viewName}"></button>
                                     </form>
@@ -516,7 +511,7 @@
                                 var columnTable = /*[[${mapColumn}]]*/ 'name';
                                 var map = {};
                                 map["data"] = columnNameTable;
-                                map["title"] = columnNameTable;
+                                map["title"] = "<span class='th-span'>" + columnNameTable + "</span>";
                                 map["className"] = "text-center";
                                 columnsNamesDataTable.push(map);
                                 columnsTable.push(columnTable);
@@ -540,7 +535,6 @@
                             var map = {};
                             map["data"] = columnNameTable;
                             map["title"] = "<span class='th-span'>" + columnNameTable + "</span>";
-                            map["contentPadding"] = "mmm";
                             map["className"] = "text-center";
                             columnsNamesDataTable.push(map);
                             columnsTable.push(columnTable);

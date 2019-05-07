@@ -15,6 +15,7 @@ import com.licence.web.models.pojo.KeyspaceContent;
 import com.licence.web.models.pojo.KeyspaceContentObject;
 import com.licence.web.services.KeyspaceService;
 import com.licence.web.services.UserService;
+import jnr.ffi.annotations.In;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.configurationprocessor.json.JSONObject;
@@ -44,7 +45,6 @@ import java.text.SimpleDateFormat;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -105,7 +105,16 @@ public class MyDatabaseController {
                     if (session.getAttribute("dataContent") != null) {
                         // if there is a table in dataContent, then we update it
                         KeyspaceContentObject keyspaceContentObject = (KeyspaceContentObject) session.getAttribute("dataContent");
-                        session.setAttribute("dataContent", getAllContent(userKeyspace.getKeyspace().getName().toLowerCase(), keyspaceContentObject.getTableName()));
+                        session.setAttribute("dataContent", keyspaceService.getSelectSimple(userKeyspace.getKeyspace().getName().toLowerCase(), keyspaceContentObject.getTableName(), "*"));
+                    }
+                }
+                if (Objects.equals(activePanel, keyspaceProperties.getPanel().get("consoleScript"))) {
+                    if(session.getAttribute("consoleScriptContent") == null) {
+                        Map<String, Object> consoleScriptMap = new HashMap<>();
+                        consoleScriptMap.put("consoleViewContent", null);
+                        consoleScriptMap.put("scriptContent", "");
+                        consoleScriptMap.put("active", "console");
+                        session.setAttribute("consoleScriptContent", consoleScriptMap);
                     }
                 }
             }
@@ -113,6 +122,178 @@ public class MyDatabaseController {
         model.addAttribute("keyspaceObject", new Keyspace());
         model.addAttribute("keyspaces", getUserKeyspaces(user));
         return routeProperties.getMyDatabase();
+    }
+
+
+    @ResponseBody
+    @PostMapping(value = "${route.console[interpretor]}", produces = "application/json")
+    public Map<String, Object> consoleInterpretor(@RequestBody Map<String, Object> map,
+                                                  Authentication authentication,
+                                                  HttpSession session) {
+        UserKeyspace userKeyspace = updateUserKeyspaces(authentication, session);
+        if(userKeyspace != null) {
+            try {
+                String query = (String) map.get("query");
+                Map<String, Object> consoleScriptContent = (Map<String, Object>) session.getAttribute("consoleScriptContent");
+                consoleScriptContent.put("consoleView", map.get("view"));
+                if(consoleScriptContent != null && query != null) {
+                    String detectedQuery = detectQuery(query, userKeyspace.getKeyspace().getName());
+                    System.out.println(detectedQuery);
+                    if(detectedQuery != null) {
+
+                    }
+                }
+            } catch (ClassCastException e) {
+
+            }
+        }
+
+        return map;
+    }
+
+    private String detectQuery(String query, String keyspaceName) {
+        query = query.trim();
+        String[] splitQuery = query.split("\\s+");
+        StringBuilder result = new StringBuilder();
+        Boolean validForQuery = false;
+        try {
+            String firstWord = splitQuery[0].toLowerCase();
+            if(firstWord.equals("select")) {
+                for (String s : splitQuery) {
+                    if(s.toLowerCase().equals("from")) {
+                        result.append(s).append(" ").append(keyspaceName).append(".");
+                        validForQuery = true;
+                    } else {
+                        result.append(s).append(" ");
+                    }
+                }
+            } else if(firstWord.equals("create")) {
+                result.append("CREATE ");
+                String secondWord = splitQuery[1].toLowerCase();
+                if(secondWord.equals("table")) {
+                    result.append("TABLE ");
+                    if(splitQuery[2].toLowerCase().equals("if") && splitQuery[3].toLowerCase().equals("not") && splitQuery[4].toLowerCase().equals("exists")) {
+                        result.append("IF NOT EXISTS ").append(keyspaceName).append(".");
+                        validForQuery = true;
+                        for(int i = 5; i < splitQuery.length; i++)
+                            result.append(splitQuery[i]).append(" ");
+                    } else {
+                        result.append(keyspaceName).append(".");
+                        validForQuery = true;
+                        for(int i = 2; i < splitQuery.length; i++)
+                            result.append(splitQuery[i]).append(" ");
+                    }
+                } else if (secondWord.equals("index")) {
+                    result.append("INDEX ");
+                    if(splitQuery[2].toLowerCase().equals("if") && splitQuery[3].toLowerCase().equals("not") && splitQuery[4].toLowerCase().equals("exists") && splitQuery[6].toLowerCase().equals("on")) {
+                        result.append("IF NOT EXISTS ").append(splitQuery[5]).append(" ON ").append(keyspaceName).append(".");
+                        validForQuery = true;
+                        for(int i = 7; i < splitQuery.length; i++)
+                            result.append(splitQuery[i]).append(" ");
+                    } else if(splitQuery[3].toLowerCase().equals("on")) {
+                        result.append(splitQuery[2]).append(" ON ").append(keyspaceName).append(".");
+                        validForQuery = true;
+                        for(int i = 4; i < splitQuery.length; i++)
+                            result.append(splitQuery[i]).append(" ");
+                    }
+                } else if(secondWord.equals("function") || (secondWord.equals("or") && splitQuery[3].toLowerCase().equals("function"))) {
+                    Integer contor = 1;
+                    if(splitQuery[1].toLowerCase().equals("or") && splitQuery[2].toLowerCase().equals("replace")) {
+                        result.append("OR REPLACE ");
+                        contor = 3;
+                    }
+                    if(splitQuery[contor].toLowerCase().equals("function")) {
+                        result.append("FUNCTION ");
+                        contor++;
+                    }
+                    if((contor == 2 || contor == 4) && splitQuery[contor].toLowerCase().equals("if") && splitQuery[contor+1].toLowerCase().equals("not") && splitQuery[contor+2].toLowerCase().equals("exists")) {
+                        result.append("IF NOT EXISTS ").append(keyspaceName).append(".");
+                        contor = contor + 3;
+                        validForQuery = true;
+                        for(int i = contor; i < splitQuery.length; i++)
+                            result.append(splitQuery[i]).append(" ");
+                    } else if(contor == 2 || contor == 4) {
+                        validForQuery = true;
+                        result.append(keyspaceName).append(".");
+                        for(int i = contor; i < splitQuery.length; i++)
+                            result.append(splitQuery[i]).append(" ");
+                    }
+                } else if(secondWord.equals("materialized")) {
+                    if(splitQuery[2].toLowerCase().equals("view")) {
+                        result.append("MATERIALIZED VIEW ");
+                        if(splitQuery[3].toLowerCase().equals("if") && splitQuery[4].toLowerCase().equals("not") && splitQuery[5].toLowerCase().equals("exists")) {
+                            result.append("IF NOT EXISTS ").append(keyspaceName).append(".");
+                            for(int i = 6; i < splitQuery.length; i++) {
+                                if(splitQuery[i].toLowerCase().equals("from")) {
+                                    result.append(splitQuery[i]).append(" ").append(keyspaceName).append(".");
+                                    validForQuery = true;
+                                } else {
+                                    result.append(splitQuery[i]).append(" ");
+                                }
+                            }
+                        } else {
+                            result.append(keyspaceName).append(".");
+                            for(int i = 3; i < splitQuery.length; i++) {
+                                if(splitQuery[i].toLowerCase().equals("from")) {
+                                    result.append(splitQuery[i]).append(" ").append(keyspaceName).append(".");
+                                    validForQuery = true;
+                                } else {
+                                    result.append(splitQuery[i]).append(" ");
+                                }
+                            }
+                        }
+                    }
+                } else if(secondWord.equals("trigger")) {
+                    result.append("TRIGGER ").append(splitQuery[2]).append(" ");
+                    if(splitQuery[3].toLowerCase().equals("on")) {
+                        result.append("ON ").append(keyspaceName).append(".");
+                        validForQuery = true;
+                        for(int i = 4; i < splitQuery.length; i++)
+                            result.append(splitQuery[i]).append(" ");
+                    }
+                } else if(secondWord.equals("type")) {
+                    result.append("TYPE ");
+                    Integer contor = 2;
+                    if(splitQuery[contor].toLowerCase().equals("if") && splitQuery[contor+1].toLowerCase().equals("not") && splitQuery[contor+2].toLowerCase().equals("exists")) {
+                        result.append("IF NOT EXISTS ").append(keyspaceName).append(".");
+                        validForQuery = true;
+                        for(int i = contor+3; i < splitQuery.length; i++)
+                            result.append(splitQuery[i]).append(" ");
+                    } else {
+                        result.append(keyspaceName).append(".");
+                        validForQuery = true;
+                        for(int i = contor; i < splitQuery.length; i++)
+                            result.append(splitQuery[i]).append(" ");
+                    }
+                } else if(secondWord.equals("aggregate") || (secondWord.equals("or") && splitQuery[3].toLowerCase().equals("aggregate"))) {
+                    Integer contor = 1;
+                    if(splitQuery[1].toLowerCase().equals("or") && splitQuery[2].toLowerCase().equals("replace")) {
+                        result.append("OR REPLACE ");
+                        contor = 3;
+                    }
+                    if(splitQuery[contor].toLowerCase().equals("aggregate")) {
+                        result.append("AGGREGATE ");
+                        contor++;
+                    }
+                    if((contor == 2 || contor == 4) && splitQuery[contor].toLowerCase().equals("if") && splitQuery[contor+1].toLowerCase().equals("not") && splitQuery[contor+2].toLowerCase().equals("exists")) {
+                        result.append("IF NOT EXISTS ").append(keyspaceName).append(".");
+                        validForQuery = true;
+                        for(int i = contor+3; i < splitQuery.length; i++)
+                            result.append(splitQuery[i]).append(" ");
+                    } else if(contor == 2 || contor == 4) {
+                        result.append(keyspaceName).append(".");
+                        validForQuery = true;
+                        for(int i = contor; i < splitQuery.length; i++)
+                            result.append(splitQuery[i]).append(" ");
+                    }
+                }
+            }
+        } catch (Exception e) {
+            return null;
+        }
+        if(validForQuery)
+            return result.toString();
+        return null;
     }
 
     @PostMapping(value = "${route.drop[trigger]}")
@@ -259,7 +440,7 @@ public class MyDatabaseController {
         return "forward:" + routeProperties.getMyDatabase();
     }
 
-    @PostMapping(value = "${route.dropType}")
+    @PostMapping(value = "${route.drop[type]}")
     public String dropType(@RequestParam(required = false) String type,
                            Authentication authentication,
                            HttpSession session,
@@ -279,7 +460,7 @@ public class MyDatabaseController {
         return "forward:" + routeProperties.getMyDatabase();
     }
 
-    @PostMapping(value = "${route.alterType}")
+    @PostMapping(value = "${route.alter[type]}")
     public String alterType(Authentication authentication,
                             WebRequest request,
                             HttpSession session,
@@ -353,7 +534,7 @@ public class MyDatabaseController {
         return "forward:" + routeProperties.getMyDatabase();
     }
 
-    @PostMapping(value = "${route.createIndex}")
+    @PostMapping(value = "${route.create[index]}")
     public String createIndex(@RequestParam(required = false) String tableName,
                               @RequestParam(required = false) String indexName,
                               @RequestParam(required = false) String columnName,
@@ -383,7 +564,7 @@ public class MyDatabaseController {
         return "forward:" + routeProperties.getMyDatabase();
     }
 
-    @PostMapping(value = "${route.dropIndex}")
+    @PostMapping(value = "${route.drop[index]}")
     public String dropIndex(@RequestParam(required = false) String indexName,
                             Authentication authentication,
                             HttpSession session,
@@ -403,7 +584,7 @@ public class MyDatabaseController {
         return "forward:" + routeProperties.getMyDatabase();
     }
 
-    @PostMapping(value = "${route.createTableStructure}")
+    @PostMapping(value = "${route.create[table]}")
     public String createTable(@RequestParam(required = false) String tableName,
                               @RequestParam(required = false) String columnsDefinitions,
                               @RequestParam(required = false) String keys,
@@ -429,7 +610,7 @@ public class MyDatabaseController {
         return "forward:" + routeProperties.getMyDatabase();
     }
 
-    @PostMapping(value = "${route.createView}")
+    @PostMapping(value = "${route.create[view]}")
     public String createView(@RequestParam(required = false) String viewName,
                              @RequestParam(required = false) String baseTableName,
                              @RequestParam(required = false) String columnsSelected,
@@ -457,7 +638,7 @@ public class MyDatabaseController {
         return "forward:" + routeProperties.getMyDatabase();
     }
 
-    @PostMapping(value = "${route.dropView}")
+    @PostMapping(value = "${route.drop[view]}")
     public String dropView(@RequestParam String view,
                            Authentication authentication,
                            HttpSession session,
@@ -477,7 +658,7 @@ public class MyDatabaseController {
         return "forward:" + routeProperties.getMyDatabase();
     }
 
-    @PostMapping(value = "${route.dropTable}")
+    @PostMapping(value = "${route.drop[table]}")
     public String dropTable(@RequestParam(required = false) String table,
                             Authentication authentication,
                             HttpSession session,
@@ -497,12 +678,12 @@ public class MyDatabaseController {
         return "forward:" + routeProperties.getMyDatabase();
     }
 
-    @PostMapping(value = "${route.alterTableStructure}")
-    public String alterTableStructure(@RequestParam String requestType,
-                                      Authentication authentication,
-                                      WebRequest request,
-                                      HttpSession session,
-                                      Model model) {
+    @PostMapping(value = "${route.alter[table]}")
+    public String alterTable(@RequestParam String requestType,
+                             Authentication authentication,
+                             WebRequest request,
+                             HttpSession session,
+                             Model model) {
         //request.getParameterMap().forEach((k, v) -> System.out.println(k + " --- " + Arrays.toString(v)));
         UserKeyspace userKeyspace = updateUserKeyspaces(authentication, session);
         if (userKeyspace != null) {
@@ -513,7 +694,7 @@ public class MyDatabaseController {
                 // if it contains views, that means we will alter the options for a view and we search for that view
                 if (requestType.contains("views"))
                     map = keyspaceContent.getViews().getContent().stream().filter(p -> p.get("view_name").toString().equals(request.getParameter("view_name_readonly"))).findAny().orElse(null);
-                // else or a table and we search for that table
+                    // else or a table and we search for that table
                 else
                     map = keyspaceContent.getTables().getContent().stream().filter(p -> p.get("table_name").toString().equals(request.getParameter("table_name_readonly"))).findAny().orElse(null);
                 if (map != null) {
@@ -624,11 +805,11 @@ public class MyDatabaseController {
     }
 
     @ResponseBody
-    @PostMapping(value = "/data-structure", produces = "application/json")
+    @PostMapping(value = "${route.get[tableStructure]}", produces = "application/json")
     public Map<String, Object> getDataStructure(@RequestBody Map<String, String> data,
                                                 Authentication authentication,
-                                                WebRequest request,
                                                 HttpSession session) {
+        // this function will return the structure data from the system_schema tables for the current keyspace
         String[] dataValues = data.get("data").split("@");
         UserKeyspace userKeyspace = updateUserKeyspaces(authentication, session);
         Map<String, Object> map = null;
@@ -664,44 +845,49 @@ public class MyDatabaseController {
         return map;
     }
 
-    @PostMapping(value = "${route.insertRowContent}")
-    public String insertRowContent(@RequestParam String tableName,
-                                   Authentication authentication,
-                                   WebRequest request,
-                                   HttpSession session,
-                                   Model model) {
+    @PostMapping(value = "${route.insert[row]}")
+    public String insertRow(@RequestParam String tableName,
+                            Authentication authentication,
+                            WebRequest request,
+                            HttpSession session,
+                            Model model) {
         UserKeyspace userKeyspace = updateUserKeyspaces(authentication, session);
         KeyspaceContentObject keyspaceContentObject = (KeyspaceContentObject) session.getAttribute("dataContent");
         if (userKeyspace != null && keyspaceContentObject != null && tableName.equals(keyspaceContentObject.getTableName())) {
-
             StringBuilder insertColumns = new StringBuilder("");
             StringBuilder insertValues = new StringBuilder("");
+            // if the table has no data, we don't have the columns definitions in the keyspceContentObject, so we iterate
+            // in all the columns from this keyspace
             if (keyspaceContentObject.getColumnDefinitions() == null) {
                 KeyspaceContent keyspaceContent = keyspaceService.getKeyspaceContent(userKeyspace.getKeyspace().getName().toLowerCase());
                 keyspaceContent.getColumns().getContent().forEach(p -> {
                     if (p.get("table_name").toString().equals(keyspaceContentObject.getTableName())) {
                         String param = request.getParameter(p.get("column_name").toString());
+                        // if the column insertion value exists, we put the column name and value in the query
                         if (param != null && !param.isEmpty()) {
                             insertColumns.append(p.get("column_name").toString()).append(",");
                             insertValues.append(param).append(",");
                         }
                     }
                 });
+                // else we iterate in the columnDefinitions
             } else {
                 keyspaceContentObject.getColumnDefinitions().forEach(d -> {
                     String param = request.getParameter(d.getName());
+                    // if the column insertion value exists, we put the column name in query
                     if (param != null && !param.isEmpty()) {
                         insertColumns.append(d.getName()).append(",");
                         insertValues.append(param).append(",");
                     }
                 });
             }
-
+            // we eliminate the last , from construction
             if (insertColumns.length() != 0 && insertValues.length() != 0) {
                 insertColumns.deleteCharAt(insertColumns.length() - 1);
                 insertValues.deleteCharAt(insertValues.length() - 1);
                 try {
                     KeyspaceContent keyspaceContent = keyspaceService.getKeyspaceContent(userKeyspace.getKeyspace().getName().toLowerCase());
+                    // if the table is a view, we will insert the values in the base table
                     Map<String, Object> map = keyspaceContent.getViews().getContent().stream().filter(p -> p.get("view_name").toString().equals(keyspaceContentObject.getTableName())).findAny().orElse(null);
                     if (map != null) {
                         keyspaceService.insert(userKeyspace.getKeyspace().getName(), map.get("base_table_name").toString(), insertColumns.toString(), insertValues.toString(), "");
@@ -733,36 +919,46 @@ public class MyDatabaseController {
         KeyspaceContentObject keyspaceContentObject = (KeyspaceContentObject) session.getAttribute("dataContent");
         if (userKeyspace != null && keyspaceContentObject != null && tableName.equals(keyspaceContentObject.getTableName())) {
             KeyspaceContent keyspaceContent = keyspaceService.getKeyspaceContent(userKeyspace.getKeyspace().getName().toLowerCase());
+            // if the table we want to update/delete is a view, we will set the base table for the name
             Map<String, Object> map = keyspaceContent.getViews().getContent().stream().filter(p -> p.get("view_name").toString().equals(keyspaceContentObject.getTableName())).findAny().orElse(null);
             if (map != null)
                 keyspaceContentObject.setTableName(map.get("base_table_name").toString());
+            // take the primary keys for this table
             List<Map<String, Object>> primaryKeys = getPrimaryKeysFromTable(keyspaceContent, keyspaceContentObject);
+            // find the row we want to update/delete using the primary keys
             Map<String, Object> findRow = findRowFromRequest(keyspaceContentObject, primaryKeys, request);
+            // after we set the table name as it was
             keyspaceContentObject.setTableName(tableName);
+            // if the row exists
             if (findRow != null) {
+                // construct the where statement using the primary keys
                 StringBuilder where = new StringBuilder("");
                 primaryKeys.forEach(p -> {
                     DataType dataType = keyspaceContentObject.getColumnDefinitions().getType(p.get("column_name").toString());
                     where.append(p.get("column_name")).append("=").append(databaseCorrespondence(findRow.get(p.get("column_name").toString()), dataType)).append(" AND ");
                 });
+                // eliminate the last AND
                 if (where.length() != 0)
                     where.delete(where.length() - 4, where.length());
                 try {
+                    // if the request is for update, we contruct the set statement
                     if (requestType.equals("update")) {
                         StringBuilder set = new StringBuilder("");
                         keyspaceContentObject.getColumnDefinitions().forEach(d -> {
                             String param = request.getParameter(d.getName());
+                            // if the value exists
                             if (param != null && !param.isEmpty()) {
-                                DataType dataType = keyspaceContentObject.getColumnDefinitions().getType(d.getName());
                                 set.append(d.getName()).append("=").append(param).append(",");
                             }
                         });
+                        // eliminate the last ,
                         if (set.length() != 0)
                             set.deleteCharAt(set.length() - 1);
                         if (set.length() == 0 || where.length() == 0) {
                             model.addAttribute("keyspaceViewEditError", "No columns selected for update!");
                             return "forward:" + routeProperties.getMyDatabase();
                         }
+                        // if the table is a view we will update the base table
                         if (map != null) {
                             keyspaceService.update(userKeyspace.getKeyspace().getName(), map.get("base_table_name").toString(), "", set.toString(), where.toString());
                         } else {
@@ -770,7 +966,9 @@ public class MyDatabaseController {
                         }
                         model.addAttribute("keyspaceViewEditSuccess", "Row updated!");
                         return "forward:" + routeProperties.getMyDatabase();
+                        // else if the request is for delete, we construct the delete statement 
                     } else if (requestType.equals("delete")) {
+                        // if there is no values in request that means we will delete the entire row
                         final Boolean[] entireRow = {true};
                         StringBuilder delete = new StringBuilder("");
                         keyspaceContentObject.getColumnDefinitions().forEach(d -> {
@@ -780,13 +978,11 @@ public class MyDatabaseController {
                                 delete.append(d.getName()).append(",");
                             }
                         });
+                        // if we must delete specific columns
                         if (!entireRow[0]) {
                             if (delete.length() != 0)
                                 delete.deleteCharAt(delete.length() - 1);
-                            if (delete.length() == 0 || where.length() == 0) {
-                                model.addAttribute("keyspaceViewEditError", "No columns selected for delete!");
-                                return "forward:" + routeProperties.getMyDatabase();
-                            }
+                            // if the table is a view we will delete the base table
                             if (map != null) {
                                 keyspaceService.delete(delete.toString(), userKeyspace.getKeyspace().getName(), map.get("base_table_name").toString(), "", where.toString());
                             } else {
@@ -794,7 +990,9 @@ public class MyDatabaseController {
                             }
 
                             model.addAttribute("keyspaceViewEditSuccess", "Columns deleted!");
+                            // else if we must delete entire row
                         } else {
+                            // if the table is a view we will delete the base table
                             if (map != null) {
                                 keyspaceService.delete("", userKeyspace.getKeyspace().getName(), map.get("base_table_name").toString(), "", where.toString());
                             } else {
@@ -815,183 +1013,14 @@ public class MyDatabaseController {
         return "forward:" + routeProperties.getMyDatabase();
     }
 
-    private List<Map<String, Object>> getPrimaryKeysFromTable(KeyspaceContent
-                                                                      keyspaceContent, KeyspaceContentObject keyspaceContentObject) {
-        List<Map<String, Object>> primaryKeys = new ArrayList<>();
-        keyspaceContent.getColumns().getContent().forEach(p -> {
-            if (p.get("table_name").toString().equals(keyspaceContentObject.getTableName()) && !p.get("kind").toString().equals("regular"))
-                primaryKeys.add(p);
-        });
-        return primaryKeys;
-    }
-
-    private Map<String, Object> findRowFromRequest(KeyspaceContentObject
-                                                           keyspaceContentObject, List<Map<String, Object>> primaryKeys, WebRequest request) {
-        Map<String, Object> map;
-        for (Map<String, Object> p : keyspaceContentObject.getContent()) {
-            Boolean ok = true;
-            for (Map.Entry<String, Object> entry : p.entrySet()) {
-                DataType dataType = keyspaceContentObject.getColumnDefinitions().getType(entry.getKey());
-                final Boolean[] primaryKey = {false};
-                primaryKeys.forEach(q -> {
-                    if (q.get("column_name").toString().equals(entry.getKey()))
-                        primaryKey[0] = true;
-                });
-                if (primaryKey[0] && !Objects.equals(databaseCorrespondence(entry.getValue(), dataType), databaseCorrespondenceByString(request.getParameter(entry.getKey() + "_readonly"), dataType.getName().toString()))) {
-                    ok = false;
-                }
-            }
-            if (ok) {
-                map = p;
-                return map;
-            }
-        }
-        return null;
-    }
-
-    private String databaseCorrespondence(Object object, DataType dataType) {
-        String type = dataType.getName().toString();
-        StringBuilder stringBuilder = new StringBuilder("");
-        if (object == null)
-            return null;
-        try {
-            if (object.getClass().equals(String.class)) {
-                stringBuilder.append("\'").append(object.toString()).append("\'");
-            } else if (object.getClass().equals(Date.class)) {
-                Date date = (Date) object;
-                if (type.equals("timestamp")) {
-                    DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-                    stringBuilder.append("\'").append(dateFormat.format(date)).append("\'");
-                }
-            } else if (object.getClass().equals(LocalDate.class)) {
-                LocalDate localDate = (LocalDate) object;
-                if (type.equals("date")) {
-                    stringBuilder.append("\'").append(localDate.toString()).append("\'");
-                }
-            } else if (object.getClass().equals(Boolean.class)) {
-                Boolean bool = (Boolean) object;
-                stringBuilder.append(bool);
-            } else if (dataType.getName().toString().equals("blob")) {
-                ByteBuffer byteBuffer = (ByteBuffer) object;
-                byte[] bytes = byteBuffer.array();
-                for (byte b : bytes) {
-                    stringBuilder.append(String.format("%02x", b));
-                }
-            } else if (object.getClass().equals(Long.class) && type.equals("time")) {
-                Long lg = (Long) object;
-                DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss");
-                stringBuilder.append("\'").append(LocalTime.ofNanoOfDay(lg).format(dateTimeFormatter)).append("\'");
-            } else if (dataType.isCollection()) {
-                Object obj = editNDimentionCollectionObject(object, dataType);
-                if (obj != null)
-                    stringBuilder.append(obj.toString());
-            } else {
-                stringBuilder.append(object.toString());
-            }
-        } catch (ClassCastException e) {
-            return null;
-        }
-        return stringBuilder.toString();
-    }
-
-    private Object editNDimentionCollectionObject(Object object, DataType dataType) {
-        if (!dataType.isCollection() && !dataType.isFrozen()) {
-            object = databaseCorrespondence(object, dataType);
-            return object;
-        } else if (dataType.isCollection() || dataType.isFrozen()) {
-            List<DataType> dataTypes = dataType.getTypeArguments();
-            try {
-                switch (dataType.getName().toString()) {
-                    case "list":
-                        List<Object> list = (ArrayList<Object>) object;
-                        List<Object> list2 = new ArrayList<>();
-                        for (Object o : list) {
-                            list2.add(editNDimentionCollectionObject(o, dataType.getTypeArguments().get(0)));
-                        }
-                        return list2;
-                    //break;
-                    case "set":
-                        Set<Object> set = (LinkedHashSet<Object>) object;
-                        Set<Object> set2 = new LinkedHashSet<>();
-                        for (Object o : set) {
-                            set2.add(editNDimentionCollectionObject(o, dataType.getTypeArguments().get(0)));
-                        }
-                        return set2;
-                    case "map":
-                        Map<Object, Object> map = (LinkedHashMap<Object, Object>) object;
-                        Map<Object, Object> map2 = new LinkedHashMap<>();
-                        for (Map.Entry<Object, Object> entry : map.entrySet()) {
-                            map2.put(editNDimentionCollectionObject(entry.getKey(), dataType.getTypeArguments().get(0)), editNDimentionCollectionObject(entry.getValue(), dataType.getTypeArguments().get(1)));
-                        }
-                        return map2;
-                }
-            } catch (ClassCastException e) {
-                return object;
-            }
-        }
-        return object;
-    }
-
-    private String databaseCorrespondenceByString(String object, String type) {
-        StringBuilder stringBuilder = new StringBuilder("");
-        if (object == null)
-            return null;
-        if (type.equals("date") || type.equals("inet") || type.equals("text") || type.equals("time") || type.equals("varchar")) {
-            stringBuilder.append("\'").append(object).append("\'");
-        } else {
-            stringBuilder.append(object);
-        }
-        return stringBuilder.toString();
-    }
-
-    private KeyspaceContentObject getAllContent(String keyspaceName, String tableName) {
-        return keyspaceService.getSelectSimple(keyspaceName, tableName, "*");
-    }
-
-    private Map<String, List<UserKeyspace>> getUserKeyspaces(User user) {
-        Map<String, List<UserKeyspace>> map;
-        List<UserKeyspace> userKeyspaces = user.getKeyspaces();
-        if (userKeyspaces != null) {
-            map = userKeyspaces.stream().collect(Collectors.groupingBy(UserKeyspace::getCreatorName));
-        } else {
-            return new HashMap<>();
-        }
-        return map;
-    }
-
-    private UserKeyspace updateUserKeyspaces(Authentication authentication, HttpSession session) {
-        User authUser = ((CassandraUserDetails) authentication.getPrincipal()).getUser();
-        User dbUser = userService.findById(authUser.getId());
-        UserKeyspace userKeyspace = (UserKeyspace) session.getAttribute("userKeyspace");
-        authUser.setKeyspaces(dbUser.getKeyspaces());
-        updateKeyspaces(authUser);
-        if (userKeyspace != null) {
-            if (authUser.getKeyspaces() != null) {
-                return authUser.getKeyspaces().stream().filter(p -> Objects.equals(p.getCreatorName(), userKeyspace.getCreatorName()) && Objects.equals(p.getName(), userKeyspace.getName())).findFirst().orElse(null);
-            }
-        }
-        return null;
-    }
-
-    private void updateKeyspaces(User authUser) {
-        if (authUser.getKeyspaces() != null) {
-            authUser.getKeyspaces().forEach(p -> {
-                Keyspace keyspace = keyspaceService.findKeyspaceByName(p.getCreatorName() + "_" + p.getName());
-                p.setKeyspace(keyspace);
-            });
-        }
-    }
-
-    @GetMapping(value = "${route.getDatabaseContent}")
+    @GetMapping(value = "${route.get[databaseContent]}")
     public String getDatabaseContent(@RequestParam(name = "table", required = false) String table,
                                      HttpSession session,
-                                     Authentication authentication,
-                                     WebRequest request) {
+                                     Authentication authentication) {
         UserKeyspace userKeyspace = updateUserKeyspaces(authentication, session);
         if (userKeyspace != null) {
             if (!table.isEmpty()) {
-                session.setAttribute("dataContent", getAllContent(userKeyspace.getKeyspace().getName().toLowerCase(),
-                        table));
+                session.setAttribute("dataContent", keyspaceService.getSelectSimple(userKeyspace.getKeyspace().getName().toLowerCase(), table, "*"));
             }
         }
         return "redirect:" + routeProperties.getMyDatabase() + "#keyspace-data-content";
@@ -999,11 +1028,12 @@ public class MyDatabaseController {
 
 
     @ResponseBody
-    @GetMapping(value = "/table-data", produces = MediaType.APPLICATION_JSON_VALUE)
+    @GetMapping(value = "${route.get[tableData]}", produces = MediaType.APPLICATION_JSON_VALUE)
     public Map<String, Object> getTableData(WebRequest request,
                                             HttpSession session) {
         //request.getParameterMap().forEach((k,v) -> System.out.println(k + " - " + Arrays.toString(v)));
         Map<String, Object> map = new HashMap<>();
+        // we take the tableData parameters from request
         String draw = request.getParameter("draw");
         String start = request.getParameter("start");
         String length = request.getParameter("length");
@@ -1013,12 +1043,15 @@ public class MyDatabaseController {
         UserKeyspace userKeyspace = (UserKeyspace) session.getAttribute("userKeyspace");
         KeyspaceContentObject keyspaceContentObject = (KeyspaceContentObject) session.getAttribute("dataContent");
         if (userKeyspace != null && keyspaceContentObject != null) {
-            KeyspaceContentObject update = getAllContent(userKeyspace.getKeyspace().getName().toLowerCase(), keyspaceContentObject.getTableName());
+            // we update the table content
+            KeyspaceContentObject update = keyspaceService.getSelectSimple(userKeyspace.getKeyspace().getName().toLowerCase(), keyspaceContentObject.getTableName(), "*");
             session.setAttribute("dataContent", update);
             //update.getContent().forEach(p -> p.put("DT_RowId", update.getTableName() + "#" + update.getContent().indexOf(p)));
             if (draw != null)
                 map.put("draw", Integer.parseInt(draw));
+            // put in the result the total records size
             map.put("recordsTotal", update.getContent().size());
+            // we filter the data by the search parameter
             if (search != null && !search.isEmpty()) {
                 update.setContent(update.getContent().stream().filter(p -> {
                     final Boolean[] ok = {false};
@@ -1029,11 +1062,14 @@ public class MyDatabaseController {
                     return ok[0];
                 }).collect(Collectors.toList()));
             }
+            // put in the result the filtered records size
             map.put("recordsFiltered", update.getContent().size());
+            // order the data by the order parameter
             if (orderColumn != null && order != null) {
                 Integer ordCol = Integer.parseInt(orderColumn);
                 update.setContent(update.getContent().stream().sorted((p, q) -> {
                     int count = 0;
+                    // we search for the right column
                     Map.Entry<String, Object> ent1 = null;
                     for (Map.Entry<String, Object> entry : p.entrySet()) {
                         if (count == ordCol) {
@@ -1051,7 +1087,9 @@ public class MyDatabaseController {
                         }
                         count++;
                     }
+                    // if the columns exists
                     if (ent1 != null && ent2 != null) {
+                        // if one of the values is null
                         if (ent1.getValue() == null && ent2.getValue() != null) {
                             if (order.equals("asc"))
                                 return 1;
@@ -1062,10 +1100,13 @@ public class MyDatabaseController {
                                 return -1;
                             else if (order.equals("desc"))
                                 return 1;
+                            // if both values are not null
                         } else if (ent1.getValue() != null && ent2.getValue() != null) {
                             Map.Entry<String, Object> finalEnt = ent1;
+                            // we take the column definition for the columns
                             ColumnDefinitions.Definition definition = update.getColumnDefinitions().asList().stream().filter(w -> w.getName().equals(finalEnt.getKey())).findAny().orElse(null);
                             if (definition != null) {
+                                // if the type is timestamp, we will cast the value to date and order by that
                                 if (definition.getType().getName().toString().equals("timestamp")) {
                                     Date timestamp1 = (Date) ent1.getValue();
                                     Date timestamp2 = (Date) ent2.getValue();
@@ -1074,6 +1115,7 @@ public class MyDatabaseController {
                                     else if (order.equals("desc"))
                                         return timestamp2.compareTo(timestamp1);
                                 }
+                                // else we will order by the result string
                                 if (order.equals("asc"))
                                     return ent1.getValue().toString().compareTo(ent2.getValue().toString());
                                 else if (order.equals("desc"))
@@ -1084,13 +1126,16 @@ public class MyDatabaseController {
                     return 0;
                 }).collect(Collectors.toList()));
             }
+            // now we will take the data by the given interval
             if (start != null && length != null) {
                 Integer startVal = Integer.parseInt(start);
                 Integer lengthVal = Integer.parseInt(length);
                 if (lengthVal != -1) {
                     List<Map<String, Object>> updateNew = new ArrayList<>();
+                    // if the interval is correct
                     if (update.getContent().size() > startVal) {
                         for (int i = startVal; i < startVal + lengthVal; i++) {
+                            // if there are no data left, we stop
                             if (i >= update.getContent().size())
                                 break;
                             updateNew.add(update.getContent().get(i));
@@ -1099,23 +1144,19 @@ public class MyDatabaseController {
                     update.setContent(updateNew);
                 }
             }
+            // after we prepare the values from the data for the frontend
             List<Map<String, String>> updateString = new ArrayList<>();
             update.getContent().forEach(p -> {
                 Map<String, String> map1 = new HashMap<>();
                 p.forEach((k, v) -> {
                     if (v != null) {
                         DataType type = update.getColumnDefinitions().getType(k);
+                        // if the type is not viewable (date/time/byte), we cast it and convert it
                         if (type.getName().toString().equals("blob") || type.getName().toString().equals("time") || type.isCollection() || type.getName().toString().equals("timestamp")) {
                             String obj = databaseCorrespondence(v, type);
+                            // eliminate the string format (the first and last ')
                             if (obj != null && obj.indexOf('\'') == 0 && obj.lastIndexOf('\'') == obj.length() - 1)
                                 obj = obj.substring(1, obj.length() - 1);
-//                            if(type.isCollection()) {
-//                                try {
-//                                    map1.put(k, new JSONObject(obj).toString());
-//                                } catch (JSONException e) {
-//                                    map1.put(k, obj);
-//                                }
-//                            } else
                             map1.put(k, obj);
                         } else
                             map1.put(k, v.toString());
@@ -1130,7 +1171,7 @@ public class MyDatabaseController {
     }
 
     @ResponseBody
-    @PostMapping(value = "${route.changeMyKeyspacesPanel}")
+    @PostMapping(value = "${route.change[myKeyspacesPanel]}")
     public String changeMyKeyspacesPanel(@RequestBody Map<String, String> position,
                                          HttpSession session) {
         if (position.get("position").equals("open")) {
@@ -1142,7 +1183,7 @@ public class MyDatabaseController {
     }
 
 
-    @PostMapping(value = "${route.editKeyspace}")
+    @PostMapping(value = "${route.keyspace[edit]}")
     public String editKeyspace(Keyspace keyspace,
                                Authentication authentication,
                                HttpSession session,
@@ -1171,7 +1212,7 @@ public class MyDatabaseController {
         return "forward:" + routeProperties.getMyDatabase();
     }
 
-    @PostMapping(value = "${route.removeUserFromKeyspace}")
+    @PostMapping(value = "${route.keyspace[removeUser]}")
     public String removeUserFromKeyspace(@RequestParam(name = "userName", required = false) String userName,
                                          Authentication authentication,
                                          HttpSession session,
@@ -1206,7 +1247,7 @@ public class MyDatabaseController {
         return "forward:" + routeProperties.getMyDatabase();
     }
 
-    @PostMapping(value = "${route.addUserToKeyspace}")
+    @PostMapping(value = "${route.keyspace[addUser]}")
     public String addUserToKeyspace(@RequestParam(name = "userName", required = false) String userName,
                                     @RequestParam(name = "access", required = false) String access,
                                     Authentication authentication,
@@ -1250,7 +1291,7 @@ public class MyDatabaseController {
         return "forward:" + routeProperties.getMyDatabase();
     }
 
-    @PostMapping(value = "${route.deleteKeyspace}")
+    @PostMapping(value = "${route.delete[keyspace]}")
     public String deleteKeyspace(@RequestParam("confirmDelete") boolean confirm,
                                  @RequestParam(name = "password", required = false) String password,
                                  Authentication authentication,
@@ -1321,7 +1362,7 @@ public class MyDatabaseController {
         return false;
     }
 
-    @PostMapping(value = "${route.changeKeyspacePassword}")
+    @PostMapping(value = "${route.change[keyspacePassword]}")
     public String changeKeyspacePassword(@Valid Keyspace keyspace,
                                          BindingResult bindingResult,
                                          HttpSession session,
@@ -1377,7 +1418,7 @@ public class MyDatabaseController {
     }
 
 
-    @PostMapping(value = "${route.createKeyspace}")
+    @PostMapping(value = "${route.keyspace[create]}")
     public String createKeyspace(@ModelAttribute @Valid Keyspace keyspace,
                                  BindingResult bindingResult,
                                  Authentication authentication,
@@ -1424,7 +1465,7 @@ public class MyDatabaseController {
         return "forward:" + routeProperties.getMyDatabase();
     }
 
-    @PostMapping(value = "${route.connectKeyspace}")
+    @PostMapping(value = "${route.keyspace[connect]}")
     public String connectKeyspace(Keyspace keyspace,
                                   @RequestParam String creatorName,
                                   Authentication authentication,
@@ -1457,15 +1498,17 @@ public class MyDatabaseController {
         return "forward:" + routeProperties.getMyDatabase();
     }
 
-    @GetMapping(value = "${route.disconnectKeyspace}")
+    @GetMapping(value = "${route.keyspace[disconnect]}")
     public String disconnectKeyspace(HttpSession session) {
         session.setAttribute("userKeyspace", null);
         session.setAttribute("dataContent", null);
         session.setAttribute("activePanel", null);
+        session.setAttribute("consoleScriptContent", null);
+        session.setAttribute("myKeyspacesPanelPosition", "open");
         return "redirect:" + routeProperties.getMyDatabase();
     }
 
-    @GetMapping(value = "${route.changeDatabasePanel}")
+    @GetMapping(value = "${route.change[databasePanel]}")
     public String changeDatabasePanel(@RequestParam String panel,
                                       HttpSession session) {
         session.setAttribute("activePanel", panel);
@@ -1475,11 +1518,199 @@ public class MyDatabaseController {
         return "redirect:" + routeProperties.getMyDatabase();
     }
 
-    @GetMapping(value = "${route.changeDatabaseViewEditPanel}")
+    @GetMapping(value = "${route.change[databaseViewEditPanel]}")
     public String changeDatabaseViewEditPanel(@RequestParam String panel,
                                               HttpSession session) {
         session.setAttribute("activeViewEditPanel", panel);
         return "redirect:" + routeProperties.getMyDatabase();
+    }
+
+    private List<Map<String, Object>> getPrimaryKeysFromTable(KeyspaceContent
+                                                                      keyspaceContent, KeyspaceContentObject keyspaceContentObject) {
+        List<Map<String, Object>> primaryKeys = new ArrayList<>();
+        // for each column type, we take the ones with the kind different from regular
+        keyspaceContent.getColumns().getContent().forEach(p -> {
+            if (p.get("table_name").toString().equals(keyspaceContentObject.getTableName()) && !p.get("kind").toString().equals("regular"))
+                primaryKeys.add(p);
+        });
+        return primaryKeys;
+    }
+
+    private Map<String, Object> findRowFromRequest(KeyspaceContentObject
+                                                           keyspaceContentObject, List<Map<String, Object>> primaryKeys, WebRequest request) {
+        Map<String, Object> map;
+        // search in the table
+        for (Map<String, Object> p : keyspaceContentObject.getContent()) {
+            Boolean ok = true;
+            // for each row
+            for (Map.Entry<String, Object> entry : p.entrySet()) {
+                DataType dataType = keyspaceContentObject.getColumnDefinitions().getType(entry.getKey());
+                final Boolean[] primaryKey = {false};
+                // we test if the primary keys contains the current column from the row
+                primaryKeys.forEach(q -> {
+                    if (q.get("column_name").toString().equals(entry.getKey()))
+                        primaryKey[0] = true;
+                });
+                // if the column is a primary key and the value from the current column, converted from object to string is
+                // not equal with the value of this column from the request, converted from the view format to backend
+                // format, that means the current row is not the one we search
+                if (primaryKey[0] && !Objects.equals(databaseCorrespondence(entry.getValue(), dataType), databaseCorrespondenceByString(request.getParameter(entry.getKey() + "_readonly"), dataType.getName().toString()))) {
+                    ok = false;
+                }
+            }
+            // if ok remained true, we row is found
+            if (ok) {
+                map = p;
+                return map;
+            }
+        }
+        return null;
+    }
+
+    private String databaseCorrespondence(Object object, DataType dataType) {
+        String type = dataType.getName().toString();
+        StringBuilder stringBuilder = new StringBuilder("");
+        if (object == null)
+            return null;
+        try {
+            // if the object is a string, we append '
+            if (object.getClass().equals(String.class)) {
+                stringBuilder.append("\'").append(object.toString()).append("\'");
+                // if the object is timestamp, we cast it to Date and format it to string
+            } else if (object.getClass().equals(Date.class)) {
+                Date date = (Date) object;
+                if (type.equals("timestamp")) {
+                    DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                    stringBuilder.append("\'").append(dateFormat.format(date)).append("\'");
+                }
+                // if the object is date, we cast it and format it to string
+            } else if (object.getClass().equals(LocalDate.class)) {
+                LocalDate localDate = (LocalDate) object;
+                if (type.equals("date")) {
+                    stringBuilder.append("\'").append(localDate.toString()).append("\'");
+                }
+                // if the object is boolean, we cast it to it
+            } else if (object.getClass().equals(Boolean.class)) {
+                Boolean bool = (Boolean) object;
+                stringBuilder.append(bool);
+                // if the object is blob, ww cast it and convert to array, after that we format it to hexa
+            } else if (dataType.getName().toString().equals("blob")) {
+                ByteBuffer byteBuffer = (ByteBuffer) object;
+                byte[] bytes = byteBuffer.array();
+                for (byte b : bytes) {
+                    stringBuilder.append(String.format("%02x", b));
+                }
+                // if the object is time, we cast it and format it
+            } else if (object.getClass().equals(Long.class) && type.equals("time")) {
+                Long lg = (Long) object;
+                DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss");
+                // the value is is nano seconds, so we convert it to dateFormatter
+                stringBuilder.append("\'").append(LocalTime.ofNanoOfDay(lg).format(dateTimeFormatter)).append("\'");
+                // if the object is a collection, we will edit every part of it
+            } else if (dataType.isCollection()) {
+                Object obj = editNDimensionCollectionObject(object, dataType);
+                if (obj != null)
+                    stringBuilder.append(obj.toString());
+                // else we append the string value of the object
+            } else {
+                stringBuilder.append(object.toString());
+            }
+        } catch (ClassCastException e) {
+            return null;
+        }
+        return stringBuilder.toString();
+    }
+
+    private Object editNDimensionCollectionObject(Object object, DataType dataType) {
+        // if we find a primitive value in the collection, we convert it
+        if (!dataType.isCollection() && !dataType.isFrozen()) {
+            object = databaseCorrespondence(object, dataType);
+            return object;
+            // else we test what type of collection it is and cast the object to it
+            // for each part of that collection, we repeat the process
+        } else if (dataType.isCollection() || dataType.isFrozen()) {
+            try {
+                switch (dataType.getName().toString()) {
+                    case "list":
+                        List<Object> list = (ArrayList<Object>) object;
+                        List<Object> list2 = new ArrayList<>();
+                        for (Object o : list) {
+                            list2.add(editNDimensionCollectionObject(o, dataType.getTypeArguments().get(0)));
+                        }
+                        return list2;
+                    //break;
+                    case "set":
+                        Set<Object> set = (LinkedHashSet<Object>) object;
+                        Set<Object> set2 = new LinkedHashSet<>();
+                        for (Object o : set) {
+                            set2.add(editNDimensionCollectionObject(o, dataType.getTypeArguments().get(0)));
+                        }
+                        return set2;
+                    case "map":
+                        Map<Object, Object> map = (LinkedHashMap<Object, Object>) object;
+                        Map<Object, Object> map2 = new LinkedHashMap<>();
+                        for (Map.Entry<Object, Object> entry : map.entrySet()) {
+                            map2.put(editNDimensionCollectionObject(entry.getKey(), dataType.getTypeArguments().get(0)), editNDimensionCollectionObject(entry.getValue(), dataType.getTypeArguments().get(1)));
+                        }
+                        return map2;
+                }
+            } catch (ClassCastException e) {
+                return object;
+            }
+        }
+        // in any other case (frozen types), we return the object
+        return object;
+    }
+
+    private String databaseCorrespondenceByString(String object, String type) {
+        StringBuilder stringBuilder = new StringBuilder("");
+        if (object == null)
+            return null;
+        // if the type of the object can be a string, we append the
+        if (type.equals("date") || type.equals("inet") || type.equals("text") || type.equals("time") || type.equals("varchar")) {
+            stringBuilder.append("\'").append(object).append("\'");
+        } else {
+            stringBuilder.append(object);
+        }
+        return stringBuilder.toString();
+    }
+
+    private Map<String, List<UserKeyspace>> getUserKeyspaces(User user) {
+        Map<String, List<UserKeyspace>> map;
+        List<UserKeyspace> userKeyspaces = user.getKeyspaces();
+        if (userKeyspaces != null) {
+            // group the keyspaces by creator
+            map = userKeyspaces.stream().collect(Collectors.groupingBy(UserKeyspace::getCreatorName));
+        } else {
+            return new HashMap<>();
+        }
+        return map;
+    }
+
+    private UserKeyspace updateUserKeyspaces(Authentication authentication, HttpSession session) {
+        User authUser = ((CassandraUserDetails) authentication.getPrincipal()).getUser();
+        User dbUser = userService.findById(authUser.getId());
+        UserKeyspace userKeyspace = (UserKeyspace) session.getAttribute("userKeyspace");
+        // we update the context user keyspaces
+        authUser.setKeyspaces(dbUser.getKeyspaces());
+        // we set the keyspaces
+        updateKeyspaces(authUser);
+        // if there is a keyspaces connected, we search for it in the updated keyspaces and return it
+        if (userKeyspace != null) {
+            if (authUser.getKeyspaces() != null) {
+                return authUser.getKeyspaces().stream().filter(p -> Objects.equals(p.getCreatorName(), userKeyspace.getCreatorName()) && Objects.equals(p.getName(), userKeyspace.getName())).findFirst().orElse(null);
+            }
+        }
+        return null;
+    }
+
+    private void updateKeyspaces(User authUser) {
+        if (authUser.getKeyspaces() != null) {
+            authUser.getKeyspaces().forEach(p -> {
+                Keyspace keyspace = keyspaceService.findKeyspaceByName(p.getCreatorName() + "_" + p.getName());
+                p.setKeyspace(keyspace);
+            });
+        }
     }
 
     private Map<String, ArrayList<String>> getErrors(BindingResult bindingResult, Map<String, ArrayList<String>> errors) {

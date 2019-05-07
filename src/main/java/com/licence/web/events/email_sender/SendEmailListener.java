@@ -102,7 +102,7 @@ public class SendEmailListener implements ApplicationListener<OnSendEmailEvent> 
         userService.save(user);
 
         String subject = messages.getMessage("sendMail.change-email.subject", null, event.getLocale());
-        String confirmationUrl = event.getAppUrl() + routeProperties.getChangeEmail() + "?token=" + token;
+        String confirmationUrl = event.getAppUrl() + routeProperties.getChange().get("email") + "?token=" + token;
         String message = messages.getMessage("sendMail.change-email.content", null, event.getLocale());
 
         System.out.println("Change Email is sending...");

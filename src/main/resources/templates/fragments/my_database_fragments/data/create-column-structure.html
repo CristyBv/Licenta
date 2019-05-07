@@ -22,7 +22,7 @@
                     <div class="row">
                         <div class="col-lg-12">
                             <form id="create-table-form"
-                                  th:action="${@environment.getProperty('route.alterTableStructure')}" method="post"
+                                  th:action="${@environment.getProperty('route.alter[table]')}" method="post"
                                   role="form">
                                 <input type="hidden" name="requestType" th:value="'columns@add'">
                                 <div class="form-group">

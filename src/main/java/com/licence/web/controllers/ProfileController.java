@@ -60,7 +60,7 @@ public class ProfileController {
     }
 
     @ResponseBody
-    @PostMapping(value = "${route.changeAvatar}", produces = "application/json")
+    @PostMapping(value = "${route.change[avatar]}", produces = "application/json")
     public String changeAvatar(@RequestBody Map<String, String> avatar,
                                Authentication authentication,
                                WebRequest request) {
@@ -78,7 +78,7 @@ public class ProfileController {
     }
 
 
-    @PostMapping(value = "${route.changeEmail}")
+    @PostMapping(value = "${route.change[email]}")
     public String changeEmail(@RequestParam String email,
                               WebRequest request,
                               Authentication authentication,
@@ -109,7 +109,7 @@ public class ProfileController {
         return "forward:" + routeProperties.getProfile();
     }
 
-    @GetMapping(value = "${route.changeEmail}")
+    @GetMapping(value = "${route.change[email]}")
     public String changeEmailConfirmation(@RequestParam String token,
                                           Authentication authentication,
                                           HttpServletResponse response,
@@ -133,7 +133,7 @@ public class ProfileController {
         return "forward:" + routeProperties.getProfile();
     }
 
-    @PostMapping("${route.changePassword}")
+    @PostMapping("${route.change[password]}")
     public String changePassword(@RequestParam String oldPassword,
                                  @RequestParam String newPassword,
                                  @RequestParam String matchingPassword,

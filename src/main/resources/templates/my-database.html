@@ -1,30 +1,35 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org"
-      xmlns:sec="http://www.thymeleaf.org/thymeleaf-extras-springsecurity4"
-      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+<html xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      lang="en"
       layout:decorate="~{layouts/layout}">
 <head>
     <th:block>
         <!--Custom stylesheets-->
         <link th:rel="stylesheet" th:href="@{/css/my-database.css}"/>
+        <link href="https://cdn.jsdelivr.net/npm/jquery.terminal/css/jquery.terminal.min.css" rel="stylesheet"/>
 
         <!--Custom scripts-->
         <script th:src="@{/js/my-database.js}"></script>
         <script th:src="@{/js/tables/bootstable.js}"></script>
         <script th:src="@{/js/tables/colResizable.js}"></script>
+        <script src="https://cdn.jsdelivr.net/npm/jquery.terminal/js/jquery.terminal.min.js"></script>
         <script th:inline="javascript">
             /*<![CDATA[*/
+            var myKeyspacesPanelUrl = /*[[${@environment.getProperty('route.change[myKeyspacesPanel]')}]]*/ 'url';
+            var getTableStructureUrl = /*[[${@environment.getProperty('route.get[tableStructure]')}]]*/ 'url';
             var searchUserLiveUrl = /*[[${@environment.getProperty('route.searchLive[user]')}]]*/ 'url';
-            var myKeyspacesPanelUrl = /*[[${@environment.getProperty('route.changeMyKeyspacesPanel')}]]*/ 'url';
+            var getTableDataUrl = /*[[${@environment.getProperty('route.get[tableData]')}]]*/ 'url';
             var searchTableLiveUrl = /*[[${@environment.getProperty('route.searchLive[table]')}]]*/ 'url';
             var searchColumnLiveUrl = /*[[${@environment.getProperty('route.searchLive[column]')}]]*/ 'url';
             var searchFunctionLiveUrl = /*[[${@environment.getProperty('route.searchLive[function]')}]]*/ 'url';
+            var consoleInterpretorUrl = /*[[${@environment.getProperty('route.console[interpretor]')}]]*/ 'url';
             /*]]>*/
         </script>
     </th:block>
 </head>
 <body>
-<div layout:fragment="content" th:with="creator=${@environment.getProperty('keyspace.creator')} ,admin=${@environment.getProperty('keyspace.admin')}, editor = ${@environment.getProperty('keyspace.editor')}, member = ${@environment.getProperty('keyspace.member')}">
+<div layout:fragment="content"
+     th:with="creator=${@environment.getProperty('keyspace.creator')} ,admin=${@environment.getProperty('keyspace.admin')}, editor = ${@environment.getProperty('keyspace.editor')}, member = ${@environment.getProperty('keyspace.member')}">
     <div class="database-container">
         <th:block th:replace="fragments/my_database_fragments/keyspaces-bar :: keyspaces-bar"></th:block>
         <th:block th:replace="fragments/my_database_fragments/database :: database"></th:block>
@@ -43,12 +48,13 @@
         // go to level 1 of the keyspaces tree
         $('.tree-toggle').parent().children('ul.tree').toggle();
     </script>
+    <!--toogle the keyspaces menu tree for the current active keyspace-->
     <script th:inline="javascript" th:if="${session.userKeyspace}">
         $('.tree-toggle').parent().children('ul.tree').toggle();
         var name = /*[[${session.userKeyspace.getName()}]]*/ null;
         var creator = /*[[${session.userKeyspace.getCreatorName()}]]*/ null;
-        $("#creator-list-"+creator).toggle(200);
-        $("#keyspaces-list-"+creator+"_"+name).toggle(200);
+        $("#creator-list-" + creator).toggle(200);
+        $("#keyspaces-list-" + creator + "_" + name).toggle(200);
     </script>
 </th:block>
 </body>

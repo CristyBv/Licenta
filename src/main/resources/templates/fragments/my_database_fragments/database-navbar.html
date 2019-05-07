@@ -4,7 +4,7 @@
 </head>
 <body>
 <nav th:fragment="database-navbar" class="navbar database-navbar" th:with="key=${session.userKeyspace}">
-    <form th:action="${@environment.getProperty('route.changeDatabasePanel')}" method="get" id="panel-form">
+    <form th:action="${@environment.getProperty('route.change[databasePanel]')}" method="get" id="panel-form">
         <input type="hidden" name="panel" id="panel-input">
     </form>
     <ul class="nav navbar-nav database-navbar-nav">

@@ -48,7 +48,6 @@
                             </th:block>
                             <th:block th:each="keyspace : ${map.value}">
                                 <li th:if="${keyspace.getKeyspace() != null}" class="keyspace-li">
-
                                     <div class="modal fade" th:id="${keyspace.getKeyspace().getName()}" tabindex="-1"
                                          role="dialog" aria-hidden="true">
                                         <div class="modal-dialog" role="document">
@@ -63,13 +62,13 @@
                                         th:id="'keyspaces-list-'+${map.key}+'_'+${keyspace.getName()}">
                                         <li th:if="${session.userKeyspace == keyspace}">
                                             <a style="color: red;" class="disconnect-link"
-                                               th:href="${@environment.getProperty('route.disconnectKeyspace')}">Disconnect</a>
+                                               th:href="${@environment.getProperty('route.keyspace[disconnect]')}">Disconnect</a>
                                         </li>
                                         <li th:if="${session.userKeyspace != keyspace}">
                                             <a href="" class="connect-link" data-toggle="modal"
                                                th:attr="data-target='#'+${keyspace.getKeyspace().getName()}">Connect</a>
                                         </li>
-                                        <li><a href="#">Info</a></li>
+                                        <!--<li><a href="#">Info</a></li>-->
                                     </ul>
                                 </li>
                             </th:block>
@@ -84,7 +83,6 @@
                 My keyspaces
             </span>
     </div>
-
 </th:block>
 </body>
 </html>

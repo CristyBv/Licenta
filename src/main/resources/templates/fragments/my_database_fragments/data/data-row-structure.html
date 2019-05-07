@@ -130,19 +130,19 @@
                             </form>
                             <th:block th:switch="${type}">
                                 <th:block th:case="'tables'">
-                                    <form th:action="${@environment.getProperty('route.dropTable')}" method="post"
+                                    <form th:action="${@environment.getProperty('route.drop[table]')}" method="post"
                                           th:id="'delete-tables-form'">
                                         <input type="hidden" name="table" id="delete-tables-name-input"/>
                                     </form>
                                 </th:block>
                                 <th:block th:case="'views'">
-                                    <form th:action="${@environment.getProperty('route.dropView')}" method="post"
+                                    <form th:action="${@environment.getProperty('route.drop[view]')}" method="post"
                                           th:id="'delete-views-form'">
                                         <input type="hidden" name="view" id="delete-views-name-input"/>
                                     </form>
                                 </th:block>
                                 <th:block th:case="'types'">
-                                    <form th:action="${@environment.getProperty('route.dropType')}" method="post"
+                                    <form th:action="${@environment.getProperty('route.drop[type]')}" method="post"
                                           th:id="'delete-types-form'">
                                         <input type="hidden" name="type" id="delete-types-name-input"/>
                                     </form>

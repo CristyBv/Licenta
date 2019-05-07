@@ -4,8 +4,32 @@
 
 </head>
 <body>
-<div th:fragment="database-console-script" id="console-script-div">
-    Console
+<div th:fragment="database-console-script" id="console-script-div" th:with="consoleScriptContent = ${session.consoleScriptContent}">
+
+    <th:block th:if="${consoleScriptContent != null}">
+        <script th:inline="javascript" >
+            var consoleViewContent = /*[[${session.consoleScriptContent.get('consoleView')}]]*/ null;
+            var scriptContent = /*[[${session.consoleScriptContent.get('scriptContent')}]]*/ null;
+            var consoleScriptActive = /*[[${session.consoleScriptContent.get('active')}]]*/ null;
+        </script>
+    </th:block>
+    <th:block th:if="${consoleScriptContent == null}">
+        <script th:inline="javascript" >
+            var consoleViewContent = null;
+            var scriptContent = null;
+        </script>
+    </th:block>
+
+
+    <div class="tab-content row">
+        <div th:class="'tab-pane ' + ${consoleScriptContent == null || consoleScriptContent.get('active') == 'console' ? 'active' : ''}" id="console-div">
+            <div id="terminal" style="position: relative"></div>
+        </div>
+        <div th:class="'tab-pane ' + ${consoleScriptContent != null && consoleScriptContent.get('active') == 'script' ? 'active' : ''}" id="script-div">
+            Script
+        </div>
+    </div>
+
 </div>
 </body>
 </html>
