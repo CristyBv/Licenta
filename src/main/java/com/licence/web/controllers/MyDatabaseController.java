@@ -4,6 +4,7 @@ import com.datastax.driver.core.ColumnDefinitions;
 import com.datastax.driver.core.DataType;
 import com.datastax.driver.core.LocalDate;
 import com.licence.config.properties.KeyspaceProperties;
+import com.licence.config.properties.QueryProperties;
 import com.licence.config.properties.RouteProperties;
 import com.licence.config.security.CassandraUserDetails;
 import com.licence.config.validation.password.match.PasswordMatches;
@@ -13,11 +14,12 @@ import com.licence.web.models.UDT.UserKeyspace;
 import com.licence.web.models.User;
 import com.licence.web.models.pojo.KeyspaceContent;
 import com.licence.web.models.pojo.KeyspaceContentObject;
+import com.licence.web.models.pojo.VerifyQuery;
 import com.licence.web.services.KeyspaceService;
 import com.licence.web.services.UserService;
-import jnr.ffi.annotations.In;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.configurationprocessor.json.JSONObject;
 import org.springframework.context.MessageSource;
 import org.springframework.http.MediaType;
@@ -45,6 +47,7 @@ import java.text.SimpleDateFormat;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -61,6 +64,7 @@ import java.util.stream.Collectors;
 public class MyDatabaseController {
 
     private final RouteProperties routeProperties;
+    private final QueryProperties queryProperties;
     private final KeyspaceService keyspaceService;
     private final UserService userService;
     private final MessageSource messages;
@@ -68,13 +72,14 @@ public class MyDatabaseController {
     private final BCryptPasswordEncoder bCryptPasswordEncoder;
 
     @Autowired
-    public MyDatabaseController(RouteProperties routeProperties, KeyspaceService keyspaceService, UserService userService, @Qualifier("messageSource") MessageSource messages, KeyspaceProperties keyspaceProperties, BCryptPasswordEncoder bCryptPasswordEncoder) {
+    public MyDatabaseController(RouteProperties routeProperties, KeyspaceService keyspaceService, UserService userService, @Qualifier("messageSource") MessageSource messages, KeyspaceProperties keyspaceProperties, BCryptPasswordEncoder bCryptPasswordEncoder, QueryProperties queryProperties) {
         this.routeProperties = routeProperties;
         this.keyspaceService = keyspaceService;
         this.userService = userService;
         this.messages = messages;
         this.keyspaceProperties = keyspaceProperties;
         this.bCryptPasswordEncoder = bCryptPasswordEncoder;
+        this.queryProperties = queryProperties;
     }
 
     @RequestMapping(value = "${route.myDatabase}")
@@ -109,7 +114,7 @@ public class MyDatabaseController {
                     }
                 }
                 if (Objects.equals(activePanel, keyspaceProperties.getPanel().get("consoleScript"))) {
-                    if(session.getAttribute("consoleScriptContent") == null) {
+                    if (session.getAttribute("consoleScriptContent") == null) {
                         Map<String, Object> consoleScriptMap = new HashMap<>();
                         consoleScriptMap.put("consoleViewContent", null);
                         consoleScriptMap.put("scriptContent", "");
@@ -131,168 +136,39 @@ public class MyDatabaseController {
                                                   Authentication authentication,
                                                   HttpSession session) {
         UserKeyspace userKeyspace = updateUserKeyspaces(authentication, session);
-        if(userKeyspace != null) {
+        if (userKeyspace != null) {
             try {
                 String query = (String) map.get("query");
                 Map<String, Object> consoleScriptContent = (Map<String, Object>) session.getAttribute("consoleScriptContent");
-                consoleScriptContent.put("consoleView", map.get("view"));
-                if(consoleScriptContent != null && query != null) {
-                    String detectedQuery = detectQuery(query, userKeyspace.getKeyspace().getName());
-                    System.out.println(detectedQuery);
-                    if(detectedQuery != null) {
-
-                    }
-                }
-            } catch (ClassCastException e) {
-
-            }
-        }
-
-        return map;
-    }
-
-    private String detectQuery(String query, String keyspaceName) {
-        query = query.trim();
-        String[] splitQuery = query.split("\\s+");
-        StringBuilder result = new StringBuilder();
-        Boolean validForQuery = false;
-        try {
-            String firstWord = splitQuery[0].toLowerCase();
-            if(firstWord.equals("select")) {
-                for (String s : splitQuery) {
-                    if(s.toLowerCase().equals("from")) {
-                        result.append(s).append(" ").append(keyspaceName).append(".");
-                        validForQuery = true;
+                if (consoleScriptContent != null && query != null) {
+                    consoleScriptContent.put("consoleView", map.get("view"));
+                    VerifyQuery verifyQuery = new VerifyQuery(userKeyspace.getKeyspace().getName(), queryProperties);
+                    Map<String, Object> detectedQuery = verifyQuery.detectQuery(query);
+                    if(detectedQuery.get("error") != null) {
+                        detectedQuery.put("error", detectedQuery.get("error").toString().replaceAll("]",")").replaceAll("\\[","("));
                     } else {
-                        result.append(s).append(" ");
-                    }
-                }
-            } else if(firstWord.equals("create")) {
-                result.append("CREATE ");
-                String secondWord = splitQuery[1].toLowerCase();
-                if(secondWord.equals("table")) {
-                    result.append("TABLE ");
-                    if(splitQuery[2].toLowerCase().equals("if") && splitQuery[3].toLowerCase().equals("not") && splitQuery[4].toLowerCase().equals("exists")) {
-                        result.append("IF NOT EXISTS ").append(keyspaceName).append(".");
-                        validForQuery = true;
-                        for(int i = 5; i < splitQuery.length; i++)
-                            result.append(splitQuery[i]).append(" ");
-                    } else {
-                        result.append(keyspaceName).append(".");
-                        validForQuery = true;
-                        for(int i = 2; i < splitQuery.length; i++)
-                            result.append(splitQuery[i]).append(" ");
-                    }
-                } else if (secondWord.equals("index")) {
-                    result.append("INDEX ");
-                    if(splitQuery[2].toLowerCase().equals("if") && splitQuery[3].toLowerCase().equals("not") && splitQuery[4].toLowerCase().equals("exists") && splitQuery[6].toLowerCase().equals("on")) {
-                        result.append("IF NOT EXISTS ").append(splitQuery[5]).append(" ON ").append(keyspaceName).append(".");
-                        validForQuery = true;
-                        for(int i = 7; i < splitQuery.length; i++)
-                            result.append(splitQuery[i]).append(" ");
-                    } else if(splitQuery[3].toLowerCase().equals("on")) {
-                        result.append(splitQuery[2]).append(" ON ").append(keyspaceName).append(".");
-                        validForQuery = true;
-                        for(int i = 4; i < splitQuery.length; i++)
-                            result.append(splitQuery[i]).append(" ");
-                    }
-                } else if(secondWord.equals("function") || (secondWord.equals("or") && splitQuery[3].toLowerCase().equals("function"))) {
-                    Integer contor = 1;
-                    if(splitQuery[1].toLowerCase().equals("or") && splitQuery[2].toLowerCase().equals("replace")) {
-                        result.append("OR REPLACE ");
-                        contor = 3;
-                    }
-                    if(splitQuery[contor].toLowerCase().equals("function")) {
-                        result.append("FUNCTION ");
-                        contor++;
-                    }
-                    if((contor == 2 || contor == 4) && splitQuery[contor].toLowerCase().equals("if") && splitQuery[contor+1].toLowerCase().equals("not") && splitQuery[contor+2].toLowerCase().equals("exists")) {
-                        result.append("IF NOT EXISTS ").append(keyspaceName).append(".");
-                        contor = contor + 3;
-                        validForQuery = true;
-                        for(int i = contor; i < splitQuery.length; i++)
-                            result.append(splitQuery[i]).append(" ");
-                    } else if(contor == 2 || contor == 4) {
-                        validForQuery = true;
-                        result.append(keyspaceName).append(".");
-                        for(int i = contor; i < splitQuery.length; i++)
-                            result.append(splitQuery[i]).append(" ");
-                    }
-                } else if(secondWord.equals("materialized")) {
-                    if(splitQuery[2].toLowerCase().equals("view")) {
-                        result.append("MATERIALIZED VIEW ");
-                        if(splitQuery[3].toLowerCase().equals("if") && splitQuery[4].toLowerCase().equals("not") && splitQuery[5].toLowerCase().equals("exists")) {
-                            result.append("IF NOT EXISTS ").append(keyspaceName).append(".");
-                            for(int i = 6; i < splitQuery.length; i++) {
-                                if(splitQuery[i].toLowerCase().equals("from")) {
-                                    result.append(splitQuery[i]).append(" ").append(keyspaceName).append(".");
-                                    validForQuery = true;
-                                } else {
-                                    result.append(splitQuery[i]).append(" ");
-                                }
+                        // if the type is != null that means the command is a select
+                        if(detectedQuery.get("type") != null) {
+                            try {
+                                List<Map<String, Object>> content = keyspaceService.select(detectedQuery.get("success").toString());
+                                detectedQuery.put("value", content);
+                            } catch (Exception e) {
+                                detectedQuery.put("error", e.getMessage());
                             }
                         } else {
-                            result.append(keyspaceName).append(".");
-                            for(int i = 3; i < splitQuery.length; i++) {
-                                if(splitQuery[i].toLowerCase().equals("from")) {
-                                    result.append(splitQuery[i]).append(" ").append(keyspaceName).append(".");
-                                    validForQuery = true;
-                                } else {
-                                    result.append(splitQuery[i]).append(" ");
-                                }
+                            try {
+                                keyspaceService.execute(detectedQuery.get("success").toString());
+                            } catch (Exception e) {
+                                detectedQuery.put("error", e.getMessage());
                             }
                         }
                     }
-                } else if(secondWord.equals("trigger")) {
-                    result.append("TRIGGER ").append(splitQuery[2]).append(" ");
-                    if(splitQuery[3].toLowerCase().equals("on")) {
-                        result.append("ON ").append(keyspaceName).append(".");
-                        validForQuery = true;
-                        for(int i = 4; i < splitQuery.length; i++)
-                            result.append(splitQuery[i]).append(" ");
-                    }
-                } else if(secondWord.equals("type")) {
-                    result.append("TYPE ");
-                    Integer contor = 2;
-                    if(splitQuery[contor].toLowerCase().equals("if") && splitQuery[contor+1].toLowerCase().equals("not") && splitQuery[contor+2].toLowerCase().equals("exists")) {
-                        result.append("IF NOT EXISTS ").append(keyspaceName).append(".");
-                        validForQuery = true;
-                        for(int i = contor+3; i < splitQuery.length; i++)
-                            result.append(splitQuery[i]).append(" ");
-                    } else {
-                        result.append(keyspaceName).append(".");
-                        validForQuery = true;
-                        for(int i = contor; i < splitQuery.length; i++)
-                            result.append(splitQuery[i]).append(" ");
-                    }
-                } else if(secondWord.equals("aggregate") || (secondWord.equals("or") && splitQuery[3].toLowerCase().equals("aggregate"))) {
-                    Integer contor = 1;
-                    if(splitQuery[1].toLowerCase().equals("or") && splitQuery[2].toLowerCase().equals("replace")) {
-                        result.append("OR REPLACE ");
-                        contor = 3;
-                    }
-                    if(splitQuery[contor].toLowerCase().equals("aggregate")) {
-                        result.append("AGGREGATE ");
-                        contor++;
-                    }
-                    if((contor == 2 || contor == 4) && splitQuery[contor].toLowerCase().equals("if") && splitQuery[contor+1].toLowerCase().equals("not") && splitQuery[contor+2].toLowerCase().equals("exists")) {
-                        result.append("IF NOT EXISTS ").append(keyspaceName).append(".");
-                        validForQuery = true;
-                        for(int i = contor+3; i < splitQuery.length; i++)
-                            result.append(splitQuery[i]).append(" ");
-                    } else if(contor == 2 || contor == 4) {
-                        result.append(keyspaceName).append(".");
-                        validForQuery = true;
-                        for(int i = contor; i < splitQuery.length; i++)
-                            result.append(splitQuery[i]).append(" ");
-                    }
+                    return detectedQuery;
                 }
+            } catch (ClassCastException e) {
+                return null;
             }
-        } catch (Exception e) {
-            return null;
         }
-        if(validForQuery)
-            return result.toString();
         return null;
     }
 

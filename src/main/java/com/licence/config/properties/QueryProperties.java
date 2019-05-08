@@ -24,4 +24,5 @@ public class QueryProperties {
     private Map<String, String> alter;
     private Map<String, String> drop;
     private Map<String, String> create;
+    private Map<String, String> syntax;
 }

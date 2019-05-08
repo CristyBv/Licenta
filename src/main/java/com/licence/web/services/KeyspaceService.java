@@ -19,6 +19,7 @@ import javax.validation.constraints.Pattern;
 import javax.validation.constraints.Size;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -439,9 +440,27 @@ public class KeyspaceService {
 
     public void createTrigger(String keyspace, String tableName, String triggerName, String triggerClass) throws Exception {
         String query = String.format(queryProperties.getCreate().get("trigger"), triggerName, keyspace + "." + tableName, triggerClass);
+    }
+
+    public void execute(String query) throws Exception {
         System.out.println(query);
         try {
             adminOperations.getCqlOperations().execute(query);
+        } catch (Exception e) {
+            throw new Exception(query + " ---> " + e.getCause().getMessage());
+        }
+    }
+
+    public List<Map<String,Object>> select(String query) throws Exception {
+        System.out.println(query);
+        try {
+            return adminOperations.getCqlOperations().query(query, new RowMapper<Map<String, Object>>() {
+                @Nullable
+                @Override
+                public Map<String, Object> mapRow(Row row, int rowNum) throws DriverException {
+                    return getRowMap(row);
+                }
+            });
         } catch (Exception e) {
             throw new Exception(query + " ---> " + e.getCause().getMessage());
         }

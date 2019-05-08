@@ -24,15 +24,15 @@ $(document).ready(function () {
     initConsoleScript();
 });
 function initConsoleScript() {
-    if($('#terminal').html() != undefined) {
+    if ($('#terminal').html() != undefined) {
         terminal = $('#terminal').terminal(function (cmd) {
             cmd = cmd.trim();
-            if(cmd == "@script") {
+            if (cmd == "@script") {
                 $("#script-div").addClass("active");
                 $("#console-div").removeClass("active");
                 return;
             }
-            if(cmd.substr(cmd.length-1) == ";") {
+            if (cmd.substr(cmd.length - 1) == ";") {
                 consoleStack += cmd;
                 $.ajax({
                     type: "post",
@@ -44,12 +44,46 @@ function initConsoleScript() {
                     }),
                     dataType: "json"
                 }).done(function (result) {
-                    //alert(JSON.stringify(result));
+                    if (result != null) {
+                        if (result["error"] != null) {
+                            terminal.echo("[[i;;]" + result["success"]);
+                            terminal.echo("[[g;red;]" + result["error"]);
+                        } else {
+                            terminal.echo("\n" + result["success"]);
+                            terminal.echo("[[;green;]Valid!\n");
+                            if (result["type"] != null && result["value"] != null) {
+                                var content = result["value"];
+                                var space = 30;
+                                if (content.length > 0) {
+                                    // var colnNames = [];
+                                    // Object.keys(content[0]).forEach(function (key) {
+                                    //     colnNames.push(key);
+                                    // });
+                                    for (var i = 0; i < content.length; i++) {
+                                        terminal.echo("[[;#1E90FF;]@Row " + (i + 1));
+                                        terminal.echo("-----------------------------------------------------------------");
+                                        Object.keys(content[i]).forEach(function (key) {
+                                            var spaceDif = "";
+                                            for (var j = 0; j < space - key.length; j++) {
+                                                spaceDif += " ";
+                                            }
+                                            terminal.echo("[[ib;#DEB887;]" + key + "]" + spaceDif + " | " + JSON.stringify(content[i][key]));
+                                        });
+                                        terminal.echo("-----------------------------------------------------------------");
+                                    }
+                                    terminal.echo("");
+                                } else {
+                                    terminal.echo("[[i;;]No results found!");
+                                }
+                            }
+                        }
+                    } else {
+                        terminal.echo("[[i;;]" + result["success"]);
+                        terminal.echo("[[;red;]Error! Refresh and try again!\n");
+                    }
                 }).fail(function () {
                     alert("Server error!");
                 });
-
-                this.echo(consoleStack);
                 consoleStack = "";
             } else {
                 consoleStack += cmd + " ";
@@ -57,7 +91,9 @@ function initConsoleScript() {
             }
 
         }, {
-            greetings: "For script page type @script\n",
+            greetings: "Specify only the object name and not the keyspace.\n" +
+                "You can only query in the current keyspace. Some commands are restricted.\n" +
+                "For script page type @script\n",
             prompt: "[[g;white;black]>] ",
             name: "text",
             keymap: {
@@ -71,10 +107,12 @@ function initConsoleScript() {
             onFocus: function (term) {
 
             },
-            echoCommand: false
+            echoCommand: false,
+            anyLinks: false,
+            convertLinks: false
         });
 
-        if(consoleViewContent != null && consoleViewContent != undefined) {
+        if (consoleViewContent != null && consoleViewContent != undefined) {
             terminal.import_view(consoleViewContent);
         }
     }
