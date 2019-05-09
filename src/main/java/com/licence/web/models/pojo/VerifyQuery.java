@@ -283,7 +283,7 @@ public class VerifyQuery {
                 Integer contor = 1;
                 Boolean isBatch = false;
                 if ((splitQuery[contor].equals("unlogged") || splitQuery[contor].equals("logged")) && splitQuery[contor + 1].equals("batch")) {
-                    result.append(splitQuery[contor]).append(" BATCH");
+                    result.append(splitQuery[contor]).append(" BATCH ");
                     contor = 3;
                     isBatch = true;
                 } else if (splitQuery[contor].equals("batch")) {

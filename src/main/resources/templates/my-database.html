@@ -12,6 +12,7 @@
         <script th:src="@{/js/my-database.js}"></script>
         <script th:src="@{/js/tables/bootstable.js}"></script>
         <script th:src="@{/js/tables/colResizable.js}"></script>
+        <script th:src="@{/js/fieldselection.js}"></script>
         <script src="https://cdn.jsdelivr.net/npm/jquery.terminal/js/jquery.terminal.min.js"></script>
         <script th:inline="javascript">
             /*<![CDATA[*/
@@ -23,6 +24,11 @@
             var searchColumnLiveUrl = /*[[${@environment.getProperty('route.searchLive[column]')}]]*/ 'url';
             var searchFunctionLiveUrl = /*[[${@environment.getProperty('route.searchLive[function]')}]]*/ 'url';
             var consoleInterpretorUrl = /*[[${@environment.getProperty('route.console[interpretor]')}]]*/ 'url';
+            var scriptInterpretorUrl = /*[[${@environment.getProperty('route.script[interpretor]')}]]*/ 'url';
+            var scriptChangeContentUrl = /*[[${@environment.getProperty('route.script[content]')}]]*/ 'url';
+            var consoleChangeContentUrl = /*[[${@environment.getProperty('route.console[content]')}]]*/ 'url';
+            var consoleChangeUrl = /*[[${@environment.getProperty('route.console[active]')}]]*/ 'url';
+            var scriptChangeUrl = /*[[${@environment.getProperty('route.script[active]')}]]*/ 'url';
             /*]]>*/
         </script>
     </th:block>

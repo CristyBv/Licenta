@@ -24,76 +24,40 @@ $(document).ready(function () {
     initConsoleScript();
 });
 function initConsoleScript() {
+
     if ($('#terminal').html() != undefined) {
+
         terminal = $('#terminal').terminal(function (cmd) {
             cmd = cmd.trim();
             if (cmd == "@script") {
-                $("#script-div").addClass("active");
-                $("#console-div").removeClass("active");
+                $("#script-div").css("display", "block");
+                $("#console-div").removeClass("col-sm-12");
+                $("#console-div").addClass("col-sm-6");
+                terminal.echo("[[i;#DEB887;]" + scriptMessage);
+                changeScriptAjax();
+                consoleStack = "";
                 return;
-            }
-            if (cmd.substr(cmd.length - 1) == ";") {
+            } else if (cmd == "@console") {
+                $("#script-div").css("display", "none");
+                $("#console-div").removeClass("col-sm-6");
+                $("#console-div").addClass("col-sm-12");
+                changeConsoleAjax();
+                consoleStack = "";
+                return;
+            } else if (cmd.substr(cmd.length - 1) == ";") {
                 consoleStack += cmd;
-                $.ajax({
-                    type: "post",
-                    url: consoleInterpretorUrl,
-                    contentType: "application/json; charset=utf-8",
-                    data: JSON.stringify({
-                        "query": consoleStack,
-                        "view": this.export_view()
-                    }),
-                    dataType: "json"
-                }).done(function (result) {
-                    if (result != null) {
-                        if (result["error"] != null) {
-                            terminal.echo("[[i;;]" + result["success"]);
-                            terminal.echo("[[g;red;]" + result["error"]);
-                        } else {
-                            terminal.echo("\n" + result["success"]);
-                            terminal.echo("[[;green;]Valid!\n");
-                            if (result["type"] != null && result["value"] != null) {
-                                var content = result["value"];
-                                var space = 30;
-                                if (content.length > 0) {
-                                    // var colnNames = [];
-                                    // Object.keys(content[0]).forEach(function (key) {
-                                    //     colnNames.push(key);
-                                    // });
-                                    for (var i = 0; i < content.length; i++) {
-                                        terminal.echo("[[;#1E90FF;]@Row " + (i + 1));
-                                        terminal.echo("-----------------------------------------------------------------");
-                                        Object.keys(content[i]).forEach(function (key) {
-                                            var spaceDif = "";
-                                            for (var j = 0; j < space - key.length; j++) {
-                                                spaceDif += " ";
-                                            }
-                                            terminal.echo("[[ib;#DEB887;]" + key + "]" + spaceDif + " | " + JSON.stringify(content[i][key]));
-                                        });
-                                        terminal.echo("-----------------------------------------------------------------");
-                                    }
-                                    terminal.echo("");
-                                } else {
-                                    terminal.echo("[[i;;]No results found!");
-                                }
-                            }
-                        }
-                    } else {
-                        terminal.echo("[[i;;]" + result["success"]);
-                        terminal.echo("[[;red;]Error! Refresh and try again!\n");
-                    }
-                }).fail(function () {
-                    alert("Server error!");
-                });
+                consoleInterpretorAjax(consoleStack);
                 consoleStack = "";
             } else {
                 consoleStack += cmd + " ";
                 this.echo(consoleStack + " ...");
+                changeConsoleContentAjax();
             }
 
         }, {
             greetings: "Specify only the object name and not the keyspace.\n" +
-                "You can only query in the current keyspace. Some commands are restricted.\n" +
-                "For script page type @script\n",
+            "You can only query in the current keyspace. Some commands are restricted.\n" +
+            "For script page type @script\nTo hide the script type @console\n",
             prompt: "[[g;white;black]>] ",
             name: "text",
             keymap: {
@@ -105,15 +69,224 @@ function initConsoleScript() {
             onBlur: function (term) {
             },
             onFocus: function (term) {
-
+            },
+            onClear: function (term) {
+                changeConsoleContentAjax();
             },
             echoCommand: false,
             anyLinks: false,
             convertLinks: false
         });
 
+        $("#script-textarea").on("change", function () {
+            var content = $(this).val();
+            changeScriptContentAjax(content);
+        });
+
         if (consoleViewContent != null && consoleViewContent != undefined) {
             terminal.import_view(consoleViewContent);
+        }
+
+        $('#script-textarea').keydown(function (e) {
+            if (e.ctrlKey && e.keyCode == 13) {
+                var selected = $(this).getSelection().text;
+                if (selected != "") {
+                    scriptInterpretorAjax(selected);
+                } else {
+                    scriptInterpretorAjax($(this).val());
+                }
+            }
+        });
+
+        function consoleInterpretorAjax(consoleStack) {
+            $.ajax({
+                type: "post",
+                url: consoleInterpretorUrl,
+                contentType: "application/json; charset=utf-8",
+                data: JSON.stringify({
+                    "query": consoleStack
+                }),
+                dataType: "json"
+            }).done(function (result) {
+                doneAjaxTerminalShow(result)
+            }).fail(function () {
+                alert("Server error!");
+            });
+        }
+
+        function scriptInterpretorAjax(selected) {
+            changeConsoleContentAjax(true);
+            var selSplit = selected.split(";");
+            var i = 0;
+            var batch = [];
+            var batchStart = [];
+            var batchEnd = [];
+            var batches = [];
+            while (i < selSplit.length) {
+                var query = selSplit[i].toLowerCase()
+                if (query.includes("begin") && query.includes("batch")) {
+                    batch.push(selSplit[i], ";");
+                    batchStart.push(i);
+                } else if (query.includes("apply") && query.includes("batch") && batch.length > 0) {
+                    batch.push(selSplit[i]);
+                    batchEnd.push(i);
+                    batches.push(batch.join(""));
+                    batch = [];
+                } else if (batch.length > 0) {
+                    batch.push(selSplit[i], ";");
+                }
+                i++;
+            }
+            var newSplit = []
+            if (batches.length > 0) {
+                var contor = 0;
+                for (i = 0; i < selSplit.length; i++) {
+                    if (i == batchStart[contor]) {
+                        newSplit.push(batches[contor]);
+                    } else if (i < batchStart[contor] || i > batchEnd[contor]) {
+                        newSplit.push(selSplit[i]);
+                    } else if (i == batchEnd[contor]) {
+                        if (contor + 1 < batches.length)
+                            contor++;
+                    }
+                }
+            } else {
+                newSplit = selSplit;
+            }
+            newSplit.forEach(function (item, index) {
+                if (item.trim().length > 0) {
+                    $.ajax({
+                        type: "post",
+                        async: true,
+                        url: consoleInterpretorUrl,
+                        contentType: "application/json; charset=utf-8",
+                        data: JSON.stringify({
+                            "query": item
+                        }),
+                        dataType: "json"
+                    }).done(function (result) {
+                        if (result["error"] != null) {
+                            setTimeout(function () {
+                                doneAjaxTerminalShow(result);
+                            }, 1000);
+                        } else {
+                            doneAjaxTerminalShow(result);
+                        }
+                    }).fail(function () {
+                        alert("Server error!");
+                    });
+                }
+            });
+        }
+
+        function doneAjaxTerminalShow(result) {
+            if (result != null) {
+                if (result["error"] != null) {
+                    terminal.echo("[[i;;]" + result["success"]);
+                    terminal.echo("[[g;red;]" + result["error"]);
+                } else if (result["success"] != null) {
+                    terminal.echo("\n" + result["success"]);
+                    terminal.echo("[[;green;]Valid!\n");
+                    if (result["type"] != null && result["value"] != null) {
+                        var content = result["value"];
+                        var space = 30;
+                        if (content.length > 0) {
+                            // var colnNames = [];
+                            // Object.keys(content[0]).forEach(function (key) {
+                            //     colnNames.push(key);
+                            // });
+                            for (var i = 0; i < content.length; i++) {
+                                terminal.echo("[[;#1E90FF;]@Row " + (i + 1));
+                                terminal.echo("-----------------------------------------------------------------");
+                                Object.keys(content[i]).forEach(function (key) {
+                                    var spaceDif = "";
+                                    for (var j = 0; j < space - key.length; j++) {
+                                        spaceDif += " ";
+                                    }
+                                    terminal.echo("[[ib;#DEB887;]" + key + "]" + spaceDif + " | " + JSON.stringify(content[i][key]));
+                                });
+                                terminal.echo("-----------------------------------------------------------------");
+                            }
+                            terminal.echo("");
+                        } else {
+                            terminal.echo("[[i;;]No results found!");
+                        }
+                    }
+                }
+            } else {
+                terminal.echo("[[i;;]" + result["success"]);
+                terminal.echo("[[;red;]Error! Refresh and try again!\n");
+            }
+            changeConsoleContentAjax();
+        }
+
+        // function scriptRunAjax(selected) {
+        //     $.ajax({
+        //         type: "post",
+        //         url: scriptRunUrl,
+        //         contentType: "application/json; charset=utf-8",
+        //         data: JSON.stringify({
+        //             "content": selected
+        //         }),
+        //         dataType: "json"
+        //     }).done(function (result) {
+        //     }).fail({});
+        // }
+
+        function changeConsoleContentAjax(check) {
+            var view = terminal.export_view();
+            if (check != undefined) {
+                if (view["lines"].length > 100)
+                    terminal.clear();
+                view = terminal.export_view();
+            }
+            $.ajax({
+                type: "post",
+                url: consoleChangeContentUrl,
+                contentType: "application/json; charset=utf-8",
+                data: JSON.stringify({
+                    "content": view
+                }),
+                dataType: "json"
+            }).done(function (result) {
+            }).fail({});
+        }
+
+        function changeScriptContentAjax(content) {
+            if (content !== undefined) {
+                $.ajax({
+                    type: "post",
+                    url: scriptChangeContentUrl,
+                    contentType: "application/json; charset=utf-8",
+                    data: JSON.stringify({
+                        "content": content
+                    }),
+                    dataType: "json"
+                }).done(function (result) {
+                }).fail({});
+            }
+        }
+
+        function changeScriptAjax() {
+            $.ajax({
+                type: "post",
+                url: scriptChangeUrl,
+                contentType: "application/json; charset=utf-8",
+                data: JSON.stringify({}),
+                dataType: "json"
+            }).done(function (result) {
+            }).fail({});
+        }
+
+        function changeConsoleAjax() {
+            $.ajax({
+                type: "post",
+                url: consoleChangeUrl,
+                contentType: "application/json; charset=utf-8",
+                data: JSON.stringify({}),
+                dataType: "json"
+            }).done(function (result) {
+            }).fail({});
         }
     }
 }

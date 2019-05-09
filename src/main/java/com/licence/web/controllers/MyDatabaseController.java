@@ -129,6 +129,66 @@ public class MyDatabaseController {
         return routeProperties.getMyDatabase();
     }
 
+    @ResponseBody
+    @PostMapping(value = "${route.script[active]}")
+    public String changeToScript(HttpSession session) {
+        try {
+            Map<String, Object> consoleScriptContent = (Map<String, Object>) session.getAttribute("consoleScriptContent");
+            if(consoleScriptContent != null) {
+                consoleScriptContent.put("active", "script");
+            }
+        } catch (Exception e) {
+            return JSONObject.quote("Script content has not changed!");
+        }
+        return JSONObject.quote("Script content changed!");
+    }
+
+    @ResponseBody
+    @PostMapping(value = "${route.console[active]}")
+    public String changeToConsole(HttpSession session) {
+        try {
+            Map<String, Object> consoleScriptContent = (Map<String, Object>) session.getAttribute("consoleScriptContent");
+            if(consoleScriptContent != null) {
+                consoleScriptContent.put("active", "console");
+            }
+        } catch (Exception e) {
+            return JSONObject.quote("Console content has not changed!");
+        }
+        return JSONObject.quote("Console content changed!");
+    }
+
+
+    @ResponseBody
+    @PostMapping(value = "${route.script[content]}")
+    public String changeScriptContent(@RequestBody Map<String, Object> map,
+                                      HttpSession session) {
+        try {
+            Map<String, Object> consoleScriptContent = (Map<String, Object>) session.getAttribute("consoleScriptContent");
+            if(consoleScriptContent != null) {
+                consoleScriptContent.put("scriptContent", map.get("content"));
+                consoleScriptContent.put("active", "script");
+            }
+        } catch (Exception e) {
+            return JSONObject.quote("Script content has not changed!");
+        }
+        return JSONObject.quote("Script content changed!");
+    }
+
+    @ResponseBody
+    @PostMapping(value = "${route.console[content]}")
+    public String changeConsoleContent(@RequestBody Map<String, Object> map,
+                                      HttpSession session) {
+        try {
+            Map<String, Object> consoleScriptContent = (Map<String, Object>) session.getAttribute("consoleScriptContent");
+            if(consoleScriptContent != null) {
+                consoleScriptContent.put("consoleViewContent", map.get("content"));
+            }
+        } catch (Exception e) {
+            return JSONObject.quote("Console content has not changed!");
+        }
+        return JSONObject.quote("Console content changed!");
+    }
+
 
     @ResponseBody
     @PostMapping(value = "${route.console[interpretor]}", produces = "application/json")
@@ -139,34 +199,37 @@ public class MyDatabaseController {
         if (userKeyspace != null) {
             try {
                 String query = (String) map.get("query");
-                Map<String, Object> consoleScriptContent = (Map<String, Object>) session.getAttribute("consoleScriptContent");
-                if (consoleScriptContent != null && query != null) {
-                    consoleScriptContent.put("consoleView", map.get("view"));
-                    VerifyQuery verifyQuery = new VerifyQuery(userKeyspace.getKeyspace().getName(), queryProperties);
-                    Map<String, Object> detectedQuery = verifyQuery.detectQuery(query);
-                    if(detectedQuery.get("error") != null) {
-                        detectedQuery.put("error", detectedQuery.get("error").toString().replaceAll("]",")").replaceAll("\\[","("));
-                    } else {
-                        // if the type is != null that means the command is a select
-                        if(detectedQuery.get("type") != null) {
-                            try {
-                                List<Map<String, Object>> content = keyspaceService.select(detectedQuery.get("success").toString());
-                                detectedQuery.put("value", content);
-                            } catch (Exception e) {
-                                detectedQuery.put("error", e.getMessage());
-                            }
+                if (query != null) {
+                    if(query.trim().length() > 0) {
+                        VerifyQuery verifyQuery = new VerifyQuery(userKeyspace.getKeyspace().getName(), queryProperties);
+                        Map<String, Object> detectedQuery = verifyQuery.detectQuery(query);
+                        if(detectedQuery.get("error") != null) {
+                            detectedQuery.put("error", detectedQuery.get("error").toString().replaceAll("]",")").replaceAll("\\[","("));
                         } else {
-                            try {
-                                keyspaceService.execute(detectedQuery.get("success").toString());
-                            } catch (Exception e) {
-                                detectedQuery.put("error", e.getMessage());
+                            // if the type is != null that means the command is a select
+                            if(detectedQuery.get("type") != null) {
+                                try {
+                                    List<Map<String, Object>> content = keyspaceService.select(detectedQuery.get("success").toString());
+                                    detectedQuery.put("value", content);
+                                } catch (Exception e) {
+                                    detectedQuery.put("error", e.getMessage());
+                                }
+                            } else {
+                                try {
+                                    keyspaceService.execute(detectedQuery.get("success").toString());
+                                } catch (Exception e) {
+                                    detectedQuery.put("error", e.getMessage());
+                                }
                             }
                         }
+                        return detectedQuery;
+                    } else {
+                        return new HashMap<>();
                     }
-                    return detectedQuery;
+
                 }
-            } catch (ClassCastException e) {
-                return null;
+            } catch (Exception e) {
+                return new HashMap<>();
             }
         }
         return null;

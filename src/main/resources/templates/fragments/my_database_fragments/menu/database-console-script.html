@@ -8,28 +8,30 @@
 
     <th:block th:if="${consoleScriptContent != null}">
         <script th:inline="javascript" >
-            var consoleViewContent = /*[[${session.consoleScriptContent.get('consoleView')}]]*/ null;
-            var scriptContent = /*[[${session.consoleScriptContent.get('scriptContent')}]]*/ null;
+            var consoleViewContent = /*[[${session.consoleScriptContent.get('consoleViewContent')}]]*/ null;
+            var scriptContent = /*[[${session.consoleScriptContent.get('scriptContent')}]]*/ "";
             var consoleScriptActive = /*[[${session.consoleScriptContent.get('active')}]]*/ null;
+            var scriptMessage = /*[[#{database.keyspaces.script.placeholder}]]*/ null;
         </script>
     </th:block>
     <th:block th:if="${consoleScriptContent == null}">
         <script th:inline="javascript" >
             var consoleViewContent = null;
-            var scriptContent = null;
+            var scriptContent = "";
+            var scriptMessage = /*[[#{database.keyspaces.script.placeholder}]]*/ null;
         </script>
     </th:block>
 
-
-    <div class="tab-content row">
-        <div th:class="'tab-pane ' + ${consoleScriptContent == null || consoleScriptContent.get('active') == 'console' ? 'active' : ''}" id="console-div">
-            <div id="terminal" style="position: relative"></div>
+    <div class="row">
+        <div th:style="${consoleScriptContent != null && consoleScriptContent.get('active') == 'script' ? 'display: block;' : 'display:none;'}" th:class="'col-sm-6'" id="script-div">
+            <div id="script">
+                <textarea spellcheck="false" id="script-textarea" name="script" th:text="${session.consoleScriptContent.get('scriptContent')}"></textarea>
+            </div>
         </div>
-        <div th:class="'tab-pane ' + ${consoleScriptContent != null && consoleScriptContent.get('active') == 'script' ? 'active' : ''}" id="script-div">
-            Script
+        <div th:class="${consoleScriptContent == null || consoleScriptContent.get('active') == 'console' ? 'col-sm-12' : 'col-sm-6'}" id="console-div">
+            <div id="terminal"></div>
         </div>
     </div>
-
 </div>
 </body>
 </html>
