@@ -19,7 +19,6 @@ import com.licence.web.services.KeyspaceService;
 import com.licence.web.services.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.configurationprocessor.json.JSONObject;
 import org.springframework.context.MessageSource;
 import org.springframework.http.MediaType;
@@ -47,7 +46,6 @@ import java.text.SimpleDateFormat;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -129,12 +127,52 @@ public class MyDatabaseController {
         return routeProperties.getMyDatabase();
     }
 
+    @GetMapping(value = "${route.search[all]}")
+    public String searchAll(@RequestParam(required = false, name = "search") String search,
+                            Model model,
+                            Authentication authentication,
+                            HttpSession session) {
+        UserKeyspace userKeyspace = updateUserKeyspaces(authentication, session);
+        if (userKeyspace != null) {
+
+            KeyspaceContent keyspaceContent = keyspaceService.getKeyspaceContent(userKeyspace.getKeyspace().getName().toLowerCase());
+            Map<String, KeyspaceContentObject> result = new HashMap<>();
+            if (search != null && !search.isEmpty()) {
+                keyspaceContent.getTables().getContent().forEach(p -> {
+                    String tableName = p.get("table_name").toString();
+                    KeyspaceContentObject content = keyspaceService.getSelectSimple(userKeyspace.getKeyspace().getName(), tableName, "*");
+                    KeyspaceContentObject keyspaceContentObject = new KeyspaceContentObject();
+                    keyspaceContentObject.setTableName(tableName);
+                    keyspaceContentObject.setColumnDefinitions(content.getColumnDefinitions());
+                    keyspaceContentObject.setContent(new ArrayList<>());
+                    Boolean[] ok = {false};
+                    content.getContent().forEach(q -> {
+                        for (Map.Entry<String, Object> entry : q.entrySet()) {
+                            if (entry.getValue() != null && entry.getValue().toString().contains(search)) {
+                                ok[0] = true;
+                                keyspaceContentObject.getContent().add(q);
+                                break;
+                            }
+                        }
+                    });
+                    if(ok[0]) {
+                        result.put(tableName, keyspaceContentObject);
+                    }
+                });
+            }
+            model.addAttribute("searchResult", result);
+        }
+        model.addAttribute("keyspaceSearchSuccess", "The search failed! Please refresh and try again!");
+        model.addAttribute("searchParam", search);
+        return "forward:" + routeProperties.getMyDatabase();
+    }
+
     @ResponseBody
     @PostMapping(value = "${route.script[active]}")
     public String changeToScript(HttpSession session) {
         try {
             Map<String, Object> consoleScriptContent = (Map<String, Object>) session.getAttribute("consoleScriptContent");
-            if(consoleScriptContent != null) {
+            if (consoleScriptContent != null) {
                 consoleScriptContent.put("active", "script");
             }
         } catch (Exception e) {
@@ -148,7 +186,7 @@ public class MyDatabaseController {
     public String changeToConsole(HttpSession session) {
         try {
             Map<String, Object> consoleScriptContent = (Map<String, Object>) session.getAttribute("consoleScriptContent");
-            if(consoleScriptContent != null) {
+            if (consoleScriptContent != null) {
                 consoleScriptContent.put("active", "console");
             }
         } catch (Exception e) {
@@ -164,7 +202,7 @@ public class MyDatabaseController {
                                       HttpSession session) {
         try {
             Map<String, Object> consoleScriptContent = (Map<String, Object>) session.getAttribute("consoleScriptContent");
-            if(consoleScriptContent != null) {
+            if (consoleScriptContent != null) {
                 consoleScriptContent.put("scriptContent", map.get("content"));
                 consoleScriptContent.put("active", "script");
             }
@@ -177,10 +215,10 @@ public class MyDatabaseController {
     @ResponseBody
     @PostMapping(value = "${route.console[content]}")
     public String changeConsoleContent(@RequestBody Map<String, Object> map,
-                                      HttpSession session) {
+                                       HttpSession session) {
         try {
             Map<String, Object> consoleScriptContent = (Map<String, Object>) session.getAttribute("consoleScriptContent");
-            if(consoleScriptContent != null) {
+            if (consoleScriptContent != null) {
                 consoleScriptContent.put("consoleViewContent", map.get("content"));
             }
         } catch (Exception e) {
@@ -200,17 +238,19 @@ public class MyDatabaseController {
             try {
                 String query = (String) map.get("query");
                 if (query != null) {
-                    if(query.trim().length() > 0) {
+                    query = String.join("", query.split("/\\*(.|\\n)*?\\*/"));
+                    if (query.trim().length() > 0) {
                         VerifyQuery verifyQuery = new VerifyQuery(userKeyspace.getKeyspace().getName(), queryProperties);
                         Map<String, Object> detectedQuery = verifyQuery.detectQuery(query);
-                        if(detectedQuery.get("error") != null) {
-                            detectedQuery.put("error", detectedQuery.get("error").toString().replaceAll("]",")").replaceAll("\\[","("));
+                        if (detectedQuery.get("error") != null) {
+                            detectedQuery.put("error", detectedQuery.get("error").toString().replaceAll("]", ")").replaceAll("\\[", "("));
                         } else {
                             // if the type is != null that means the command is a select
-                            if(detectedQuery.get("type") != null) {
+                            if (detectedQuery.get("type") != null) {
                                 try {
-                                    List<Map<String, Object>> content = keyspaceService.select(detectedQuery.get("success").toString());
-                                    detectedQuery.put("value", content);
+                                    KeyspaceContentObject content = keyspaceService.select(detectedQuery.get("success").toString());
+
+                                    detectedQuery.put("value", prepareRowForView(content));
                                 } catch (Exception e) {
                                     detectedQuery.put("error", e.getMessage());
                                 }
@@ -1084,29 +1124,34 @@ public class MyDatabaseController {
                 }
             }
             // after we prepare the values from the data for the frontend
-            List<Map<String, String>> updateString = new ArrayList<>();
-            update.getContent().forEach(p -> {
-                Map<String, String> map1 = new HashMap<>();
-                p.forEach((k, v) -> {
-                    if (v != null) {
-                        DataType type = update.getColumnDefinitions().getType(k);
-                        // if the type is not viewable (date/time/byte), we cast it and convert it
-                        if (type.getName().toString().equals("blob") || type.getName().toString().equals("time") || type.isCollection() || type.getName().toString().equals("timestamp")) {
-                            String obj = databaseCorrespondence(v, type);
-                            // eliminate the string format (the first and last ')
-                            if (obj != null && obj.indexOf('\'') == 0 && obj.lastIndexOf('\'') == obj.length() - 1)
-                                obj = obj.substring(1, obj.length() - 1);
-                            map1.put(k, obj);
-                        } else
-                            map1.put(k, v.toString());
-                    } else
-                        map1.put(k, null);
-                });
-                updateString.add(map1);
-            });
-            map.put("data", updateString);
+
+            map.put("data", prepareRowForView(update));
         }
         return map;
+    }
+
+    private List<Map<String, String>> prepareRowForView(KeyspaceContentObject update) {
+        List<Map<String, String>> updateString = new ArrayList<>();
+        update.getContent().forEach(p -> {
+            Map<String, String> map1 = new HashMap<>();
+            p.forEach((k, v) -> {
+                if (v != null) {
+                    DataType type = update.getColumnDefinitions().getType(k);
+                    // if the type is not viewable (date/time/byte), we cast it and convert it
+                    if (type.getName().toString().equals("blob") || type.getName().toString().equals("time") || type.isCollection() || type.getName().toString().equals("timestamp")) {
+                        String obj = databaseCorrespondence(v, type);
+                        // eliminate the string format (the first and last ')
+                        if (obj != null && obj.indexOf('\'') == 0 && obj.lastIndexOf('\'') == obj.length() - 1)
+                            obj = obj.substring(1, obj.length() - 1);
+                        map1.put(k, obj);
+                    } else
+                        map1.put(k, v.toString());
+                } else
+                    map1.put(k, null);
+            });
+            updateString.add(map1);
+        });
+        return updateString;
     }
 
     @ResponseBody
@@ -1426,6 +1471,7 @@ public class MyDatabaseController {
                 session.setAttribute("activePanel", keyspaceProperties.getPanel().get("manage"));
                 session.setAttribute("dataContent", null);
                 session.setAttribute("myKeyspacesPanelPosition", "close");
+                session.setAttribute("consoleScriptContent", null);
                 return "redirect:" + routeProperties.getMyDatabase();
             } else {
                 message = "Access denied! Incorect password!";

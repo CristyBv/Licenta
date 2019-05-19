@@ -451,16 +451,20 @@ public class KeyspaceService {
         }
     }
 
-    public List<Map<String,Object>> select(String query) throws Exception {
+    public KeyspaceContentObject select(String query) throws Exception {
+        KeyspaceContentObject keyspaceContentObject = new KeyspaceContentObject();
         System.out.println(query);
         try {
-            return adminOperations.getCqlOperations().query(query, new RowMapper<Map<String, Object>>() {
+            List<Map<String,Object>> content =  adminOperations.getCqlOperations().query(query, new RowMapper<Map<String, Object>>() {
                 @Nullable
                 @Override
                 public Map<String, Object> mapRow(Row row, int rowNum) throws DriverException {
+                    keyspaceContentObject.setColumnDefinitions(row.getColumnDefinitions());
                     return getRowMap(row);
                 }
             });
+            keyspaceContentObject.setContent(content);
+            return keyspaceContentObject;
         } catch (Exception e) {
             throw new Exception(query + " ---> " + e.getCause().getMessage());
         }

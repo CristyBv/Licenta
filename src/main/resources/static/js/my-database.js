@@ -1,7 +1,9 @@
 var tablesTop = [];
 var tablesBottom = [];
+var tablesSearch = [];
 var terminal;
 var consoleStack = "";
+
 $(document).ready(function () {
 
     // Put the user-keyspace first in the list
@@ -17,12 +19,25 @@ $(document).ready(function () {
     initToolTips();
     initSelect2();
     initDataTables();
-    addMouseWheelAndContextMenuEvent(tablesBottom);
+    addMouseWheelAndContextMenuEvent("#content-div table.dataTable thead th");
     ajaxDataTableStructure();
     safeUpdateDelete();
     onEvents();
     initConsoleScript();
+    initSearch();
 });
+
+function initSearch() {
+    if($("#search-div").html() != undefined) {
+        $("#search-results").find('table').each(function () {
+            tablesSearch.push(drawDataTableNoServerSide($(this).attr('id')));
+        });
+        $("#search-input").on('change', function () {
+            $("#search-form").submit();
+        });
+    }
+}
+
 function initConsoleScript() {
 
     if ($('#terminal').html() != undefined) {
@@ -203,7 +218,7 @@ function initConsoleScript() {
                                     for (var j = 0; j < space - key.length; j++) {
                                         spaceDif += " ";
                                     }
-                                    terminal.echo("[[ib;#DEB887;]" + key + "]" + spaceDif + " | " + JSON.stringify(content[i][key]));
+                                    terminal.echo("[[ib;#DEB887;]" + key + "]" + spaceDif + " | " + content[i][key]);
                                 });
                                 terminal.echo("-----------------------------------------------------------------");
                             }
@@ -776,10 +791,10 @@ function addTriggersToSelect() {
         }
     }
 }
-function addMouseWheelAndContextMenuEvent() {
+function addMouseWheelAndContextMenuEvent(id) {
     // if the event already exists, we eliminate it to not add duplicates
-    $("#content-div table.dataTable thead th").prop("onmousewheel", null).off("mousewheel");
-    $("#content-div table.dataTable thead th").on('mousewheel', function (e) {
+    $(id).prop("onmousewheel", null).off("mousewheel");
+    $(id).on('mousewheel', function (e) {
         e.preventDefault();
         var padL, padR;
         if (e.originalEvent.wheelDelta > 0) {
@@ -798,8 +813,8 @@ function addMouseWheelAndContextMenuEvent() {
             }
         }
     });
-    $("#content-div table.dataTable thead th").prop("oncontextmenu", null).off("contextmenu");
-    $("#content-div table.dataTable thead th").on('contextmenu', function (e) {
+    $(id).prop("oncontextmenu", null).off("contextmenu");
+    $(id).on('contextmenu', function (e) {
         e.preventDefault();
         tablesBottom[0].column(this).visible(false);
     });

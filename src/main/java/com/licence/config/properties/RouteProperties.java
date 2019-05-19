@@ -22,6 +22,7 @@ public class RouteProperties {
     private Map<String, String> get;
     private Map<String, String> keyspace;
     private Map<String, String> searchLive;
+    private Map<String, String> search;
     private Map<String, String> delete;
     private Map<String, String> change;
     private Map<String, String> insert;
