@@ -1,10 +1,11 @@
 package com.licence.web.models.UDT;
 
+import org.springframework.data.annotation.Transient;
+import com.licence.web.models.User;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.data.cassandra.core.mapping.UserDefinedType;
-import org.springframework.format.annotation.DateTimeFormat;
 
 import java.util.Date;
 
@@ -16,4 +17,7 @@ public class KeyspaceLog {
     private String content;
     private Date date;
     private String username;
+    private String type;
+    @Transient
+    private User user;
 }

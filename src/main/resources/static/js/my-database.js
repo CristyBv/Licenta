@@ -2,6 +2,7 @@ var tablesTop = [];
 var tablesBottom = [];
 var tablesSearch = [];
 var terminal;
+var logTerminal;
 var consoleStack = "";
 
 $(document).ready(function () {
@@ -25,10 +26,70 @@ $(document).ready(function () {
     onEvents();
     initConsoleScript();
     initSearch();
+    initImportExport();
+    initLog();
 });
 
+function appendLeadingZeroes(n){
+    if(n <= 9){
+        return "0" + n;
+    }
+    return n
+}
+
+function initLog() {
+    if ($("#log-div").html() != undefined) {
+        logTerminal = $('#log-terminal').terminal(function (cmd) {
+
+        }, {
+            greetings: "",
+            prompt: "[[g;black;]>] ",
+            convertLinks: false
+        });
+        //logTerminal.pause();
+        for(var i = 0 ; i < logsContent.length ; i++) {
+            var date = new Date(Date.parse(logsContent[i]["date"]));
+            var formatDate = date.getFullYear() + "-" + appendLeadingZeroes(date.getMonth() + 1) + "-" + appendLeadingZeroes(date.getDate()) + " " + appendLeadingZeroes(date.getHours()) + ":" + appendLeadingZeroes(date.getMinutes()) + ":" + appendLeadingZeroes(date.getSeconds());
+
+            logTerminal.echo("[[bi;;]" + logsContent[i]["username"] + "] - [[;;]" + formatDate);
+            if(logsContent[i]["type"] == logsCreate) {
+                logTerminal.echo("[[i;green;]" + logsContent[i]["content"]);
+            } else if(logsContent[i]["type"] == logsUpdate) {
+                logTerminal.echo("[[i;blue;]" + logsContent[i]["content"]);
+            } else if(logsContent[i]["type"] == logsDelete) {
+                logTerminal.echo("[[i;red;]" + logsContent[i]["content"]);
+            }
+            logTerminal.echo();
+        }
+        logTerminal.scroll_to_bottom();
+    }
+}
+
+function initImportExport() {
+    if ($("#import-export-div").html() != undefined) {
+        $("#export-excel-select-table, #export-json-select-table").select2({
+            width: '100%',
+            placeholder: "Select a Table or a View",
+            allowClear: true,
+            ajax: {
+                url: searchTableViewLiveUrl,
+                dataType: 'json',
+                data: function (params) {
+                    var query = {
+                        search: params.term
+                    };
+                    return query;
+                },
+                processResults: function (data) {
+                    return data;
+                }
+            }
+        });
+    }
+}
+
 function initSearch() {
-    if($("#search-div").html() != undefined) {
+    if ($("#search-div").html() != undefined) {
         $("#search-results").find('table').each(function () {
             tablesSearch.push(drawDataTableNoServerSide($(this).attr('id')));
         });
@@ -202,8 +263,8 @@ function initConsoleScript() {
                 } else if (result["success"] != null) {
                     terminal.echo("\n" + result["success"]);
                     terminal.echo("[[;green;]Valid!\n");
-                    if (result["type"] != null && result["value"] != null) {
-                        var content = result["value"];
+                    if (result["type"] == "select" && result["content"] != null) {
+                        var content = result["content"];
                         var space = 30;
                         if (content.length > 0) {
                             // var colnNames = [];

@@ -20,6 +20,8 @@ import javax.validation.constraints.Min;
 import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.Pattern;
 import javax.validation.constraints.Size;
+import java.util.Calendar;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 
@@ -68,4 +70,13 @@ public class Keyspace {
     @CassandraType(type = DataType.Name.UDT, userTypeName = "keyspace_user")
     private List<KeyspaceUser> users;
 
+    @Transient
+    public void addLog(String type, String content, String username) {
+        KeyspaceLog keyspaceLog = new KeyspaceLog();
+        keyspaceLog.setDate(Calendar.getInstance().getTime());
+        keyspaceLog.setType(type);
+        keyspaceLog.setUsername(username);
+        keyspaceLog.setContent(content);
+        this.getLog().add(keyspaceLog);
+    }
 }

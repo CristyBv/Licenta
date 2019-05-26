@@ -3,11 +3,17 @@ package com.licence.web.controllers;
 import com.datastax.driver.core.ColumnDefinitions;
 import com.datastax.driver.core.DataType;
 import com.datastax.driver.core.LocalDate;
+import com.fasterxml.jackson.core.JsonGenerationException;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.licence.config.properties.KeyspaceProperties;
 import com.licence.config.properties.QueryProperties;
 import com.licence.config.properties.RouteProperties;
 import com.licence.config.security.CassandraUserDetails;
 import com.licence.config.validation.password.match.PasswordMatches;
+import com.licence.web.helpers.ExcelHelper;
+import com.licence.web.models.Backup;
 import com.licence.web.models.Keyspace;
 import com.licence.web.models.UDT.KeyspaceUser;
 import com.licence.web.models.UDT.UserKeyspace;
@@ -15,10 +21,13 @@ import com.licence.web.models.User;
 import com.licence.web.models.pojo.KeyspaceContent;
 import com.licence.web.models.pojo.KeyspaceContentObject;
 import com.licence.web.models.pojo.VerifyQuery;
+import com.licence.web.services.BackupService;
 import com.licence.web.services.KeyspaceService;
 import com.licence.web.services.UserService;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.configurationprocessor.json.JSONObject;
 import org.springframework.context.MessageSource;
 import org.springframework.http.MediaType;
@@ -36,16 +45,23 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.SessionAttribute;
 import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.server.WebSession;
 
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import javax.validation.Valid;
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -64,13 +80,16 @@ public class MyDatabaseController {
     private final RouteProperties routeProperties;
     private final QueryProperties queryProperties;
     private final KeyspaceService keyspaceService;
+    private final BackupService backupService;
     private final UserService userService;
     private final MessageSource messages;
     private final KeyspaceProperties keyspaceProperties;
     private final BCryptPasswordEncoder bCryptPasswordEncoder;
+    @Value("${app.domain.name}")
+    private String appDomainName;
 
     @Autowired
-    public MyDatabaseController(RouteProperties routeProperties, KeyspaceService keyspaceService, UserService userService, @Qualifier("messageSource") MessageSource messages, KeyspaceProperties keyspaceProperties, BCryptPasswordEncoder bCryptPasswordEncoder, QueryProperties queryProperties) {
+    public MyDatabaseController(RouteProperties routeProperties, KeyspaceService keyspaceService, UserService userService, @Qualifier("messageSource") MessageSource messages, KeyspaceProperties keyspaceProperties, BCryptPasswordEncoder bCryptPasswordEncoder, QueryProperties queryProperties, BackupService backupService) {
         this.routeProperties = routeProperties;
         this.keyspaceService = keyspaceService;
         this.userService = userService;
@@ -78,6 +97,7 @@ public class MyDatabaseController {
         this.keyspaceProperties = keyspaceProperties;
         this.bCryptPasswordEncoder = bCryptPasswordEncoder;
         this.queryProperties = queryProperties;
+        this.backupService = backupService;
     }
 
     @RequestMapping(value = "${route.myDatabase}")
@@ -120,11 +140,116 @@ public class MyDatabaseController {
                         session.setAttribute("consoleScriptContent", consoleScriptMap);
                     }
                 }
+                if (Objects.equals(activePanel, keyspaceProperties.getPanel().get("log"))) {
+                    userKeyspace.getKeyspace().getLog().forEach(p -> {
+                        p.setUser(userService.findUserByUsername(p.getUsername()));
+                    });
+                }
             }
         }
         model.addAttribute("keyspaceObject", new Keyspace());
         model.addAttribute("keyspaces", getUserKeyspaces(user));
         return routeProperties.getMyDatabase();
+    }
+
+
+    @ResponseBody
+    @GetMapping(value = "${route.export[json-keyspace]}")
+    public void exportJsonKeyspace(Authentication authentication,
+                                   HttpSession session,
+                                   HttpServletResponse response,
+                                   HttpServletRequest request) {
+        UserKeyspace userKeyspace = updateUserKeyspaces(authentication, session);
+        if (userKeyspace != null) {
+            Boolean error = false;
+            try {
+                ObjectMapper mapper = new ObjectMapper();
+                response.setHeader("Content-disposition", "attachment; filename=" + userKeyspace.getKeyspace().getName() + ".json");
+                mapper.writeValue(response.getOutputStream(), getAllKeyspaceContent(userKeyspace));
+            } catch (JsonGenerationException | JsonMappingException e) {
+                error = true;
+            } catch (IOException e) {
+                error = true;
+            }
+            if (error) {
+                request.setAttribute("keyspaceImportExportError", "Export keyspace failed! Please refresh and try again!");
+                try {
+                    request.getRequestDispatcher(routeProperties.getMyDatabase()).forward(request, response);
+                } catch (ServletException | IOException e1) {
+                    e1.printStackTrace();
+                }
+            }
+        }
+    }
+
+    private Map<String, Object> getAllKeyspaceContent(UserKeyspace userKeyspace) {
+        Map<String, Object> map = new HashMap<>();
+        KeyspaceContent keyspaceContent = keyspaceService.getKeyspaceContent(userKeyspace.getKeyspace().getName().toLowerCase());
+        map.put("Keyspace", userKeyspace.getKeyspace());
+        map.put("KeyspaceContent", keyspaceContent);
+        List<KeyspaceContentObject> list = new ArrayList<>();
+        keyspaceContent.getTables().getContent().forEach(p -> {
+            list.add(keyspaceService.getSelectSimple(userKeyspace.getKeyspace().getName(), p.get("table_name").toString(), "*"));
+        });
+        map.put("TablesContent", list);
+        return map;
+    }
+
+    @ResponseBody
+    @GetMapping(value = "${route.export[json-table-view]}")
+    public void exportJsonTableView(@RequestParam String tableName,
+                                    Authentication authentication,
+                                    HttpSession session,
+                                    HttpServletResponse response,
+                                    HttpServletRequest request) {
+        UserKeyspace userKeyspace = updateUserKeyspaces(authentication, session);
+        if (userKeyspace != null) {
+            Boolean error = false;
+            KeyspaceContentObject table = keyspaceService.getSelectSimple(userKeyspace.getKeyspace().getName(), tableName, "*");
+            try {
+                ObjectMapper mapper = new ObjectMapper();
+                response.setHeader("Content-disposition", "attachment; filename=" + tableName + ".json");
+                mapper.writeValue(response.getOutputStream(), table.getContent());
+            } catch (JsonGenerationException | JsonMappingException e) {
+                error = true;
+            } catch (IOException e) {
+                error = true;
+            }
+            if (error) {
+                request.setAttribute("keyspaceImportExportError", "Export failed! Please refresh and try again!");
+                try {
+                    request.getRequestDispatcher(routeProperties.getMyDatabase()).forward(request, response);
+                } catch (ServletException | IOException e1) {
+                    e1.printStackTrace();
+                }
+            }
+        }
+    }
+
+    @ResponseBody
+    @GetMapping(value = "${route.export[excel-table-view]}")
+    public void exportExcelTableView(@RequestParam String tableName,
+                                     Authentication authentication,
+                                     HttpSession session,
+                                     HttpServletResponse response,
+                                     HttpServletRequest request) {
+        UserKeyspace userKeyspace = updateUserKeyspaces(authentication, session);
+        if (userKeyspace != null) {
+            KeyspaceContentObject table = keyspaceService.getSelectSimple(userKeyspace.getKeyspace().getName(), tableName, "*");
+            ExcelHelper excelHelper = new ExcelHelper();
+            XSSFWorkbook workbook = excelHelper.createTable(table);
+            response.setHeader("Content-disposition", "attachment; filename=" + tableName + ".xlsx");
+            try {
+                workbook.write(response.getOutputStream());
+            } catch (IOException e) {
+                request.setAttribute("keyspaceImportExportError", "Export failed! Please refresh and try again!");
+                try {
+                    request.getRequestDispatcher(routeProperties.getMyDatabase()).forward(request, response);
+                } catch (ServletException | IOException e1) {
+                    e1.printStackTrace();
+                }
+            }
+        }
     }
 
     @GetMapping(value = "${route.search[all]}")
@@ -134,10 +259,10 @@ public class MyDatabaseController {
                             HttpSession session) {
         UserKeyspace userKeyspace = updateUserKeyspaces(authentication, session);
         if (userKeyspace != null) {
-
             KeyspaceContent keyspaceContent = keyspaceService.getKeyspaceContent(userKeyspace.getKeyspace().getName().toLowerCase());
             Map<String, KeyspaceContentObject> result = new HashMap<>();
-            if (search != null && !search.isEmpty()) {
+            if (search != null && !search.trim().isEmpty()) {
+                Set<String> setSearch = Arrays.stream(search.trim().toLowerCase().split("@")).filter(p -> !p.trim().isEmpty()).collect(Collectors.toSet());
                 keyspaceContent.getTables().getContent().forEach(p -> {
                     String tableName = p.get("table_name").toString();
                     KeyspaceContentObject content = keyspaceService.getSelectSimple(userKeyspace.getKeyspace().getName(), tableName, "*");
@@ -146,23 +271,35 @@ public class MyDatabaseController {
                     keyspaceContentObject.setColumnDefinitions(content.getColumnDefinitions());
                     keyspaceContentObject.setContent(new ArrayList<>());
                     Boolean[] ok = {false};
-                    content.getContent().forEach(q -> {
-                        for (Map.Entry<String, Object> entry : q.entrySet()) {
-                            if (entry.getValue() != null && entry.getValue().toString().contains(search)) {
-                                ok[0] = true;
-                                keyspaceContentObject.getContent().add(q);
-                                break;
+                    for (Map<String, Object> objectMap : content.getContent()) {
+                        for (Map.Entry<String, Object> entry : objectMap.entrySet()) {
+                            Boolean rowResultFound = false;
+                            for (String s : setSearch) {
+                                if (!s.trim().isEmpty() && entry.getValue() != null && entry.getValue().toString().toLowerCase().contains(s.trim())) {
+                                    ok[0] = true;
+                                    rowResultFound = true;
+                                    keyspaceContentObject.getContent().add(objectMap);
+                                    break;
+                                }
                             }
+                            if (rowResultFound)
+                                break;
                         }
-                    });
-                    if(ok[0]) {
+                        Integer maxRowsPerTable = Integer.parseInt(keyspaceProperties.getSearch().get("maxRowsPerTable"));
+                        if (keyspaceContentObject.getContent().size() == maxRowsPerTable) {
+                            model.addAttribute("keyspaceSearchError", "Some results are not shown because some tables contains more then " + maxRowsPerTable + " rows! Please search by non-ambiguous parameters!");
+                            break;
+                        }
+                    }
+                    if (ok[0]) {
                         result.put(tableName, keyspaceContentObject);
                     }
                 });
             }
             model.addAttribute("searchResult", result);
+        } else {
+            model.addAttribute("keyspaceSearchError", "The search failed! Please refresh and try again!");
         }
-        model.addAttribute("keyspaceSearchSuccess", "The search failed! Please refresh and try again!");
         model.addAttribute("searchParam", search);
         return "forward:" + routeProperties.getMyDatabase();
     }
@@ -233,11 +370,14 @@ public class MyDatabaseController {
     public Map<String, Object> consoleInterpretor(@RequestBody Map<String, Object> map,
                                                   Authentication authentication,
                                                   HttpSession session) {
+        CassandraUserDetails userDetails = (CassandraUserDetails) authentication.getPrincipal();
+        User user = userDetails.getUser();
         UserKeyspace userKeyspace = updateUserKeyspaces(authentication, session);
         if (userKeyspace != null) {
             try {
                 String query = (String) map.get("query");
                 if (query != null) {
+                    // eliminate comments from query
                     query = String.join("", query.split("/\\*(.|\\n)*?\\*/"));
                     if (query.trim().length() > 0) {
                         VerifyQuery verifyQuery = new VerifyQuery(userKeyspace.getKeyspace().getName(), queryProperties);
@@ -246,17 +386,27 @@ public class MyDatabaseController {
                             detectedQuery.put("error", detectedQuery.get("error").toString().replaceAll("]", ")").replaceAll("\\[", "("));
                         } else {
                             // if the type is != null that means the command is a select
-                            if (detectedQuery.get("type") != null) {
+                            if (detectedQuery.get("type").equals("select")) {
                                 try {
                                     KeyspaceContentObject content = keyspaceService.select(detectedQuery.get("success").toString());
-
-                                    detectedQuery.put("value", prepareRowForView(content));
+                                    detectedQuery.put("content", prepareRowForView(content));
                                 } catch (Exception e) {
                                     detectedQuery.put("error", e.getMessage());
                                 }
                             } else {
                                 try {
                                     keyspaceService.execute(detectedQuery.get("success").toString());
+                                    String type = detectedQuery.get("type").toString();
+                                    // prepare and add log
+                                    String logContent = "Executed a query in this keyspace!\n     Query: " + detectedQuery.get("success");
+                                    if (type.contains("update") || type.contains("alter") || type.contains("batch")) {
+                                        userKeyspace.getKeyspace().addLog(keyspaceProperties.getLog().get("typeUpdate"), logContent, user.getUserName());
+                                    } else if (type.contains("drop") || type.contains("truncate") || type.contains("delete")) {
+                                        userKeyspace.getKeyspace().addLog(keyspaceProperties.getLog().get("typeDelete"), logContent, user.getUserName());
+                                    } else if (type.contains("create") || type.contains("insert")) {
+                                        userKeyspace.getKeyspace().addLog(keyspaceProperties.getLog().get("typeCreate"), logContent, user.getUserName());
+                                    }
+                                        keyspaceService.save(userKeyspace.getKeyspace(), false, false);
                                 } catch (Exception e) {
                                     detectedQuery.put("error", e.getMessage());
                                 }
@@ -266,7 +416,6 @@ public class MyDatabaseController {
                     } else {
                         return new HashMap<>();
                     }
-
                 }
             } catch (Exception e) {
                 return new HashMap<>();
@@ -280,11 +429,30 @@ public class MyDatabaseController {
                               @RequestParam(required = false) String tableName,
                               Authentication authentication,
                               HttpSession session,
-                              Model model) {
+                              Model model,
+                              HttpServletRequest request) {
+        CassandraUserDetails userDetails = (CassandraUserDetails) authentication.getPrincipal();
+        User user = userDetails.getUser();
         UserKeyspace userKeyspace = updateUserKeyspaces(authentication, session);
         if (userKeyspace != null) {
             try {
+                // prepare backup for this trigger structure
+                KeyspaceContent keyspaceContent = keyspaceService.getKeyspaceContent(userKeyspace.getKeyspace().getName().toLowerCase());
+                String backupContent;
+                try {
+                    ObjectMapper objectMapper = new ObjectMapper();
+                    Map<String, Object> triggerMap = keyspaceContent.getTriggers().getContent().stream().filter(p -> p.get("trigger_name").toString().equals(triggerName)).findAny().orElse(null);
+                    backupContent = objectMapper.writeValueAsString(triggerMap);
+                } catch (JsonProcessingException e) {
+                    backupContent = "Json parse error for trigger structure!";
+                }
+
                 keyspaceService.dropTrigger(userKeyspace.getKeyspace().getName(), tableName, triggerName);
+
+                // prepare and add log with backup url
+                String logContent = "Dropped a trigger from this keyspace!\n     Name: " + triggerName + "\n     Backup-trigger: " + backupService.getUrlBackupSave(backupContent, userKeyspace.getKeyspace().getName(), appDomainName);
+                userKeyspace.getKeyspace().addLog(keyspaceProperties.getLog().get("typeDelete"), logContent, user.getUserName());
+                keyspaceService.save(userKeyspace.getKeyspace(), false, false);
                 model.addAttribute("keyspaceViewEditSuccess", "Trigger deleted!");
                 return "forward:" + routeProperties.getMyDatabase();
             } catch (Exception e) {
@@ -304,10 +472,16 @@ public class MyDatabaseController {
                                 HttpSession session,
                                 Model model) {
         //request.getParameterMap().forEach((k, v) -> System.out.println(k + " --- " + Arrays.toString(v)));
+        CassandraUserDetails userDetails = (CassandraUserDetails) authentication.getPrincipal();
+        User user = userDetails.getUser();
         UserKeyspace userKeyspace = updateUserKeyspaces(authentication, session);
         if (userKeyspace != null) {
             try {
                 keyspaceService.createTrigger(userKeyspace.getKeyspace().getName(), tableName, triggerName, triggerClass);
+                // prepare and add log with backup url
+                String logContent = "Created a trigger in this keyspace!\n     Name: " + triggerName;
+                userKeyspace.getKeyspace().addLog(keyspaceProperties.getLog().get("typeCreate"), logContent, user.getUserName());
+                keyspaceService.save(userKeyspace.getKeyspace(), false, false);
                 model.addAttribute("keyspaceViewEditSuccess", "Trigger created!");
                 return "forward:" + routeProperties.getMyDatabase();
             } catch (Exception e) {
@@ -323,11 +497,30 @@ public class MyDatabaseController {
     public String dropAggregate(@RequestParam(required = false) String aggregateName,
                                 Authentication authentication,
                                 HttpSession session,
-                                Model model) {
+                                Model model,
+                                HttpServletRequest request) {
+        CassandraUserDetails userDetails = (CassandraUserDetails) authentication.getPrincipal();
+        User user = userDetails.getUser();
         UserKeyspace userKeyspace = updateUserKeyspaces(authentication, session);
         if (userKeyspace != null) {
             try {
+                // prepare backup for this aggregate structure
+                KeyspaceContent keyspaceContent = keyspaceService.getKeyspaceContent(userKeyspace.getKeyspace().getName().toLowerCase());
+                String backupContent;
+                try {
+                    ObjectMapper objectMapper = new ObjectMapper();
+                    Map<String, Object> aggregateMap = keyspaceContent.getAggregates().getContent().stream().filter(p -> p.get("aggregate_name").toString().equals(aggregateName)).findAny().orElse(null);
+                    backupContent = objectMapper.writeValueAsString(aggregateMap);
+                } catch (JsonProcessingException e) {
+                    backupContent = "Json parse error for aggregate structure!";
+                }
+
                 keyspaceService.dropAggregate(userKeyspace.getKeyspace().getName(), aggregateName);
+
+                // prepare and add log with backup url
+                String logContent = "Dropped an aggregate from this keyspace!\n     Name: " + aggregateName + "\n     Backup-aggregate: " + backupService.getUrlBackupSave(backupContent, userKeyspace.getKeyspace().getName(), appDomainName);
+                userKeyspace.getKeyspace().addLog(keyspaceProperties.getLog().get("typeDelete"), logContent, user.getUserName());
+                keyspaceService.save(userKeyspace.getKeyspace(), false, false);
                 model.addAttribute("keyspaceViewEditSuccess", "Aggregate deleted!");
                 return "forward:" + routeProperties.getMyDatabase();
             } catch (Exception e) {
@@ -352,12 +545,18 @@ public class MyDatabaseController {
                                   WebRequest request,
                                   Model model) {
         //request.getParameterMap().forEach((k, v) -> System.out.println(k + " --- " + Arrays.toString(v)));
+        CassandraUserDetails userDetails = (CassandraUserDetails) authentication.getPrincipal();
+        User user = userDetails.getUser();
         UserKeyspace userKeyspace = updateUserKeyspaces(authentication, session);
         if (userKeyspace != null) {
             if (replace == null)
                 replace = "";
             try {
                 keyspaceService.createAggregate(userKeyspace.getKeyspace().getName(), aggregateName, replace, returnType, stateFunction, stateType, finalFunction, initialCondition);
+                // prepare and add log with backup url
+                String logContent = "Created an aggregate in this keyspace!\n     Name: " + aggregateName;
+                userKeyspace.getKeyspace().addLog(keyspaceProperties.getLog().get("typeCreate"), logContent, user.getUserName());
+                keyspaceService.save(userKeyspace.getKeyspace(), false, false);
                 model.addAttribute("keyspaceViewEditSuccess", "Aggregate created!");
                 return "forward:" + routeProperties.getMyDatabase();
             } catch (Exception e) {
@@ -373,11 +572,30 @@ public class MyDatabaseController {
     public String dropFunction(@RequestParam(required = false) String functionName,
                                Authentication authentication,
                                HttpSession session,
-                               Model model) {
+                               Model model,
+                               HttpServletRequest request) {
+        CassandraUserDetails userDetails = (CassandraUserDetails) authentication.getPrincipal();
+        User user = userDetails.getUser();
         UserKeyspace userKeyspace = updateUserKeyspaces(authentication, session);
         if (userKeyspace != null) {
             try {
+                // prepare backup for this function structure
+                KeyspaceContent keyspaceContent = keyspaceService.getKeyspaceContent(userKeyspace.getKeyspace().getName().toLowerCase());
+                String backupContent;
+                try {
+                    ObjectMapper objectMapper = new ObjectMapper();
+                    Map<String, Object> functionMap = keyspaceContent.getFunctions().getContent().stream().filter(p -> p.get("function_name").toString().equals(functionName)).findAny().orElse(null);
+                    backupContent = objectMapper.writeValueAsString(functionMap);
+                } catch (JsonProcessingException e) {
+                    backupContent = "Json parse error for function structure!";
+                }
+
                 keyspaceService.dropFunction(userKeyspace.getKeyspace().getName(), functionName);
+
+                // prepare and add log with backup url
+                String logContent = "Dropped a function from this keyspace!\n     Name: " + functionName + "\n     Backup-function: " + backupService.getUrlBackupSave(backupContent, userKeyspace.getKeyspace().getName(), appDomainName);
+                userKeyspace.getKeyspace().addLog(keyspaceProperties.getLog().get("typeDelete"), logContent, user.getUserName());
+                keyspaceService.save(userKeyspace.getKeyspace(), false, false);
                 model.addAttribute("keyspaceViewEditSuccess", "Function deleted!");
                 return "forward:" + routeProperties.getMyDatabase();
             } catch (Exception e) {
@@ -402,12 +620,18 @@ public class MyDatabaseController {
                                  WebRequest request,
                                  Model model) {
         //request.getParameterMap().forEach((k, v) -> System.out.println(k + " --- " + Arrays.toString(v)));
+        CassandraUserDetails userDetails = (CassandraUserDetails) authentication.getPrincipal();
+        User user = userDetails.getUser();
         UserKeyspace userKeyspace = updateUserKeyspaces(authentication, session);
         if (userKeyspace != null) {
             if (replace == null)
                 replace = "";
             try {
                 keyspaceService.createFunction(userKeyspace.getKeyspace().getName(), functionName, replace, inputs, onNullInput, returns, language, codeBlock);
+                // prepare and add log with backup url
+                String logContent = "Created a function in this keyspace!\n     Name: " + functionName;
+                userKeyspace.getKeyspace().addLog(keyspaceProperties.getLog().get("typeCreate"), logContent, user.getUserName());
+                keyspaceService.save(userKeyspace.getKeyspace(), false, false);
                 model.addAttribute("keyspaceViewEditSuccess", "Function created!");
                 return "forward:" + routeProperties.getMyDatabase();
             } catch (Exception e) {
@@ -423,11 +647,30 @@ public class MyDatabaseController {
     public String dropType(@RequestParam(required = false) String type,
                            Authentication authentication,
                            HttpSession session,
-                           Model model) {
+                           Model model,
+                           HttpServletRequest request) {
+        CassandraUserDetails userDetails = (CassandraUserDetails) authentication.getPrincipal();
+        User user = userDetails.getUser();
         UserKeyspace userKeyspace = updateUserKeyspaces(authentication, session);
         if (userKeyspace != null) {
             try {
+                // prepare backup for this type structure
+                KeyspaceContent keyspaceContent = keyspaceService.getKeyspaceContent(userKeyspace.getKeyspace().getName().toLowerCase());
+                String backupContent;
+                try {
+                    ObjectMapper objectMapper = new ObjectMapper();
+                    Map<String, Object> typeMap = keyspaceContent.getTypes().getContent().stream().filter(p -> p.get("type_name").toString().equals(type)).findAny().orElse(null);
+                    backupContent = objectMapper.writeValueAsString(typeMap);
+                } catch (JsonProcessingException e) {
+                    backupContent = "Json parse error for type structure!";
+                }
+
                 keyspaceService.dropType(userKeyspace.getKeyspace().getName(), type);
+
+                // prepare and add log with backup url
+                String logContent = "Dropped a type from this keyspace!\n     Name: " + type + "\n     Backup-type: " + backupService.getUrlBackupSave(backupContent, userKeyspace.getKeyspace().getName(), appDomainName);
+                userKeyspace.getKeyspace().addLog(keyspaceProperties.getLog().get("typeDelete"), logContent, user.getUserName());
+                keyspaceService.save(userKeyspace.getKeyspace(), false, false);
                 model.addAttribute("keyspaceViewEditSuccess", "Type deleted!");
                 return "forward:" + routeProperties.getMyDatabase();
             } catch (Exception e) {
@@ -444,6 +687,8 @@ public class MyDatabaseController {
                             WebRequest request,
                             HttpSession session,
                             Model model) {
+        CassandraUserDetails userDetails = (CassandraUserDetails) authentication.getPrincipal();
+        User user = userDetails.getUser();
         UserKeyspace userKeyspace = updateUserKeyspaces(authentication, session);
         String typeName = request.getParameter("type_name_readonly");
         String field = request.getParameter("field_names");
@@ -470,6 +715,10 @@ public class MyDatabaseController {
                     fieldsList.delete(fieldsList.length() - 4, fieldsList.length());
                 try {
                     keyspaceService.alterTypeRenameFields(userKeyspace.getKeyspace().getName(), typeName, fieldsList.toString());
+                    // prepare and add log with backup url
+                    String logContent = "Altered a type (rename field(s)) in this keyspace!\n     Name: " + typeName + "\n     Rename: " + fieldsList.toString();
+                    userKeyspace.getKeyspace().addLog(keyspaceProperties.getLog().get("typeUpdate"), logContent, user.getUserName());
+                    keyspaceService.save(userKeyspace.getKeyspace(), false, false);
                     model.addAttribute("keyspaceViewEditSuccess", "Field(s) renamed!");
                     return "forward:" + routeProperties.getMyDatabase();
                 } catch (Exception e) {
@@ -480,6 +729,10 @@ public class MyDatabaseController {
             } else if (field.split("@").length == 2) {
                 try {
                     keyspaceService.alterTypeAddField(userKeyspace.getKeyspace().getName(), typeName, field.split("@")[0], field.split("@")[1]);
+                    // prepare and add log with backup url
+                    String logContent = "Altered a type (add field) in this keyspace!\n     Name: " + typeName + "\n     Add: " + field.split("@")[0] + " " + field.split("@")[1];
+                    userKeyspace.getKeyspace().addLog(keyspaceProperties.getLog().get("typeUpdate"), logContent, user.getUserName());
+                    keyspaceService.save(userKeyspace.getKeyspace(), false, false);
                     model.addAttribute("keyspaceViewEditSuccess", "Field added!");
                     return "forward:" + routeProperties.getMyDatabase();
                 } catch (Exception e) {
@@ -498,10 +751,16 @@ public class MyDatabaseController {
                              Authentication authentication,
                              HttpSession session,
                              Model model) {
+        CassandraUserDetails userDetails = (CassandraUserDetails) authentication.getPrincipal();
+        User user = userDetails.getUser();
         UserKeyspace userKeyspace = updateUserKeyspaces(authentication, session);
         if (userKeyspace != null) {
             try {
                 keyspaceService.createType(userKeyspace.getKeyspace().getName(), typeName, fields);
+                // prepare and add log with backup url
+                String logContent = "Created a type in this keyspace!\n     Name: " + typeName;
+                userKeyspace.getKeyspace().addLog(keyspaceProperties.getLog().get("typeCreate"), logContent, user.getUserName());
+                keyspaceService.save(userKeyspace.getKeyspace(), false, false);
                 model.addAttribute("keyspaceViewEditSuccess", "Type created!");
                 return "forward:" + routeProperties.getMyDatabase();
             } catch (Exception e) {
@@ -524,6 +783,8 @@ public class MyDatabaseController {
                               WebRequest request,
                               Model model) {
         //request.getParameterMap().forEach((k, v) -> System.out.println(k + " --- " + Arrays.toString(v)));
+        CassandraUserDetails userDetails = (CassandraUserDetails) authentication.getPrincipal();
+        User user = userDetails.getUser();
         UserKeyspace userKeyspace = updateUserKeyspaces(authentication, session);
         if (userKeyspace != null) {
             try {
@@ -532,6 +793,10 @@ public class MyDatabaseController {
                 } else {
                     keyspaceService.createCustomIndex(userKeyspace.getKeyspace().getName(), indexName, tableName, columnName, options);
                 }
+                // prepare and add log with backup url
+                String logContent = "Created an index in this keyspace!\n     Name: " + indexName + "\n     Table: " + tableName;
+                userKeyspace.getKeyspace().addLog(keyspaceProperties.getLog().get("typeCreate"), logContent, user.getUserName());
+                keyspaceService.save(userKeyspace.getKeyspace(), false, false);
                 model.addAttribute("keyspaceViewEditSuccess", "Index created!");
                 return "forward:" + routeProperties.getMyDatabase();
             } catch (Exception e) {
@@ -547,11 +812,30 @@ public class MyDatabaseController {
     public String dropIndex(@RequestParam(required = false) String indexName,
                             Authentication authentication,
                             HttpSession session,
-                            Model model) {
+                            Model model,
+                            HttpServletRequest request) {
+        CassandraUserDetails userDetails = (CassandraUserDetails) authentication.getPrincipal();
+        User user = userDetails.getUser();
         UserKeyspace userKeyspace = updateUserKeyspaces(authentication, session);
         if (userKeyspace != null) {
             try {
+                // prepare backup for this index structure
+                KeyspaceContent keyspaceContent = keyspaceService.getKeyspaceContent(userKeyspace.getKeyspace().getName().toLowerCase());
+                String backupContent;
+                try {
+                    ObjectMapper objectMapper = new ObjectMapper();
+                    Map<String, Object> indexMap = keyspaceContent.getIndexes().getContent().stream().filter(p -> p.get("index_name").toString().equals(indexName)).findAny().orElse(null);
+                    backupContent = objectMapper.writeValueAsString(indexMap);
+                } catch (JsonProcessingException e) {
+                    backupContent = "Json parse error for index structure!";
+                }
+
                 keyspaceService.dropIndex(userKeyspace.getKeyspace().getName(), indexName);
+
+                // prepare and add log with backup url
+                String logContent = "Dropped an index from this keyspace!\n     Name: " + indexName + "\n     Backup-index: " + backupService.getUrlBackupSave(backupContent, userKeyspace.getKeyspace().getName(), appDomainName);
+                userKeyspace.getKeyspace().addLog(keyspaceProperties.getLog().get("typeDelete"), logContent, user.getUserName());
+                keyspaceService.save(userKeyspace.getKeyspace(), false, false);
                 model.addAttribute("keyspaceViewEditSuccess", "Index deleted!");
                 return "forward:" + routeProperties.getMyDatabase();
             } catch (Exception e) {
@@ -571,6 +855,8 @@ public class MyDatabaseController {
                               Authentication authentication,
                               HttpSession session,
                               Model model) {
+        CassandraUserDetails userDetails = (CassandraUserDetails) authentication.getPrincipal();
+        User user = userDetails.getUser();
         UserKeyspace userKeyspace = updateUserKeyspaces(authentication, session);
         if (userKeyspace != null) {
             try {
@@ -578,6 +864,10 @@ public class MyDatabaseController {
                     keyspaceService.createTable(userKeyspace.getKeyspace().getName(), tableName, columnsDefinitions, keys, null);
                 else
                     keyspaceService.createTable(userKeyspace.getKeyspace().getName(), tableName, columnsDefinitions, keys, clusteringOrder);
+                // prepare and add log with backup url
+                String logContent = "Created a table in this keyspace!\n     Name: " + tableName;
+                userKeyspace.getKeyspace().addLog(keyspaceProperties.getLog().get("typeCreate"), logContent, user.getUserName());
+                keyspaceService.save(userKeyspace.getKeyspace(), false, false);
                 model.addAttribute("keyspaceViewEditSuccess", "Table created!");
                 return "forward:" + routeProperties.getMyDatabase();
             } catch (Exception e) {
@@ -599,6 +889,8 @@ public class MyDatabaseController {
                              Authentication authentication,
                              HttpSession session,
                              Model model) {
+        CassandraUserDetails userDetails = (CassandraUserDetails) authentication.getPrincipal();
+        User user = userDetails.getUser();
         UserKeyspace userKeyspace = updateUserKeyspaces(authentication, session);
         if (userKeyspace != null) {
             try {
@@ -606,6 +898,10 @@ public class MyDatabaseController {
                     keyspaceService.createView(userKeyspace.getKeyspace().getName(), baseTableName, viewName, columnsSelected, whereClause, keys, null);
                 else
                     keyspaceService.createView(userKeyspace.getKeyspace().getName(), baseTableName, viewName, columnsSelected, whereClause, keys, clusteringOrder);
+                // prepare and add log with backup url
+                String logContent = "Created a view in this keyspace!\n     Name: " + viewName + "\n     Base Table Name: " + baseTableName;
+                userKeyspace.getKeyspace().addLog(keyspaceProperties.getLog().get("typeCreate"), logContent, user.getUserName());
+                keyspaceService.save(userKeyspace.getKeyspace(), false, false);
                 model.addAttribute("keyspaceViewEditSuccess", "View created!");
                 return "forward:" + routeProperties.getMyDatabase();
             } catch (Exception e) {
@@ -621,11 +917,30 @@ public class MyDatabaseController {
     public String dropView(@RequestParam String view,
                            Authentication authentication,
                            HttpSession session,
-                           Model model) {
+                           Model model,
+                           HttpServletRequest request) {
+        CassandraUserDetails userDetails = (CassandraUserDetails) authentication.getPrincipal();
+        User user = userDetails.getUser();
         UserKeyspace userKeyspace = updateUserKeyspaces(authentication, session);
         if (userKeyspace != null) {
             try {
+                // prepare backup for this view structure
+                KeyspaceContent keyspaceContent = keyspaceService.getKeyspaceContent(userKeyspace.getKeyspace().getName().toLowerCase());
+                String backupContent;
+                try {
+                    ObjectMapper objectMapper = new ObjectMapper();
+                    Map<String, Object> viewMap = keyspaceContent.getViews().getContent().stream().filter(p -> p.get("view_name").toString().equals(view)).findAny().orElse(null);
+                    backupContent = objectMapper.writeValueAsString(viewMap);
+                } catch (JsonProcessingException e) {
+                    backupContent = "Json parse error for view structure!";
+                }
+
                 keyspaceService.dropView(userKeyspace.getKeyspace().getName(), view);
+
+                // prepare and add log with backup url
+                String logContent = "Dropped a view from this keyspace!\n     Name: " + view + "\n     Backup-view: " + backupService.getUrlBackupSave(backupContent, userKeyspace.getKeyspace().getName(), appDomainName);
+                userKeyspace.getKeyspace().addLog(keyspaceProperties.getLog().get("typeDelete"), logContent, user.getUserName());
+                keyspaceService.save(userKeyspace.getKeyspace(), false, false);
                 model.addAttribute("keyspaceViewEditSuccess", "View deleted!");
                 return "forward:" + routeProperties.getMyDatabase();
             } catch (Exception e) {
@@ -641,11 +956,38 @@ public class MyDatabaseController {
     public String dropTable(@RequestParam(required = false) String table,
                             Authentication authentication,
                             HttpSession session,
-                            Model model) {
+                            Model model,
+                            HttpServletRequest request) {
+        CassandraUserDetails userDetails = (CassandraUserDetails) authentication.getPrincipal();
+        User user = userDetails.getUser();
         UserKeyspace userKeyspace = updateUserKeyspaces(authentication, session);
         if (userKeyspace != null) {
             try {
+                // prepare backup for this table structure
+                KeyspaceContent keyspaceContent = keyspaceService.getKeyspaceContent(userKeyspace.getKeyspace().getName().toLowerCase());
+                String backupContent;
+                try {
+                    ObjectMapper objectMapper = new ObjectMapper();
+                    Map<String, Object> tableMap = keyspaceContent.getTables().getContent().stream().filter(p -> p.get("table_name").toString().equals(table)).findAny().orElse(null);
+                    backupContent = objectMapper.writeValueAsString(tableMap);
+                } catch (JsonProcessingException e) {
+                    backupContent = "Json parse error for table structure!";
+                }
+                // prepare backup for this table content
+                try {
+                    ObjectMapper objectMapper = new ObjectMapper();
+                    KeyspaceContentObject content = keyspaceService.getSelectSimple(userKeyspace.getKeyspace().getName().toLowerCase(), table, "*");
+                    backupContent += "\nTable Content:\n" + objectMapper.writeValueAsString(content.getContent());
+                } catch (JsonProcessingException e) {
+                    backupContent += "\n\n Json parse error for table content!";
+                }
+
                 keyspaceService.dropTable(userKeyspace.getKeyspace().getName(), table);
+
+                // prepare and add log with backup url
+                String logContent = "Dropped a table from this keyspace!\n     Name: " + table + "\n     Backup-table: " + backupService.getUrlBackupSave(backupContent, userKeyspace.getKeyspace().getName(), appDomainName);
+                userKeyspace.getKeyspace().addLog(keyspaceProperties.getLog().get("typeDelete"), logContent, user.getUserName());
+                keyspaceService.save(userKeyspace.getKeyspace(), false, false);
                 model.addAttribute("keyspaceViewEditSuccess", "Table deleted!");
                 return "forward:" + routeProperties.getMyDatabase();
             } catch (Exception e) {
@@ -660,23 +1002,38 @@ public class MyDatabaseController {
     @PostMapping(value = "${route.alter[table]}")
     public String alterTable(@RequestParam String requestType,
                              Authentication authentication,
-                             WebRequest request,
+                             HttpServletRequest request,
                              HttpSession session,
                              Model model) {
         //request.getParameterMap().forEach((k, v) -> System.out.println(k + " --- " + Arrays.toString(v)));
+        CassandraUserDetails userDetails = (CassandraUserDetails) authentication.getPrincipal();
+        User user = userDetails.getUser();
         UserKeyspace userKeyspace = updateUserKeyspaces(authentication, session);
         if (userKeyspace != null) {
             KeyspaceContent keyspaceContent = keyspaceService.getKeyspaceContent(userKeyspace.getKeyspace().getName().toLowerCase());
             // if request type contains options that means we will alter the options for the table or view
             if (requestType.contains("options") || (requestType.contains("views") && requestType.contains("options"))) {
                 Map<String, Object> map;
+                String structureName;
                 // if it contains views, that means we will alter the options for a view and we search for that view
-                if (requestType.contains("views"))
+                if (requestType.contains("views")) {
                     map = keyspaceContent.getViews().getContent().stream().filter(p -> p.get("view_name").toString().equals(request.getParameter("view_name_readonly"))).findAny().orElse(null);
-                    // else or a table and we search for that table
-                else
+                    structureName = request.getParameter("view_name_readonly");
+                }
+                // else or a table and we search for that table
+                else {
                     map = keyspaceContent.getTables().getContent().stream().filter(p -> p.get("table_name").toString().equals(request.getParameter("table_name_readonly"))).findAny().orElse(null);
+                    structureName = request.getParameter("table_name_readonly");
+                }
                 if (map != null) {
+                    // prepare backup for this row
+                    String backupContent;
+                    try {
+                        ObjectMapper objectMapper = new ObjectMapper();
+                        backupContent = objectMapper.writeValueAsString(map);
+                    } catch (JsonProcessingException e) {
+                        backupContent = null;
+                    }
                     // if the table/view exists, we contruct the with statement for the query
                     StringBuilder with = new StringBuilder();
                     final Boolean[] somethingToUpdate = {false};
@@ -703,6 +1060,10 @@ public class MyDatabaseController {
                             keyspaceService.alterOptions(userKeyspace.getKeyspace().getName(), request.getParameter("table_name_readonly"), with.toString());
                             model.addAttribute("keyspaceViewEditSuccess", "Table options updated!");
                         }
+                        // prepare and add log with backup url
+                        String logContent = "Altered " + structureName + "\n     With: " + with.toString() + "\n     Backup-row: " + backupService.getUrlBackupSave(backupContent, userKeyspace.getKeyspace().getName(), appDomainName);
+                        userKeyspace.getKeyspace().addLog(keyspaceProperties.getLog().get("typeUpdate"), logContent, user.getUserName());
+                        keyspaceService.save(userKeyspace.getKeyspace(), false, false);
                         model.addAttribute("keyspaceViewEditSuccess", "Table options updated!");
                         return "forward:" + routeProperties.getMyDatabase();
                     } catch (Exception e) {
@@ -712,11 +1073,21 @@ public class MyDatabaseController {
                 }
                 // else if the requstType contains columns, that means we will alter the columns for a table
             } else if (requestType.contains("columns")) {
+                String columnName = request.getParameter("column_name_readonly");
+                // prepare backup for this column
+                String backupContent;
+                try {
+                    ObjectMapper objectMapper = new ObjectMapper();
+                    Map<String, Object> columnMap = keyspaceContent.getColumns().getContent().stream().filter(p -> p.get("column_name").toString().equals(columnName)).findAny().orElse(null);
+                    backupContent = objectMapper.writeValueAsString(columnMap);
+                } catch (JsonProcessingException e) {
+                    backupContent = null;
+                }
                 // we split the requestType by @ and take the second value
                 String columnsRequestType = requestType.split("@").length > 1 ? requestType.split("@")[1] : null;
                 // take the tableName and columnName from request
                 String tableName = request.getParameter("table_name_readonly");
-                String columnName = request.getParameter("column_name_readonly");
+                String oldType = request.getParameter("type_readonly");
                 // if the request is for update the column
                 if (Objects.equals(columnsRequestType, "update")) {
                     // we find the column
@@ -735,6 +1106,10 @@ public class MyDatabaseController {
                             if (columnNameToUpdate != null && !columnNameToUpdate.isEmpty()) {
                                 try {
                                     keyspaceService.alterColumnName(userKeyspace.getKeyspace().getName(), tableName, columnName, columnNameToUpdate);
+                                    // prepare and add log with backup url
+                                    String logContent = "Renamed column from " + tableName + "\n     Name: " + columnName + "\n     Renamed: " + columnNameToUpdate;
+                                    userKeyspace.getKeyspace().addLog(keyspaceProperties.getLog().get("typeUpdate"), logContent, user.getUserName());
+                                    keyspaceService.save(userKeyspace.getKeyspace(), false, false);
                                     messageSuccess.append("Column renamed!");
                                     model.addAttribute("keyspaceViewEditSuccess", messageSuccess.toString());
                                 } catch (Exception e) {
@@ -746,6 +1121,10 @@ public class MyDatabaseController {
                             if (typeToUpdate != null && !typeToUpdate.isEmpty()) {
                                 try {
                                     keyspaceService.alterColumnType(userKeyspace.getKeyspace().getName(), tableName, columnName, typeToUpdate);
+                                    // prepare and add log with backup url
+                                    String logContent = "Changed type from" + tableName + "\n     Name: " + columnName + "\n     Old Type: " + oldType + "\n     New Type: " + typeToUpdate;
+                                    userKeyspace.getKeyspace().addLog(keyspaceProperties.getLog().get("typeUpdate"), logContent, user.getUserName());
+                                    keyspaceService.save(userKeyspace.getKeyspace(), false, false);
                                     messageSuccess.append("Column type changed!");
                                     model.addAttribute("keyspaceViewEditSuccess", messageSuccess.toString());
                                 } catch (Exception e) {
@@ -760,6 +1139,10 @@ public class MyDatabaseController {
                 } else if (Objects.equals(columnsRequestType, "delete")) {
                     try {
                         keyspaceService.alterDropColumn(userKeyspace.getKeyspace().getName(), tableName, columnName);
+                        // prepare and add log with backup url
+                        String logContent = "Dropped a column from " + tableName + "\n     Name: " + columnName + "\n     Backup-column: " + backupService.getUrlBackupSave(backupContent, userKeyspace.getKeyspace().getName(), appDomainName);
+                        userKeyspace.getKeyspace().addLog(keyspaceProperties.getLog().get("typeDelete"), logContent, user.getUserName());
+                        keyspaceService.save(userKeyspace.getKeyspace(), false, false);
                         model.addAttribute("keyspaceViewEditSuccess", "Column deleted!");
                         return "forward:" + routeProperties.getMyDatabase();
                     } catch (Exception e) {
@@ -770,6 +1153,10 @@ public class MyDatabaseController {
                 } else if (Objects.equals(columnsRequestType, "add")) {
                     try {
                         keyspaceService.alterAddColumn(userKeyspace.getKeyspace().getName(), request.getParameter("tableName"), request.getParameter("columnsDefinitions"));
+                        // prepare and add log with backup url
+                        String logContent = "Added a column in " + tableName + "\n     Definition(s): " + request.getParameter("columnsDefinitions");
+                        userKeyspace.getKeyspace().addLog(keyspaceProperties.getLog().get("typeDelete"), logContent, user.getUserName());
+                        keyspaceService.save(userKeyspace.getKeyspace(), false, false);
                         model.addAttribute("keyspaceViewEditSuccess", "Column(s) added!");
                         return "forward:" + routeProperties.getMyDatabase();
                     } catch (Exception e) {
@@ -830,6 +1217,8 @@ public class MyDatabaseController {
                             WebRequest request,
                             HttpSession session,
                             Model model) {
+        CassandraUserDetails userDetails = (CassandraUserDetails) authentication.getPrincipal();
+        User user = userDetails.getUser();
         UserKeyspace userKeyspace = updateUserKeyspaces(authentication, session);
         KeyspaceContentObject keyspaceContentObject = (KeyspaceContentObject) session.getAttribute("dataContent");
         if (userKeyspace != null && keyspaceContentObject != null && tableName.equals(keyspaceContentObject.getTableName())) {
@@ -873,7 +1262,10 @@ public class MyDatabaseController {
                     } else {
                         keyspaceService.insert(userKeyspace.getKeyspace().getName(), keyspaceContentObject.getTableName(), insertColumns.toString(), insertValues.toString(), "");
                     }
-
+                    // prepare and add log with backup url
+                    String logContent = "Inserted a row in " + keyspaceContentObject.getTableName() + "\n     Columns: " + insertColumns.toString() + "\n     Values: " + insertValues.toString();
+                    userKeyspace.getKeyspace().addLog(keyspaceProperties.getLog().get("typeUpdate"), logContent, user.getUserName());
+                    keyspaceService.save(userKeyspace.getKeyspace(), false, false);
                     model.addAttribute("keyspaceViewEditSuccess", "Row inserted!");
                     return "forward:" + routeProperties.getMyDatabase();
                 } catch (Exception e) {
@@ -894,6 +1286,8 @@ public class MyDatabaseController {
                                          HttpSession session,
                                          Model model) {
         //request.getParameterMap().forEach((k, v) -> System.out.println(k + " --- " + Arrays.toString(v)));
+        CassandraUserDetails userDetails = (CassandraUserDetails) authentication.getPrincipal();
+        User user = userDetails.getUser();
         UserKeyspace userKeyspace = updateUserKeyspaces(authentication, session);
         KeyspaceContentObject keyspaceContentObject = (KeyspaceContentObject) session.getAttribute("dataContent");
         if (userKeyspace != null && keyspaceContentObject != null && tableName.equals(keyspaceContentObject.getTableName())) {
@@ -910,6 +1304,14 @@ public class MyDatabaseController {
             keyspaceContentObject.setTableName(tableName);
             // if the row exists
             if (findRow != null) {
+                // prepare backup for this row
+                String backupContent;
+                try {
+                    ObjectMapper objectMapper = new ObjectMapper();
+                    backupContent = objectMapper.writeValueAsString(findRow);
+                } catch (JsonProcessingException e) {
+                    backupContent = null;
+                }
                 // construct the where statement using the primary keys
                 StringBuilder where = new StringBuilder("");
                 primaryKeys.forEach(p -> {
@@ -943,9 +1345,13 @@ public class MyDatabaseController {
                         } else {
                             keyspaceService.update(userKeyspace.getKeyspace().getName(), keyspaceContentObject.getTableName(), "", set.toString(), where.toString());
                         }
+                        // prepare and add log with backup url
+                        String logContent = "Updated a row from " + keyspaceContentObject.getTableName() + "\n     Where: " + where.toString() + "\n     Set: " + set.toString() + "\n     Backup-row: " + backupService.getUrlBackupSave(backupContent, userKeyspace.getKeyspace().getName(), appDomainName);
+                        userKeyspace.getKeyspace().addLog(keyspaceProperties.getLog().get("typeUpdate"), logContent, user.getUserName());
+                        keyspaceService.save(userKeyspace.getKeyspace(), false, false);
                         model.addAttribute("keyspaceViewEditSuccess", "Row updated!");
                         return "forward:" + routeProperties.getMyDatabase();
-                        // else if the request is for delete, we construct the delete statement 
+                        // else if the request is for delete, we construct the delete statement
                     } else if (requestType.equals("delete")) {
                         // if there is no values in request that means we will delete the entire row
                         final Boolean[] entireRow = {true};
@@ -967,7 +1373,10 @@ public class MyDatabaseController {
                             } else {
                                 keyspaceService.delete(delete.toString(), userKeyspace.getKeyspace().getName(), keyspaceContentObject.getTableName(), "", where.toString());
                             }
-
+                            // prepare and add log with backup url
+                            String logContent = "Deleted from " + keyspaceContentObject.getTableName() + "\n     Where: " + where.toString() + "\n     Delete: " + delete.toString() + "\n     Backup-row: " + backupService.getUrlBackupSave(backupContent, userKeyspace.getKeyspace().getName(), appDomainName);
+                            userKeyspace.getKeyspace().addLog(keyspaceProperties.getLog().get("typeDelete"), logContent, user.getUserName());
+                            keyspaceService.save(userKeyspace.getKeyspace(), false, false);
                             model.addAttribute("keyspaceViewEditSuccess", "Columns deleted!");
                             // else if we must delete entire row
                         } else {
@@ -977,6 +1386,10 @@ public class MyDatabaseController {
                             } else {
                                 keyspaceService.delete("", userKeyspace.getKeyspace().getName(), keyspaceContentObject.getTableName(), "", where.toString());
                             }
+                            // prepare and add log with backup url
+                            String logContent = "Deleted a row from " + keyspaceContentObject.getTableName() + "\n     Where: " + where.toString() + "\n     Delete: entire row\n     Backup-row: " + backupService.getUrlBackupSave(backupContent, userKeyspace.getKeyspace().getName(), appDomainName);
+                            userKeyspace.getKeyspace().addLog(keyspaceProperties.getLog().get("typeDelete"), logContent, user.getUserName());
+                            keyspaceService.save(userKeyspace.getKeyspace(), false, false);
                             model.addAttribute("keyspaceViewEditSuccess", "Row deleted!");
                         }
                         return "forward:" + routeProperties.getMyDatabase();
@@ -1184,8 +1597,11 @@ public class MyDatabaseController {
                         messages.getMessage("database.keyspaces.edit.no-change", null,
                                 request.getLocale()));
             } else {
+                CassandraUserDetails userDetails = (CassandraUserDetails) authentication.getPrincipal();
+                User user = userDetails.getUser();
                 userKeyspace.getKeyspace().setDurableWrites(keyspace.isDurableWrites());
                 userKeyspace.getKeyspace().setReplicationFactor(keyspace.getReplicationFactor());
+                userKeyspace.getKeyspace().addLog(keyspaceProperties.getLog().get("typeUpdate"), "Altered this keyspace:\n     Replication Factor: " + keyspace.getReplicationFactor() + "\n     Durable Writes: " + keyspace.isDurableWrites(), user.getUserName());
                 keyspaceService.save(userKeyspace.getKeyspace(), false, true);
                 model.addAttribute("keyspaceManageSuccess",
                         messages.getMessage("database.keyspaces.edit.success", null,
@@ -1207,6 +1623,8 @@ public class MyDatabaseController {
             return "forward:" + routeProperties.getMyDatabase();
         }
         if (userName != null) {
+            CassandraUserDetails userDetails = (CassandraUserDetails) authentication.getPrincipal();
+            User user = userDetails.getUser();
             UserKeyspace userKeyspace = updateUserKeyspaces(authentication, session);
             User removeUser = userService.findUserByUsername(userName);
             if (userKeyspace != null && removeUser != null && removeUser.getKeyspaces() != null) {
@@ -1215,10 +1633,15 @@ public class MyDatabaseController {
                 KeyspaceUser keyspaceUserToRemove = userKeyspace.getKeyspace().getUsers().stream().filter(p -> Objects.equals(p.getUserName(), userName)).findFirst().orElse(null);
                 UserKeyspace userKeyspaceToRemove = removeUser.getKeyspaces().stream().filter(p -> Objects.equals(p.getCreatorName(), userKeyspace.getCreatorName()) && Objects.equals(p.getName(), userKeyspace.getName())).findFirst().orElse(null);
                 // if exists then we remove them and save the changes into database and session
-                if (keyspaceUserToRemove != null)
+                if (keyspaceUserToRemove != null) {
                     userKeyspace.getKeyspace().getUsers().remove(keyspaceUserToRemove);
+                    userKeyspace.getKeyspace().addLog(keyspaceProperties.getLog().get("typeDelete"), "Removed a user from this keyspace!\n     Username: " + keyspaceUserToRemove.getUserName() + "\n     Access: " + keyspaceUserToRemove.getAccess(), user.getUserName());
+                } else {
+                    userKeyspace.getKeyspace().addLog(keyspaceProperties.getLog().get("typeDelete"), "Removed a user from this keyspace!\n     Username: " + userName, user.getUserName());
+                }
                 if (userKeyspaceToRemove != null)
                     removeUser.getKeyspaces().remove(userKeyspaceToRemove);
+
                 keyspaceService.save(userKeyspace.getKeyspace(), false, false);
                 userService.save(removeUser);
                 model.addAttribute("keyspaceManageSuccess",
@@ -1243,6 +1666,8 @@ public class MyDatabaseController {
             return "forward:" + routeProperties.getMyDatabase();
         }
         if (userName != null && access != null) {
+            CassandraUserDetails userDetails = (CassandraUserDetails) authentication.getPrincipal();
+            User user = userDetails.getUser();
             UserKeyspace userKeyspace = updateUserKeyspaces(authentication, session);
             User addUser = userService.findUserByUsername(userName);
             if (userKeyspace != null && addUser != null) {
@@ -1263,6 +1688,7 @@ public class MyDatabaseController {
                 KeyspaceUser newKeyspaceUser = new KeyspaceUser(addUser.getUserName(), access);
                 if (!userKeyspace.getKeyspace().getUsers().contains(newKeyspaceUser))
                     userKeyspace.getKeyspace().getUsers().add(newKeyspaceUser);
+                userKeyspace.getKeyspace().addLog(keyspaceProperties.getLog().get("typeCreate"), "Added a new user to this keyspace!\n     Username: " + newKeyspaceUser.getUserName() + "\n     Access: " + newKeyspaceUser.getAccess(), user.getUserName());
                 keyspaceService.save(userKeyspace.getKeyspace(), false, false);
                 userService.save(addUser);
                 model.addAttribute("keyspaceManageSuccess",
@@ -1358,6 +1784,8 @@ public class MyDatabaseController {
             model.addAttribute("keyspaceManageError", "Access denied!");
             return "forward:" + routeProperties.getMyDatabase();
         }
+        CassandraUserDetails userDetails = (CassandraUserDetails) authentication.getPrincipal();
+        User user = userDetails.getUser();
         UserKeyspace userKeyspace = updateUserKeyspaces(authentication, session);
         if (userKeyspace != null && userKeyspace.getKeyspace() != null) {
             // if keyspace is password enabled
@@ -1366,6 +1794,7 @@ public class MyDatabaseController {
                 if (bCryptPasswordEncoder.matches(keyspace.getPassword(), userKeyspace.getKeyspace().getPassword())) {
                     // update the database, the context and the session too
                     userKeyspace.getKeyspace().setPasswordEnabled(false);
+                    userKeyspace.getKeyspace().addLog(keyspaceProperties.getLog().get("typeUpdate"), "Disabled password protection for this keyspace!", user.getUserName());
                     keyspaceService.save(userKeyspace.getKeyspace(), false, false);
                     model.addAttribute("keyspaceManageSuccess",
                             messages.getMessage("database.keyspaces.password.disable", null,
@@ -1390,6 +1819,7 @@ public class MyDatabaseController {
                     // update the database, the context and the session too
                     userKeyspace.getKeyspace().setPasswordEnabled(true);
                     userKeyspace.getKeyspace().setPassword(keyspace.getPassword());
+                    userKeyspace.getKeyspace().addLog(keyspaceProperties.getLog().get("typeUpdate"), "Enabled password protection for this keyspace!", user.getUserName());
                     keyspaceService.save(userKeyspace.getKeyspace(), false, false);
                     model.addAttribute("keyspaceManageSuccess",
                             messages.getMessage("database.keyspaces.password.change", null,
@@ -1426,6 +1856,8 @@ public class MyDatabaseController {
                 String name = keyspace.getName();
                 keyspace.setName(user.getUserName() + "_" + name);
                 keyspace.setUsers(Collections.singletonList(new KeyspaceUser(user.getUserName(), keyspaceProperties.getCreator())));
+                // put the log for creation
+                keyspace.addLog(keyspaceProperties.getLog().get("typeCreate"), "Created this keyspace!", user.getUserName());
                 // save it in the database
                 keyspaceService.save(keyspace, true, false);
                 // save add it in the users database as user keyspace
@@ -1467,6 +1899,8 @@ public class MyDatabaseController {
             // if it is password protected and both passwords match
             if (!keyspace.isPasswordEnabled() || bCryptPasswordEncoder.matches(keyspace.getPassword(), userKeyspace.getKeyspace().getPassword())) {
                 // we save the user keyspace in the session
+                userKeyspace.getKeyspace().addLog(keyspaceProperties.getLog().get("typeCreate"), "Connected to this keyspace!", user.getUserName());
+                keyspaceService.save(userKeyspace.getKeyspace(), false, false);
                 session.setAttribute("userKeyspace", userKeyspace);
                 session.setAttribute("activePanel", keyspaceProperties.getPanel().get("manage"));
                 session.setAttribute("dataContent", null);
@@ -1484,7 +1918,15 @@ public class MyDatabaseController {
     }
 
     @GetMapping(value = "${route.keyspace[disconnect]}")
-    public String disconnectKeyspace(HttpSession session) {
+    public String disconnectKeyspace(HttpSession session,
+                                     Authentication authentication) {
+        CassandraUserDetails userDetails = (CassandraUserDetails) authentication.getPrincipal();
+        User user = userDetails.getUser();
+        UserKeyspace userKeyspace = updateUserKeyspaces(authentication, session);
+        if (userKeyspace != null) {
+            userKeyspace.getKeyspace().addLog(keyspaceProperties.getLog().get("typeDelete"), "Disconnected from this keyspace!", user.getUserName());
+            keyspaceService.save(userKeyspace.getKeyspace(), false, false);
+        }
         session.setAttribute("userKeyspace", null);
         session.setAttribute("dataContent", null);
         session.setAttribute("activePanel", null);

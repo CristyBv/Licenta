@@ -9,7 +9,7 @@
         <div class="alert alert-success" th:if="${keyspaceSearchSuccess}"
              th:text="${keyspaceSearchSuccess}"></div>
         <div class="alert alert-danger" th:if="${keyspaceSearchError}"
-             th:text="${keyspaceSearchSuccess}"></div>
+             th:text="${keyspaceSearchError}"></div>
         <hr/>
         <div class="jumbotron database-data-div">
             <p style="float:left; font-size: 1.75em;" class="font-weight-bold"><strong>Search</strong></p>
@@ -18,7 +18,9 @@
             <div class="row">
                 <div class="col-sm-12">
                     <form th:action="${@environment.getProperty('route.search[all]')}" id="search-form">
-                        <input type="text" name="search" class="form-control" id="search-input" th:value="${searchParam != null ? searchParam : ''}"/>
+                        <input type="text" name="search" class="form-control" id="search-input"
+                               th:value="${searchParam != null ? searchParam : ''}"
+                               th:placeholder="#{database.keyspaces.search.placeholder}"/>
                     </form>
                 </div>
             </div>

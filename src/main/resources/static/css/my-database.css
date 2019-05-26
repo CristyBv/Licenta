@@ -296,7 +296,18 @@ table.dataTable thead th {
 
 /*TERMINAL START*/
 
-.terminal {
+#log-terminal {
+    --color: rgba(0, 0, 0, 1);
+    --background: #fff2e4;
+    --size: 1.7;
+    border: 2px solid #182645;
+    border-radius: 15px 15px 15px 15px;
+    height: 80vh;
+    width: 100%;
+    margin: auto;
+}
+
+#terminal {
     --color: rgba(250, 250, 250, 0.99);
     --background: #182645;
     --size: 1.3;

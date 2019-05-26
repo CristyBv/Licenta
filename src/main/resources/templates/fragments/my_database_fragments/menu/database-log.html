@@ -1,10 +1,20 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
 <head>
 </head>
 <body>
 <div th:fragment="database-log" id="log-div">
-    Log
+    <script th:inline="javascript" >
+        var logsContent = /*[[${key.keyspace.log}]]*/ null;
+        var logsCreate = /*[[${@environment.getProperty('keyspace.log[typeCreate]')}]]*/ null;
+        var logsUpdate = /*[[${@environment.getProperty('keyspace.log[typeUpdate]')}]]*/ null;
+        var logsDelete = /*[[${@environment.getProperty('keyspace.log[typeDelete]')}]]*/ null;
+    </script>
+    <div class="alert alert-success" th:if="${keyspaceLogSuccess}"
+         th:text="${keyspaceLogSuccess}"></div>
+    <div class="alert alert-danger" th:if="${keyspaceLogError}"
+         th:text="${keyspaceLogError}"></div>
+    <div id="log-terminal"></div>
 </div>
 </body>
 </html>

@@ -50,6 +50,8 @@ public class UserService {
             user.setPassword(bCryptPasswordEncoder.encode(user.getPassword()));
         if (user.getRegisterDate() == null)
             user.setRegisterDate(Calendar.getInstance().getTime());
+        if( user.getAvatar() == null)
+            user.setAvatar("http://ssl.gstatic.com/accounts/ui/avatar_2x.png");
         adminOperations.insert(user);
     }
 

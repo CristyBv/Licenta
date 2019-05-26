@@ -82,6 +82,36 @@ public class SearchController {
         return result;
     }
 
+    @GetMapping(value = "${route.searchLive[table-view]}", produces = "application/json")
+    public Map<String, List<Map<String, String>>> searchTableViewLive(@RequestParam(name = "search", required = false) String search,
+                                                                  HttpSession session) {
+        List<Map<String, String>> options = new ArrayList<>();
+        if (search != null && !search.isEmpty() && session.getAttribute("userKeyspace") != null) {
+            // get the tables from the current active keyspace
+            UserKeyspace userKeyspace = (UserKeyspace) session.getAttribute("userKeyspace");
+            KeyspaceContent keyspaceContent = keyspaceService.getKeyspaceContent(userKeyspace.getKeyspace().getName().toLowerCase());
+            // filter tables by search parameter
+            List<String> tables = keyspaceContent.getTables().getContent().stream().filter(p -> p.get("table_name").toString().toLowerCase().contains(search.toLowerCase())).map(p -> p.get("table_name").toString()).collect(Collectors.toList());
+            // prepare result for select2
+            tables.forEach(p -> {
+                options.add(new HashMap<>());
+                options.get(options.size() - 1).put("id", p);
+                options.get(options.size() - 1).put("text", p);
+            });
+            // filter views by search parameter
+            List<String> views = keyspaceContent.getViews().getContent().stream().filter(p -> p.get("view_name").toString().toLowerCase().contains(search.toLowerCase())).map(p -> p.get("view_name").toString()).collect(Collectors.toList());
+            // prepare result for select2
+            views.forEach(p -> {
+                options.add(new HashMap<>());
+                options.get(options.size() - 1).put("id", p);
+                options.get(options.size() - 1).put("text", p);
+            });
+        }
+        Map<String, List<Map<String, String>>> result = new HashMap<>();
+        result.put("results", options);
+        return result;
+    }
+
     @GetMapping(value = "${route.searchLive[table]}", produces = "application/json")
     public Map<String, List<Map<String, String>>> searchTableLive(@RequestParam(name = "search", required = false) String search,
                                                                   HttpSession session) {

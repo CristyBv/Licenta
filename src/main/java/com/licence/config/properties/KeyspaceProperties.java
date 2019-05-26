@@ -15,4 +15,6 @@ public class KeyspaceProperties {
     private String editor;
     private String member;
     private Map<String, String> panel;
+    private Map<String, String> search;
+    private Map<String, String> log;
 }

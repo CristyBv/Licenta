@@ -1,18 +1,15 @@
 package com.licence.web.models;
 
 import com.datastax.driver.core.DataType;
-import com.datastax.driver.mapping.annotations.FrozenValue;
 import com.licence.config.validation.email.ValidEmail;
 import com.licence.config.validation.password.match.PasswordMatches;
 import com.licence.config.validation.password.pattern.PasswordPattern;
 import com.licence.web.models.UDT.UserKeyspace;
 import com.licence.web.models.UDT.UserNotification;
-import jnr.ffi.annotations.In;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.Transient;
 import org.springframework.data.cassandra.core.mapping.CassandraType;
 import org.springframework.data.cassandra.core.mapping.Column;
@@ -27,7 +24,6 @@ import javax.validation.constraints.Pattern;
 import javax.validation.constraints.Size;
 import java.util.Date;
 import java.util.List;
-import java.util.Map;
 
 @Data
 @Builder
@@ -44,7 +40,8 @@ public class User {
     @ValidEmail
     private String email;
 
-    @SASI(indexMode = SASI.IndexMode.CONTAINS) @SASI.StandardAnalyzed(normalization = SASI.Normalization.LOWERCASE)
+    @SASI(indexMode = SASI.IndexMode.CONTAINS)
+    @SASI.StandardAnalyzed(normalization = SASI.Normalization.LOWERCASE)
     @Column("USERNAME")
     @Size(min = 3, max = 20)
     @Pattern(regexp = "[a-zA-Z][a-zA-Z0-9]+")

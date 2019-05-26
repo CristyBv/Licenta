@@ -30,4 +30,6 @@ public class RouteProperties {
     private Map<String, String> create;
     private Map<String, String> drop;
     private Map<String, String> console;
+    private Map<String, String> export;
+    private Map<String, String> backup;
 }
