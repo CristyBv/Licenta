@@ -1,10 +1,11 @@
 package com.licence.web.controllers;
 
-import com.licence.config.security.CassandraUserDetails;
 import com.licence.config.properties.RouteProperties;
+import com.licence.config.security.CassandraUserDetails;
 import com.licence.config.validation.email.EmailValidator;
 import com.licence.config.validation.password.pattern.PasswordPatternValidator;
 import com.licence.web.helpers.SendRegisterRecoveryEmail;
+import com.licence.web.models.UDT.UserNotification;
 import com.licence.web.models.User;
 import com.licence.web.services.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,11 +29,14 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.Date;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.stream.Collectors;
 
 @Controller
 public class ProfileController {
@@ -55,8 +59,45 @@ public class ProfileController {
     }
 
     @RequestMapping("${route.profile}")
-    public String profile() {
+    public String profile(Authentication authentication,
+                          Model model) {
+        CassandraUserDetails userDetails = (CassandraUserDetails) authentication.getPrincipal();
+        User user = userDetails.getUser();
+        if (user.getNotifications() != null && !user.getNotifications().isEmpty()) {
+            List<UserNotification> userNotifications = user.getNotifications().stream().sorted((p1, p2) -> p2.getDate().compareTo(p1.getDate())).collect(Collectors.toList());
+            Boolean[] unread = {false};
+            userNotifications.forEach(p -> {
+                if (!p.isRead())
+                    unread[0] = true;
+            });
+            model.addAttribute("notifications", userNotifications);
+            if (unread[0])
+                model.addAttribute("unreadNotifications", true);
+        }
         return routeProperties.getProfile();
+    }
+
+    @ResponseBody
+    @PostMapping(value = "${route.change[notification-read]}")
+    public String changeNotificationRead(@RequestBody Map<String, String> data,
+                                         Authentication authentication,
+                                         WebRequest request) {
+        CassandraUserDetails userDetails = (CassandraUserDetails) authentication.getPrincipal();
+        User user = userDetails.getUser();
+        if (user.getNotifications() != null) {
+            // search for the notification with the same date
+            UserNotification notification = null;
+            for (UserNotification userNotification : user.getNotifications()) {
+                if (userNotification.getDate().toString().equals(data.get("notificationDate")))
+                    notification = userNotification;
+            }
+            if (notification != null) {
+                notification.setRead(true);
+                userService.save(user);
+                return JSONObject.quote("success");
+            }
+        }
+        return JSONObject.quote("error");
     }
 
     @ResponseBody

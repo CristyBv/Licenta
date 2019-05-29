@@ -5,10 +5,12 @@
 <body>
 <div th:fragment="database-log" id="log-div">
     <script th:inline="javascript" >
-        var logsContent = /*[[${key.keyspace.log}]]*/ null;
+        var logsContent = /*[[${todayLog}]]*/ null;
         var logsCreate = /*[[${@environment.getProperty('keyspace.log[typeCreate]')}]]*/ null;
         var logsUpdate = /*[[${@environment.getProperty('keyspace.log[typeUpdate]')}]]*/ null;
         var logsDelete = /*[[${@environment.getProperty('keyspace.log[typeDelete]')}]]*/ null;
+        var logsInfo = /*[[#{database.keyspaces.log.info}]]*/ null;
+        var logFilterUrl = /*[[${@environment.getProperty('route.log[filter]')}]]*/ null;
     </script>
     <div class="alert alert-success" th:if="${keyspaceLogSuccess}"
          th:text="${keyspaceLogSuccess}"></div>

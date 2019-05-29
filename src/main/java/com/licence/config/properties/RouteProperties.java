@@ -32,4 +32,5 @@ public class RouteProperties {
     private Map<String, String> console;
     private Map<String, String> export;
     private Map<String, String> backup;
+    private Map<String, String> log;
 }

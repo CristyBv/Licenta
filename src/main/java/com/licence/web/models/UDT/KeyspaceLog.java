@@ -18,6 +18,4 @@ public class KeyspaceLog {
     private Date date;
     private String username;
     private String type;
-    @Transient
-    private User user;
 }

@@ -10,51 +10,71 @@
         <div class="alert alert-danger" th:if="${keyspaceImportExportError}"
              th:text="${keyspaceImportExportError}"></div>
         <hr/>
-        <div class="jumbotron database-data-div">
-            <p style="float:left; font-size: 1.75em;" class="font-weight-bold"><strong>Backup entire keyspace to JSON</strong></p>
-            <span style="float:right;" class="glyphicon glyphicon-minus btn btn-default keyspace-manage-minus"></span>
-            <br style="clear:both;">
-            <div class="row">
-                <div class="col-sm-12">
-                    <form th:action="${@environment.getProperty('route.export[json-keyspace]')}" id="export-json-keyspace-form">
-                        <div class="form-group">
-                            <button type="submit" class="btn btn-lg btn-success">Export to JSON</button>
+        <div class="row">
+            <div class="col-sm-6">
+                <div class="jumbotron database-data-div">
+                    <p style="float:left; font-size: 1.75em;" class="font-weight-bold"><strong>Backup entire keyspace to JSON</strong></p>
+                    <span style="float:right;" class="glyphicon glyphicon-minus btn btn-default keyspace-manage-minus"></span>
+                    <br style="clear:both;">
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <form th:action="${@environment.getProperty('route.export[json-keyspace]')}" id="export-json-keyspace-form">
+                                <div class="form-group">
+                                    <button type="submit" class="btn btn-lg btn-success">Export to JSON</button>
+                                </div>
+                            </form>
                         </div>
-                    </form>
+                    </div>
+                </div>
+                <div class="jumbotron database-data-div">
+                    <p style="float:left; font-size: 1.75em;" class="font-weight-bold"><strong>Export Table/View to Excel</strong></p>
+                    <span style="float:right;" class="glyphicon glyphicon-minus btn btn-default keyspace-manage-minus"></span>
+                    <br style="clear:both;">
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <form th:action="${@environment.getProperty('route.export[excel-table-view]')}" id="export-excel-form">
+                                <div class="form-group">
+                                    <select class="form-control" name="tableName" id="export-excel-select-table"></select>
+                                </div>
+                                <div class="form-group">
+                                    <button type="submit" class="btn btn-lg btn-success">Export to Excel</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
                 </div>
             </div>
-        </div>
-        <div class="jumbotron database-data-div">
-            <p style="float:left; font-size: 1.75em;" class="font-weight-bold"><strong>Export Table/View to Excel</strong></p>
-            <span style="float:right;" class="glyphicon glyphicon-minus btn btn-default keyspace-manage-minus"></span>
-            <br style="clear:both;">
-            <div class="row">
-                <div class="col-sm-12">
-                    <form th:action="${@environment.getProperty('route.export[excel-table-view]')}" id="export-excel-form">
-                        <div class="form-group">
-                            <select class="form-control" name="tableName" id="export-excel-select-table"></select>
+            <div class="col-sm-6">
+                <div class="jumbotron database-data-div">
+                    <p style="float:left; font-size: 1.75em;" class="font-weight-bold"><strong>Export keyspace logs to Word</strong></p>
+                    <span style="float:right;" class="glyphicon glyphicon-minus btn btn-default keyspace-manage-minus"></span>
+                    <br style="clear:both;">
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <form th:action="${@environment.getProperty('route.export[word-logs]')}" id="export-word-logs-form">
+                                <div class="form-group">
+                                    <button type="submit" class="btn btn-lg btn-success">Export to Word</button>
+                                </div>
+                            </form>
                         </div>
-                        <div class="form-group">
-                            <button type="submit" class="btn btn-lg btn-success">Export to Excel</button>
-                        </div>
-                    </form>
+                    </div>
                 </div>
-            </div>
-        </div>
-        <div class="jumbotron database-data-div">
-            <p style="float:left; font-size: 1.75em;" class="font-weight-bold"><strong>Export Table/View to JSON</strong></p>
-            <span style="float:right;" class="glyphicon glyphicon-minus btn btn-default keyspace-manage-minus"></span>
-            <br style="clear:both;">
-            <div class="row">
-                <div class="col-sm-12">
-                    <form th:action="${@environment.getProperty('route.export[json-table-view]')}" id="export-json-form">
-                        <div class="form-group">
-                            <select class="form-control" name="tableName" id="export-json-select-table"></select>
+                <div class="jumbotron database-data-div">
+                    <p style="float:left; font-size: 1.75em;" class="font-weight-bold"><strong>Export Table/View to JSON</strong></p>
+                    <span style="float:right;" class="glyphicon glyphicon-minus btn btn-default keyspace-manage-minus"></span>
+                    <br style="clear:both;">
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <form th:action="${@environment.getProperty('route.export[json-table-view]')}" id="export-json-form">
+                                <div class="form-group">
+                                    <select class="form-control" name="tableName" id="export-json-select-table"></select>
+                                </div>
+                                <div class="form-group">
+                                    <button type="submit" class="btn btn-lg btn-success">Export to JSON</button>
+                                </div>
+                            </form>
                         </div>
-                        <div class="form-group">
-                            <button type="submit" class="btn btn-lg btn-success">Export to JSON</button>
-                        </div>
-                    </form>
+                    </div>
                 </div>
             </div>
         </div>

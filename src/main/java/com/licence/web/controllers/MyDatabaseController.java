@@ -13,10 +13,11 @@ import com.licence.config.properties.RouteProperties;
 import com.licence.config.security.CassandraUserDetails;
 import com.licence.config.validation.password.match.PasswordMatches;
 import com.licence.web.helpers.ExcelHelper;
-import com.licence.web.models.Backup;
 import com.licence.web.models.Keyspace;
+import com.licence.web.models.UDT.KeyspaceLog;
 import com.licence.web.models.UDT.KeyspaceUser;
 import com.licence.web.models.UDT.UserKeyspace;
+import com.licence.web.models.UDT.UserNotification;
 import com.licence.web.models.User;
 import com.licence.web.models.pojo.KeyspaceContent;
 import com.licence.web.models.pojo.KeyspaceContentObject;
@@ -25,6 +26,9 @@ import com.licence.web.services.BackupService;
 import com.licence.web.services.KeyspaceService;
 import com.licence.web.services.UserService;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.apache.poi.xwpf.usermodel.XWPFDocument;
+import org.apache.poi.xwpf.usermodel.XWPFParagraph;
+import org.apache.poi.xwpf.usermodel.XWPFRun;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -45,9 +49,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
-import org.springframework.web.bind.annotation.SessionAttribute;
 import org.springframework.web.context.request.WebRequest;
-import org.springframework.web.server.WebSession;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
@@ -57,13 +59,17 @@ import javax.validation.Valid;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.text.DateFormat;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -72,6 +78,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
 @Controller
@@ -141,9 +148,11 @@ public class MyDatabaseController {
                     }
                 }
                 if (Objects.equals(activePanel, keyspaceProperties.getPanel().get("log"))) {
-                    userKeyspace.getKeyspace().getLog().forEach(p -> {
-                        p.setUser(userService.findUserByUsername(p.getUsername()));
-                    });
+                    List<KeyspaceLog> keyspaceLogs = getLogs(userKeyspace, null, null);
+                    if (keyspaceLogs != null)
+                        model.addAttribute("todayLog", keyspaceLogs);
+                    else
+                        model.addAttribute("todayLog", userKeyspace.getKeyspace().getLog().stream().collect(lastN(20)));
                 }
             }
         }
@@ -152,6 +161,128 @@ public class MyDatabaseController {
         return routeProperties.getMyDatabase();
     }
 
+    private List<KeyspaceLog> getLogs(UserKeyspace userKeyspace, Date date, String userName) {
+        DateFormat formatter = new SimpleDateFormat("dd-MM-yyyy");
+        try {
+            if (date == null) {
+                date = formatter.parse(formatter.format(new Date()));
+            } else {
+                date = formatter.parse(formatter.format(date));
+            }
+            List<KeyspaceLog> keyspaceLogs = new ArrayList<>();
+            for (KeyspaceLog keyspaceLog : userKeyspace.getKeyspace().getLog()) {
+                Date date2 = formatter.parse(formatter.format(keyspaceLog.getDate()));
+                if (date.equals(date2) && (userName == null || keyspaceLog.getUsername().toLowerCase().equals(userName.toLowerCase())))
+                    keyspaceLogs.add(keyspaceLog);
+            }
+
+            return keyspaceLogs.stream().sorted(Comparator.comparing(KeyspaceLog::getDate)).collect(Collectors.toList());
+        } catch (ParseException e) {
+            return null;
+        }
+    }
+
+    // get last N elements from a list for stream
+    private static <T> Collector<T, ?, List<T>> lastN(int n) {
+        return Collector.<T, Deque<T>, List<T>>of(ArrayDeque::new, (acc, t) -> {
+            if (acc.size() == n)
+                acc.pollFirst();
+            acc.add(t);
+        }, (acc1, acc2) -> {
+            while (acc2.size() < n && !acc1.isEmpty()) {
+                acc2.addFirst(acc1.pollLast());
+            }
+            return acc2;
+        }, ArrayList::new);
+    }
+
+    @ResponseBody
+    @PostMapping(value = "${route.log[filter]}", produces = "application/json")
+    public List<KeyspaceLog> logFilter(@RequestBody Map<String, Object> map,
+                                       Authentication authentication,
+                                       HttpSession session,
+                                       HttpServletResponse response) {
+        UserKeyspace userKeyspace = updateUserKeyspaces(authentication, session);
+        if (userKeyspace != null) {
+            DateFormat formatter = new SimpleDateFormat("dd-MM-yyyy");
+            if (map.get("date") != null && map.get("username") != null) {
+                String date = map.get("date").toString();
+                String username = map.get("username").toString();
+                if (date.equals("today"))
+                    return getLogs(userKeyspace, null, username);
+                else {
+                    try {
+                        return getLogs(userKeyspace, formatter.parse(date), username);
+                    } catch (ParseException e) {
+                        return null;
+                    }
+                }
+            } else if (map.get("date") != null) {
+                String date = map.get("date").toString();
+                if (date.equals("today"))
+                    return getLogs(userKeyspace, null, null);
+                else {
+                    try {
+                        return getLogs(userKeyspace, formatter.parse(date), null);
+                    } catch (ParseException e) {
+                        return new ArrayList<>();
+                    }
+                }
+            }
+        }
+        return new ArrayList<>();
+    }
+
+    @ResponseBody
+    @GetMapping(value = "${route.export[word-logs]}")
+    public void exportWordLogs(Authentication authentication,
+                               HttpSession session,
+                               HttpServletResponse response,
+                               HttpServletRequest request) {
+        UserKeyspace userKeyspace = updateUserKeyspaces(authentication, session);
+        if (userKeyspace != null) {
+            XWPFDocument document = new XWPFDocument();
+            XWPFParagraph paragraph = document.createParagraph();
+            XWPFRun run = paragraph.createRun();
+            run.setBold(true);
+            run.setText("Keyspace: " + userKeyspace.getKeyspace().getName());
+            userKeyspace.getKeyspace().getLog().forEach(p -> {
+                XWPFParagraph paragraphContent = document.createParagraph();
+                XWPFRun runContent = paragraphContent.createRun();
+                runContent.setBold(true);
+                runContent.setItalic(true);
+                runContent.setText(p.getUsername() + " ");
+
+                runContent = paragraphContent.createRun();
+                DateFormat formatter = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss");
+                runContent.setItalic(true);
+                runContent.setText("- " + formatter.format(p.getDate()));
+
+                paragraphContent = document.createParagraph();
+                runContent = paragraphContent.createRun();
+                runContent.setItalic(true);
+                if (p.getType().equals(keyspaceProperties.getLog().get("typeCreate"))) {
+                    runContent.setColor("33cc33");
+                } else if (p.getType().equals(keyspaceProperties.getLog().get("typeUpdate"))) {
+                    runContent.setColor("0000ff");
+                } else if (p.getType().equals(keyspaceProperties.getLog().get("typeDelete"))) {
+                    runContent.setColor("ff0000");
+                }
+                runContent.setText(p.getContent());
+            });
+            response.setHeader("Content-disposition", "attachment; filename=Log" + userKeyspace.getKeyspace().getName() + ".docx");
+            try {
+                document.write(response.getOutputStream());
+            } catch (IOException e) {
+                request.setAttribute("keyspaceImportExportError", "Export logs failed! Please refresh and try again!");
+                try {
+                    request.getRequestDispatcher(routeProperties.getMyDatabase()).forward(request, response);
+                } catch (ServletException | IOException e1) {
+                    e1.printStackTrace();
+                }
+            }
+        }
+    }
 
     @ResponseBody
     @GetMapping(value = "${route.export[json-keyspace]}")
@@ -406,7 +537,7 @@ public class MyDatabaseController {
                                     } else if (type.contains("create") || type.contains("insert")) {
                                         userKeyspace.getKeyspace().addLog(keyspaceProperties.getLog().get("typeCreate"), logContent, user.getUserName());
                                     }
-                                        keyspaceService.save(userKeyspace.getKeyspace(), false, false);
+                                    keyspaceService.save(userKeyspace.getKeyspace(), false, false);
                                 } catch (Exception e) {
                                     detectedQuery.put("error", e.getMessage());
                                 }
@@ -1642,6 +1773,12 @@ public class MyDatabaseController {
                 if (userKeyspaceToRemove != null)
                     removeUser.getKeyspaces().remove(userKeyspaceToRemove);
 
+                // send a notification to the current user
+                if (removeUser.getNotifications() == null)
+                    removeUser.setNotifications(new ArrayList<>());
+                String removeUserKeyspaceMessage = String.format(messages.getMessage("database.keyspaces.remove-user.notification", null, request.getLocale()), user.getUserName(), userKeyspace.getName());
+                removeUser.getNotifications().add(new UserNotification("System", removeUserKeyspaceMessage));
+
                 keyspaceService.save(userKeyspace.getKeyspace(), false, false);
                 userService.save(removeUser);
                 model.addAttribute("keyspaceManageSuccess",
@@ -1689,6 +1826,13 @@ public class MyDatabaseController {
                 if (!userKeyspace.getKeyspace().getUsers().contains(newKeyspaceUser))
                     userKeyspace.getKeyspace().getUsers().add(newKeyspaceUser);
                 userKeyspace.getKeyspace().addLog(keyspaceProperties.getLog().get("typeCreate"), "Added a new user to this keyspace!\n     Username: " + newKeyspaceUser.getUserName() + "\n     Access: " + newKeyspaceUser.getAccess(), user.getUserName());
+
+                // send a notification to the added user
+                if (addUser.getNotifications() == null)
+                    addUser.setNotifications(new ArrayList<>());
+                String addUserKeyspaceMessage = String.format(messages.getMessage("database.keyspaces.add-user.notification", null, request.getLocale()), user.getUserName(), userKeyspace.getName(), access);
+                addUser.getNotifications().add(new UserNotification("System", addUserKeyspaceMessage));
+
                 keyspaceService.save(userKeyspace.getKeyspace(), false, false);
                 userService.save(addUser);
                 model.addAttribute("keyspaceManageSuccess",
@@ -1731,33 +1875,59 @@ public class MyDatabaseController {
                         return "forward:" + routeProperties.getMyDatabase();
                     }
                 }
-                // if the password is not enabled or the passwords matched
-                // for each user from users list from the keyspace, we delete his userKeyspace for the one we will delete
-                userKeyspace.getKeyspace().getUsers().forEach(p -> {
-                    // if the user is not the logged one
-                    if (!Objects.equals(p.getUserName(), user.getUserName())) {
-                        User userFromKeyspace = userService.findUserByUsername(p.getUserName());
-                        if (userFromKeyspace != null) {
-                            // we search into his userKeyspace list for the one we want to delete
-                            Optional<UserKeyspace> userKeyspaceOpt2 = userFromKeyspace.getKeyspaces().stream().filter(q -> Objects.equals(q.getCreatorName(), userKeyspace.getCreatorName()) && Objects.equals(q.getName(), userKeyspace.getName())).findFirst();
-                            if (userKeyspaceOpt2.isPresent()) {
-                                // if it exists, we remove it and update the database
-                                if (userFromKeyspace.getKeyspaces() != null) {
-                                    userFromKeyspace.getKeyspaces().remove(userKeyspaceOpt2.get());
-                                    userService.save(userFromKeyspace);
+
+                try {
+                    ObjectMapper mapper = new ObjectMapper();
+                    String keyspaceBackup = mapper.writeValueAsString(getAllKeyspaceContent(userKeyspace));
+                    final String[] deleteKeyspaceMessage = {String.format(messages.getMessage("database.keyspaces.delete.notification", null, request.getLocale()), user.getUserName(), userKeyspace.getName(), backupService.getUrlBackupSave(keyspaceBackup, userKeyspace.getKeyspace().getName(), appDomainName))};
+
+                    // if the password is not enabled or the passwords matched
+                    // for each user from users list from the keyspace, we delete his userKeyspace for the one we will delete
+                    userKeyspace.getKeyspace().getUsers().forEach(p -> {
+                        // if the user is not the logged one
+                        if (!Objects.equals(p.getUserName(), user.getUserName())) {
+                            User userFromKeyspace = userService.findUserByUsername(p.getUserName());
+                            if (userFromKeyspace != null) {
+                                // we search into his userKeyspace list for the one we want to delete
+                                Optional<UserKeyspace> userKeyspaceOpt2 = userFromKeyspace.getKeyspaces().stream().filter(q -> Objects.equals(q.getCreatorName(), userKeyspace.getCreatorName()) && Objects.equals(q.getName(), userKeyspace.getName())).findFirst();
+                                if (userKeyspaceOpt2.isPresent()) {
+                                    // if it exists, we remove it and update the database
+                                    if (userFromKeyspace.getKeyspaces() != null) {
+                                        userFromKeyspace.getKeyspaces().remove(userKeyspaceOpt2.get());
+
+                                        // send a notification to this user
+                                        if (userFromKeyspace.getNotifications() == null)
+                                            userFromKeyspace.setNotifications(new ArrayList<>());
+                                        String deleteMessage = deleteKeyspaceMessage[0];
+                                        if (userKeyspaceOpt2.get().getAccess().equals(keyspaceProperties.getMember())) {
+                                            deleteMessage = String.format(messages.getMessage("database.keyspaces.delete.notification.viewAccess", null, request.getLocale()), user.getUserName(), userKeyspace.getName());
+                                        }
+                                        userFromKeyspace.getNotifications().add(new UserNotification("System", deleteMessage));
+                                        // save changes
+                                        userService.save(userFromKeyspace);
+                                    }
                                 }
                             }
                         }
-                    }
-                });
-                // after we delete it from the keyspaces table and from cassandra too
-                keyspaceService.deleteKeyspace(userKeyspace.getKeyspace(), true);
-                // update the logged user too
-                user.getKeyspaces().remove(userKeyspace);
-                userService.save(user);
-                model.addAttribute("deleteKeyspaceSuccess",
-                        messages.getMessage("database.keyspaces.delete.success", null,
-                                request.getLocale()));
+                    });
+                    // send a notification to the current user
+                    if (user.getNotifications() == null)
+                        user.setNotifications(new ArrayList<>());
+                    user.getNotifications().add(new UserNotification("System", deleteKeyspaceMessage[0]));
+                    // after we delete it from the keyspaces table and from cassandra too
+                    keyspaceService.deleteKeyspace(userKeyspace.getKeyspace(), true);
+                    // update the logged user too
+                    user.getKeyspaces().remove(userKeyspace);
+                    userService.save(user);
+                    model.addAttribute("deleteKeyspaceSuccess",
+                            messages.getMessage("database.keyspaces.delete.success", null,
+                                    request.getLocale()));
+
+                } catch (JsonProcessingException e) {
+                    model.addAttribute("keyspaceManageError",
+                            messages.getMessage("database.keyspaces.delete.backupError", null,
+                                    request.getLocale()));
+                }
             }
         }
         return "forward:" + routeProperties.getMyDatabase();

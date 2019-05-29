@@ -37,31 +37,81 @@ function appendLeadingZeroes(n){
     return n
 }
 
+function echoLogs(logsContent) {
+    logTerminal.clear();
+    for(var i = 0 ; i < logsContent.length ; i++) {
+        var date = new Date(Date.parse(logsContent[i]["date"]));
+        var formatDate = appendLeadingZeroes(date.getDate()) + "-" + appendLeadingZeroes(date.getMonth() + 1) + "-" + date.getFullYear() + " " + appendLeadingZeroes(date.getHours()) + ":" + appendLeadingZeroes(date.getMinutes()) + ":" + appendLeadingZeroes(date.getSeconds());
+
+        logTerminal.echo("[[bi;;]" + logsContent[i]["username"] + "] - [[;;]" + formatDate);
+        if(logsContent[i]["type"] == logsCreate) {
+            logTerminal.echo("[[i;green;]" + logsContent[i]["content"]);
+        } else if(logsContent[i]["type"] == logsUpdate) {
+            logTerminal.echo("[[i;blue;]" + logsContent[i]["content"]);
+        } else if(logsContent[i]["type"] == logsDelete) {
+            logTerminal.echo("[[i;red;]" + logsContent[i]["content"]);
+        }
+        logTerminal.echo();
+    }
+    logTerminal.scroll_to_bottom();
+}
+
 function initLog() {
     if ($("#log-div").html() != undefined) {
         logTerminal = $('#log-terminal').terminal(function (cmd) {
-
+            if(cmd[0] == "@") {
+                var cmdSplit = cmd.split("@");
+                var params = [];
+                var inputOk = true;
+                if(cmdSplit.length > 1) {
+                    if(cmdSplit[1] == "")
+                        params["date"] = "today";
+                    else {
+                        params["date"] = cmdSplit[1];
+                    }
+                } else
+                    inputOk = false;
+                if(cmdSplit.length > 2) {
+                    if(cmdSplit[2] == "")
+                        inputOk = false;
+                    else
+                        params["username"] = cmdSplit[2];
+                }
+                if(cmdSplit.length > 3)
+                    inputOk = false;
+                if(inputOk) {
+                    $.ajax({
+                        type: "post",
+                        url: logFilterUrl,
+                        contentType: "application/json; charset=utf-8",
+                        data: JSON.stringify({
+                            "date": params["date"],
+                            "username": params["username"]
+                        }),
+                        dataType: "json"
+                    }).done(function (result) {
+                        if(result != null && result.length != 0)
+                            echoLogs(result);
+                        else if(result.length == 0) {
+                            logTerminal.echo("[[i;red;]" + "No data found!");
+                        } else if(result == null) {
+                            logTerminal.echo("[[i;red;]" + "Invalid! The logs could not be filtered! Please try again!");
+                        }
+                    }).fail(function () {
+                        alert("Server error!");
+                    });
+                } else {
+                    this.echo("[[i;red;]" + "Invalid command!");
+                    this.echo("[[i;;]" + logsInfo);
+                }
+            }
         }, {
             greetings: "",
             prompt: "[[g;black;]>] ",
             convertLinks: false
         });
-        //logTerminal.pause();
-        for(var i = 0 ; i < logsContent.length ; i++) {
-            var date = new Date(Date.parse(logsContent[i]["date"]));
-            var formatDate = date.getFullYear() + "-" + appendLeadingZeroes(date.getMonth() + 1) + "-" + appendLeadingZeroes(date.getDate()) + " " + appendLeadingZeroes(date.getHours()) + ":" + appendLeadingZeroes(date.getMinutes()) + ":" + appendLeadingZeroes(date.getSeconds());
-
-            logTerminal.echo("[[bi;;]" + logsContent[i]["username"] + "] - [[;;]" + formatDate);
-            if(logsContent[i]["type"] == logsCreate) {
-                logTerminal.echo("[[i;green;]" + logsContent[i]["content"]);
-            } else if(logsContent[i]["type"] == logsUpdate) {
-                logTerminal.echo("[[i;blue;]" + logsContent[i]["content"]);
-            } else if(logsContent[i]["type"] == logsDelete) {
-                logTerminal.echo("[[i;red;]" + logsContent[i]["content"]);
-            }
-            logTerminal.echo();
-        }
-        logTerminal.scroll_to_bottom();
+        echoLogs(logsContent);
+        logTerminal.echo("[[i;;]" + logsInfo);
     }
 }
 
@@ -194,10 +244,10 @@ function initConsoleScript() {
             changeConsoleContentAjax(true);
             var selSplit = selected.split(";");
             var i = 0;
-            var batch = [];
-            var batchStart = [];
-            var batchEnd = [];
-            var batches = [];
+            var batch = [], funct = [];
+            var batchStart = [], functStart = [];
+            var batchEnd = [], functEnd = [];
+            var batches = [], functs = [];
             while (i < selSplit.length) {
                 var query = selSplit[i].toLowerCase()
                 if (query.includes("begin") && query.includes("batch")) {
@@ -211,11 +261,25 @@ function initConsoleScript() {
                 } else if (batch.length > 0) {
                     batch.push(selSplit[i], ";");
                 }
+
+                if(query.includes("create") && query.includes("function") && query.includes("$$")) {
+                    funct.push(selSplit[i], ";");
+                    functStart.push(i);
+                } else if(query.includes("$$") && funct.length > 1) {
+                    funct.push(selSplit[i]);
+                    functEnd.push(i);
+                    functs.push(funct.join(""));
+                    funct = [];
+                } else if(funct.length > 1) {
+                    funct.push(selSplit[i], ";");
+                }
+
                 i++;
             }
-            var newSplit = []
+            var newSplit = [];
+            var contor = 0;
             if (batches.length > 0) {
-                var contor = 0;
+                contor = 0;
                 for (i = 0; i < selSplit.length; i++) {
                     if (i == batchStart[contor]) {
                         newSplit.push(batches[contor]);
@@ -229,11 +293,28 @@ function initConsoleScript() {
             } else {
                 newSplit = selSplit;
             }
-            newSplit.forEach(function (item, index) {
+            var newSplit2 = [];
+            if (functs.length > 0) {
+                contor = 0;
+                for (i = 0; i < selSplit.length; i++) {
+                    if (i == functStart[contor]) {
+                        newSplit2.push(functs[contor]);
+                    } else if (i < functStart[contor] || i > functEnd[contor]) {
+                        newSplit2.push(selSplit[i]);
+                    } else if (i == functEnd[contor]) {
+                        if (contor + 1 < functs.length)
+                            contor++;
+                    }
+                }
+            } else {
+                newSplit2 = newSplit;
+            }
+            //alert(JSON.stringify(newSplit2));
+            newSplit2.forEach(function (item, index) {
                 if (item.trim().length > 0) {
                     $.ajax({
                         type: "post",
-                        async: true,
+                        async: false,
                         url: consoleInterpretorUrl,
                         contentType: "application/json; charset=utf-8",
                         data: JSON.stringify({

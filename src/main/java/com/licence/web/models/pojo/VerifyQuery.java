@@ -16,9 +16,10 @@ public class VerifyQuery {
         this.queryProperties = queryProperties;
     }
 
-    public Map<String, Object> detectQuery(String query) {
-        query = query.trim().toLowerCase();
+    public Map<String, Object> detectQuery(String queryDefault) {
+        String query = queryDefault.trim().toLowerCase();
         String[] splitQuery = query.split("\\s+");
+        String[] splitQueryDefault = queryDefault.trim().split("\\s+");
         Map<String, Object> mapResult = new HashMap<>();
         StringBuilder result = new StringBuilder();
         StringBuilder error = new StringBuilder("Syntax error or command unavailable!\n");
@@ -95,6 +96,11 @@ public class VerifyQuery {
                         validForQuery = true;
                         for (int i = 4; i < splitQuery.length; i++)
                             result.append(splitQuery[i]).append(" ");
+                    } else if (splitQuery[2].equals("on")) {
+                        result.append(" ON ").append(keyspaceName).append(".");
+                        validForQuery = true;
+                        for (int i = 3; i < splitQuery.length; i++)
+                            result.append(splitQuery[i]).append(" ");
                     }
                 } else if (secondWord.equals("function") || (secondWord.equals("or") && splitQuery[3].equals("function"))) {
                     error.append(queryProperties.getSyntax().get("createFunction"));
@@ -117,8 +123,8 @@ public class VerifyQuery {
                     } else if (contor == 2 || contor == 4) {
                         validForQuery = true;
                         result.append(keyspaceName).append(".");
-                        for (int i = contor; i < splitQuery.length; i++)
-                            result.append(splitQuery[i]).append(" ");
+                        for (int i = contor; i < splitQueryDefault.length; i++)
+                            result.append(splitQueryDefault[i]).append(" ");
                     }
                 } else if (secondWord.equals("materialized")) {
                     error.append(queryProperties.getSyntax().get("createMaterializedView"));
@@ -307,14 +313,14 @@ public class VerifyQuery {
                 mapResult.put("type", "truncate");
                 result.append("TRUNCATE ");
                 if (splitQuery[1].equals("table")) {
-                    result.append("TABLE ").append(keyspaceName).append(" ");
+                    result.append("TABLE ").append(keyspaceName).append(".");
                     validForQuery = true;
                     if(2 < splitQuery.length)
                         mapResult.put("value", splitQuery[2]);
                     for (int i = 2; i < splitQuery.length; i++)
                         result.append(splitQuery[i]).append(" ");
                 } else {
-                    result.append(keyspaceName).append(" ");
+                    result.append(keyspaceName).append(".");
                     validForQuery = true;
                     if(1 < splitQuery.length)
                         mapResult.put("value", splitQuery[1]);

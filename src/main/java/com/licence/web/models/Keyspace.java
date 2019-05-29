@@ -20,6 +20,7 @@ import javax.validation.constraints.Min;
 import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.Pattern;
 import javax.validation.constraints.Size;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.Date;
@@ -77,6 +78,8 @@ public class Keyspace {
         keyspaceLog.setType(type);
         keyspaceLog.setUsername(username);
         keyspaceLog.setContent(content);
+        if(this.getLog() == null)
+            this.setLog(new ArrayList<>());
         this.getLog().add(keyspaceLog);
     }
 }

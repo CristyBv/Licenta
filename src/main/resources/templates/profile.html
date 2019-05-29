@@ -1,7 +1,6 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org"
-      xmlns:sec="http://www.thymeleaf.org/thymeleaf-extras-springsecurity4"
-      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+<html xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      lang="en"
       layout:decorate="~{layouts/layout}">
 <head>
     <th:block>
@@ -13,6 +12,7 @@
         <script th:inline="javascript">
             /*<![CDATA[*/
             var changeAvatarUrl = /*[[${@environment.getProperty('route.change[avatar]')}]]*/ 'url'
+            var changeNotificationReadUrl = /*[[${@environment.getProperty('route.change[notification-read]')}]]*/ 'url'
             /*]]>*/
         </script>
     </th:block>
@@ -21,7 +21,7 @@
 <div layout:fragment="content">
     <div class="container">
         <div class="row" th:with="user=${#authentication.getPrincipal().getUser()}">
-            <div class="col-sm-4"><!--left col-->
+            <div class="col-sm-3"><!--left col-->
                 <div class="text-center">
                     <h2 id="username-h2" th:text="${user.getUserName()}">User name</h2>
                     <div th:if="${user.getAvatar()}!=null" th:remove="tag">
@@ -39,7 +39,9 @@
                         <input type="text" class="text-center center-block file-upload"
                                placeholder="Copy an url address">
                     </div>
-                    <button th:type="button" class="btn btn-secondary" style="margin-top: 5px;" id="avatar-change-button">Change</button>
+                    <button th:type="button" class="btn btn-secondary" style="margin-top: 5px;"
+                            id="avatar-change-button">Change
+                    </button>
                 </div>
                 </hr><br>
                 <ul class="list-group">
@@ -64,14 +66,19 @@
                     </li>
                 </ul>
             </div><!--/col-3-->
-            <div class="col-sm-8">
+            <div class="col-sm-9">
                 <ul class="nav nav-tabs">
-                    <li class="active"><a data-toggle="tab" href="#home">Home</a></li>
-                    <li><a data-toggle="tab" href="#messages">Menu 1</a></li>
-                    <li><a data-toggle="tab" href="#settings">Menu 2</a></li>
+                    <li th:class="'tab-pane '+${unreadNotifications == null ? 'active' : ''}"><a data-toggle="tab"
+                                                                                                 href="#settings">Settings</a>
+                    </li>
+                    <li th:class="'tab-pane '+${unreadNotifications != null ? 'active' : ''}"><a data-toggle="tab"
+                                                                                                 href="#notifications">
+                        <span th:if="${unreadNotifications}" class="glyphicon glyphicon-envelope"></span>
+                        Notifications</a></li>
+                    <li><a data-toggle="tab" href="#">Menu 2</a></li>
                 </ul>
                 <div class="tab-content">
-                    <div class="tab-pane active" id="home">
+                    <div th:class="'tab-pane '+${unreadNotifications == null ? 'active' : ''}" id="settings">
                         <hr/>
                         <div class="alert alert-success" th:if="${changeEmailSuccess}"
                              th:text="${changeEmailSuccess}"></div>
@@ -124,6 +131,37 @@
                                 </button>
                             </div>
                         </form>
+                        <hr/>
+                    </div>
+                    <div th:class="'tab-pane '+${unreadNotifications != null ? 'active' : ''}" id="notifications">
+                        <hr/>
+                        <div class="alert alert-success" th:if="${userNotificationsSuccess}"
+                             th:text="${userNotificationsSuccess}"></div>
+                        <div class="alert alert-danger" th:if="${userNotificationsError}"
+                             th:text="${userNotificationsError}"></div>
+                        <div class="alert alert-info" th:text="#{profile.notifications.info}"></div>
+                        <p th:if="${notifications == null}">You have 0 notifications!</p>
+                        <th:block th:if="${notifications}">
+                            <div th:each="notif:${notifications}" class="card"
+                                 th:style="'width: 100%; ' + ${notif.read == false ? '' : ''}">
+                                <div class="card-body">
+                                    <strong th:text="${notif.author}" class="card-title"></strong>
+                                    <div class="card-subtitle" th:text="${notif.date}"></div>
+                                    <br>
+                                    <div th:if="${notif.read == true}" th:text="${notif.content}"
+                                         class="card-text"></div>
+                                    <div th:if="${notif.read == false}" class="card-text">
+                                        <div class="hidden-notification">
+                                            <a href="#" class="show-notification-a"
+                                               th:attr="data-notificationDate=${notif.date}">Read notification</a>
+                                            <div th:text="${notif.content}" class="hidden-notification-content"
+                                                 style="display: none;"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <hr/>
+                            </div>
+                        </th:block>
                         <hr/>
                     </div>
                 </div>
