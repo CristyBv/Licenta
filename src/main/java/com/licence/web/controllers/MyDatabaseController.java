@@ -1674,7 +1674,7 @@ public class MyDatabaseController {
         return map;
     }
 
-    private List<Map<String, String>> prepareRowForView(KeyspaceContentObject update) {
+    public static List<Map<String, String>> prepareRowForView(KeyspaceContentObject update) {
         List<Map<String, String>> updateString = new ArrayList<>();
         update.getContent().forEach(p -> {
             Map<String, String> map1 = new HashMap<>();
@@ -2164,7 +2164,7 @@ public class MyDatabaseController {
         return null;
     }
 
-    private String databaseCorrespondence(Object object, DataType dataType) {
+    public static String databaseCorrespondence(Object object, DataType dataType) {
         String type = dataType.getName().toString();
         StringBuilder stringBuilder = new StringBuilder("");
         if (object == null)
@@ -2218,7 +2218,7 @@ public class MyDatabaseController {
         return stringBuilder.toString();
     }
 
-    private Object editNDimensionCollectionObject(Object object, DataType dataType) {
+    public static Object editNDimensionCollectionObject(Object object, DataType dataType) {
         // if we find a primitive value in the collection, we convert it
         if (!dataType.isCollection() && !dataType.isFrozen()) {
             object = databaseCorrespondence(object, dataType);

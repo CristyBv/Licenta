@@ -50,6 +50,7 @@ public class WebMvcConfig implements WebMvcConfigurer {
         registry.addViewController("/register").setViewName("register");
         registry.addViewController("/profile").setViewName("profile");
         registry.addViewController("/my-database").setViewName("my-database");
+        registry.addViewController("/admin-console").setViewName("admin-console");
     }
 
     @Override

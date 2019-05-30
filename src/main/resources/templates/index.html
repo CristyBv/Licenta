@@ -1,7 +1,6 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org"
-      xmlns:sec="http://www.thymeleaf.org/thymeleaf-extras-springsecurity4"
-      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+<html xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      lang="en"
       layout:decorate="~{layouts/layout}">
 <head>
     <th:block>
@@ -13,39 +12,41 @@
     </th:block>
 </head>
 <body>
-    <div layout:fragment="content">
-        <div class="alert alert-success" th:if="${registerSuccess}" th:text="${registerSuccess}">  </div>
-        <div class="alert alert-danger" th:if="${registerConfirmationError}" th:text="${registerConfirmationError}">  </div>
-        <div class="alert alert-danger" th:if="${error}" th:text="${registerConfirmationError}">  </div>
-        <div class="alert alert-success" th:if="${param.logout}" th:text="#{logout.success.message}"> </div>
-        <div class="alert alert-success" th:if="${recoveryResetSuccess}" th:text="#{recovery.reset.success.message}"> </div>
-        <div class="alert alert-success" th:if="${recoveryResendSuccess}" th:text="#{recovery.resend.success.message}"> </div>
-        <div class="container">
-            <section class="jumbotron text-center" id="main-section">
-                <h1 class="jumbotron-heading" th:text="#{app.name}"></h1>
-                <p class="lead text-muted" th:utext="#{/index.text}"></p>
-            </section>
+<div layout:fragment="content">
+    <div class="alert alert-success" th:if="${registerSuccess}" th:text="${registerSuccess}"></div>
+    <div class="alert alert-danger" th:if="${registerConfirmationError}" th:text="${registerConfirmationError}"></div>
+    <div class="alert alert-danger" th:if="${error}" th:text="${registerConfirmationError}"></div>
+    <div class="alert alert-success" th:if="${param.logout}" th:text="#{logout.success.message}"></div>
+    <div class="alert alert-success" th:if="${recoveryResetSuccess}" th:text="#{recovery.reset.success.message}"></div>
+    <div class="alert alert-success" th:if="${recoveryResendSuccess}"
+         th:text="#{recovery.resend.success.message}"></div>
+    <div class="container">
+        <section class="jumbotron text-center" id="main-section">
+            <h1 class="jumbotron-heading" th:text="#{app.name}"></h1>
+            <p class="lead text-muted" th:utext="#{/index.text}"></p>
+        </section>
 
-            <div class="modal fade" id="login-register-modal" tabindex="-1" role="dialog" aria-hidden="true">
-                <div class="modal-dialog" role="document">
-                    <div th:replace="fragments/login-register :: login-register" id="login-register-div"></div>
-                </div>
+        <div class="modal fade" id="login-register-modal" tabindex="-1" role="dialog" aria-hidden="true">
+            <div class="modal-dialog" role="document">
+                <div th:replace="fragments/login-register :: login-register" id="login-register-div"></div>
             </div>
         </div>
     </div>
-    <th:block layout:fragment="scripts">
-        <script th:inline="javascript" th:if="${registerError}">
-            $("#login-register-modal").modal("show");
-            changeToRegister();
-        </script>
-        <script th:inline="javascript" th:if="${recoveryError}">
-            $("#login-register-modal").modal("show");
-            changeToRecovery();
-        </script>
-        <script th:inline="javascript" th:if="${registerConfirmationSuccess} OR ${param.login} OR ${param.badCredentialsLoginError} OR ${param.disabledUserLoginError}">
-            $("#login-register-modal").modal("show");
-            changeToLogin();
-        </script>
-    </th:block>
+</div>
+<th:block layout:fragment="scripts">
+    <script th:inline="javascript" th:if="${registerError}">
+        $("#login-register-modal").modal("show");
+        changeToRegister();
+    </script>
+    <script th:inline="javascript" th:if="${recoveryError}">
+        $("#login-register-modal").modal("show");
+        changeToRecovery();
+    </script>
+    <script th:inline="javascript"
+            th:if="${registerConfirmationSuccess} OR ${param.login} OR ${param.badCredentialsLoginError} OR ${param.disabledUserLoginError}">
+        $("#login-register-modal").modal("show");
+        changeToLogin();
+    </script>
+</th:block>
 </body>
 </html>

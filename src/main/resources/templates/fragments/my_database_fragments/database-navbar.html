@@ -26,7 +26,7 @@
             <a class="database-menu-link" data-panel="ConsoleScriptPanel"
                th:href="${@environment.getProperty('route.myDatabaseConsoleScript')}">Console/Script</a>
         </li>
-        <li th:unless="${member == key.access}">
+        <li>
             <a class="database-menu-link" data-panel="ImportExportPanel"
                th:href="${@environment.getProperty('route.myDatabaseImportExport')}">Export</a>
         </li>

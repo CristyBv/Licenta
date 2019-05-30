@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      lang="en"
+      layout:decorate="~{layouts/layout}">
+<head>
+    <th:block>
+        <!--Custom stylesheets-->
+        <link th:rel="stylesheet" th:href="@{/css/admin-console.css} "/>
+        <link href="https://cdn.jsdelivr.net/npm/jquery.terminal/css/jquery.terminal.min.css" rel="stylesheet"/>
+
+        <!--Custom scripts-->
+        <script th:src="@{/js/admin-console.js}"></script>
+        <script src="https://cdn.jsdelivr.net/npm/jquery.terminal/js/jquery.terminal.min.js"></script>
+        <script th:inline="javascript">
+            /*<![CDATA[*/
+            var adminConsoleInterpretorUrl = /*[[${@environment.getProperty('route.adminConsole[interpretor]')}]]*/ 'url';
+            var adminConsoleChangeContentUrl = /*[[${@environment.getProperty('route.adminConsole[content]')}]]*/ 'url';
+            /*]]>*/
+        </script>
+    </th:block>
+</head>
+<body>
+<div layout:fragment="content" th:with="adminConsoleContent = ${session.adminConsoleContent}">
+    <th:block th:if="${adminConsoleContent != null}">
+        <script th:inline="javascript" >
+            var adminConsoleViewContent = /*[[${session.adminConsoleContent.get('adminConsoleContent')}]]*/ null;
+        </script>
+    </th:block>
+    <th:block th:if="${adminConsoleContent == null}">
+        <script th:inline="javascript" >
+            var adminConsoleViewContent = null;
+        </script>
+    </th:block>
+    <div id="terminal"></div>
+</div>
+</body>
+</html>

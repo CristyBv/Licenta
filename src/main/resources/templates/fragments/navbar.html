@@ -12,10 +12,10 @@
             <a class="navbar-brand" th:href="${@environment.getProperty('route.index')}" th:text="#{app.name}">WebSiteName</a>
         </div>
         <ul class="nav navbar-nav">
-            <li th:class="(${active} == '/index' ? 'active' : (${active} == '/' ? 'active' : ''))">
+            <li th:class="${active == @environment.getProperty('route.index') ? 'active' : (active == '/' ? 'active' : '')}">
                 <a th:href="${@environment.getProperty('route.index')}">Home</a>
             </li>
-            <li th:class="(${active} == '/my-database' ? 'active' : '')">
+            <li th:class="${active == @environment.getProperty('route.myDatabase') ? 'active' : ''}">
                 <a th:href="${@environment.getProperty('route.myDatabase')}">My Database</a>
             </li>
         </ul>
@@ -32,8 +32,15 @@
                     Sign Up
                 </a>
             </li>
+            <li sec:authorize="hasAuthority('ADMIN')" id="admin-console-li-navbar-right"
+                th:class="${active == @environment.getProperty('route.adminConsole[index]') ? 'active' : ''}">
+                <a th:href="${@environment.getProperty('route.adminConsole[index]')}">
+                    <span class="glyphicon glyphicon-menu-right"></span>
+                    Console
+                </a>
+            </li>
             <li sec:authorize="isAuthenticated()" id="profile-li-navbar-right"
-                th:class="(${active} == '/profile' ? 'active' : '')">
+                th:class="${active == @environment.getProperty('route.profile') ? 'active' : ''}">
                 <a th:href="@{profile}">
                     <div id="messages-icon-div" style="display: inline-block">
                         <th:block th:if="${#authentication.getPrincipal().getUser().getNotifications()}">
@@ -51,7 +58,7 @@
                 </a>
             </li>
             <li sec:authorize="isAuthenticated()" id="logout-li-navbar-right">
-                <a th:href="@{logout}">
+                <a th:href="${@environment.getProperty('route.logout')}">
                     <span class="glyphicon glyphicon-log-out"></span>
                     Logout
                 </a>

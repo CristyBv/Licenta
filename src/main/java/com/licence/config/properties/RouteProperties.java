@@ -17,6 +17,7 @@ public class RouteProperties {
     private String login;
     private String logout;
     private String profile;
+    private String adminConsole;
     private String myDatabase;
     private String updateDeleteRowContent;
     private Map<String, String> get;
