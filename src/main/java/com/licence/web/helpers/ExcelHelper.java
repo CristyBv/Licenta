@@ -16,6 +16,14 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 public class ExcelHelper {
+    private Integer maxCellLength = 32000;
+    private String cellLengthTooLongMessage = "... -> *** Data too long! Export this table as JSON to view the content ***";
+
+    public ExcelHelper(Integer maxCellLength, String cellLengthTooLongMessage) {
+        this.maxCellLength = maxCellLength;
+        this.cellLengthTooLongMessage = cellLengthTooLongMessage;
+    }
+
     public XSSFWorkbook createTable(KeyspaceContentObject key) {
 
         XSSFWorkbook workbook = new XSSFWorkbook();
@@ -45,14 +53,22 @@ public class ExcelHelper {
                 cell.setCellStyle(headerCellStyle);
                 sheet.setColumnWidth(i, 5000);
             }
-
             for (int i = 0; i < key.getContent().size(); i++) {
                 Row row = sheet.createRow(i + 1);
                 List<Object> rowContent = key.getContent().get(i).entrySet().stream().map(Map.Entry::getValue).collect(Collectors.toList());
                 for (int c = 0; c < nrColumns; c++) {
                     Cell cell = row.createCell(c);
-                    if (rowContent.get(c) != null)
-                        cell.setCellValue(rowContent.get(c).toString());
+                    if (rowContent.get(c) != null) {
+                        try {
+                            if(rowContent.get(c).toString().length() > maxCellLength) {
+                                cell.setCellValue(rowContent.get(c).toString().substring(0, maxCellLength) + cellLengthTooLongMessage);
+                            } else {
+                                cell.setCellValue(rowContent.get(c).toString());
+                            }
+                        } catch (IllegalArgumentException e) {
+                            cell.setCellValue("Row too long!");
+                        }
+                    }
                 }
             }
             // Resize all columns to fit the content size

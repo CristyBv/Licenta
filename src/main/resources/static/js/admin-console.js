@@ -1,5 +1,7 @@
 var terminal;
 var consoleStack = "";
+var currentConsoleContent = {};
+var consoleMaxResults = 15;
 
 $(document).ready(function () {
     ajaxCSRFToken();
@@ -14,6 +16,31 @@ function initTerminal() {
                 consoleStack += cmd;
                 adminConsoleInterpretorAjax(consoleStack);
                 consoleStack = "";
+            } else if (cmd == "@more") {
+                if (Object.keys(currentConsoleContent).length > 0) {
+                    var content = currentConsoleContent["content"];
+                    var nr = currentConsoleContent["nr"] + consoleMaxResults;
+                    if (content.length - currentConsoleContent["nr"] < consoleMaxResults)
+                        nr = currentConsoleContent["nr"] + (content.length - currentConsoleContent["nr"]);
+                    //this.clear();
+                    for (var i = currentConsoleContent["nr"]; i < nr; i++) {
+                        terminal.echo("[[;#1E90FF;]@Row " + (i + 1));
+                        terminal.echo("-----------------------------------------------------------------");
+                        Object.keys(content[i]).forEach(function (key) {
+                            var spaceDif = "";
+                            for (var j = 0; j < 30 - key.length; j++) {
+                                spaceDif += " ";
+                            }
+                            terminal.echo("[[ib;#DEB887;]" + key + "]" + spaceDif + " | " + content[i][key]);
+                        });
+                        terminal.echo("-----------------------------------------------------------------");
+                    }
+                    terminal.echo("");
+                    currentConsoleContent["nr"] = nr;
+                    if (nr >= content.length)
+                        currentConsoleContent = {};
+                    changeAdminConsoleContentAjax();
+                }
             } else {
                 consoleStack += cmd + " ";
                 this.echo(consoleStack + " ...");
@@ -38,7 +65,8 @@ function initTerminal() {
             },
             echoCommand: false,
             anyLinks: false,
-            convertLinks: false
+            convertLinks: false,
+            outputLimit: 700
         });
 
         if (adminConsoleViewContent != null && adminConsoleViewContent != undefined) {
@@ -77,7 +105,13 @@ function doneAjaxTerminalShow(result) {
                 var content = result["success"];
                 var space = 30;
                 if (content.length > 0) {
-                    for (var i = 0; i < content.length; i++) {
+                    var nr = content.length;
+                    if (content.length > consoleMaxResults) {
+                        nr = consoleMaxResults;
+                        currentConsoleContent["nr"] = nr;
+                        currentConsoleContent["content"] = content;
+                    }
+                    for (var i = 0; i < nr; i++) {
                         terminal.echo("[[;#1E90FF;]@Row " + (i + 1));
                         terminal.echo("-----------------------------------------------------------------");
                         Object.keys(content[i]).forEach(function (key) {
@@ -89,7 +123,10 @@ function doneAjaxTerminalShow(result) {
                         });
                         terminal.echo("-----------------------------------------------------------------");
                     }
-                    terminal.echo("");
+                    if(Object.keys(currentConsoleContent).length > 0)
+                        terminal.echo("[[i;;]Too many results! Type ][[;green;]@more][[i;;] to load more!\nIf you leave the page, this will no longer work for current select query!");
+                    else
+                        terminal.echo("");
                 } else {
                     terminal.echo("[[i;;]No results found!");
                 }

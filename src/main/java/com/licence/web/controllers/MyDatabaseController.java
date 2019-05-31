@@ -371,7 +371,7 @@ public class MyDatabaseController {
         UserKeyspace userKeyspace = updateUserKeyspaces(authentication, session);
         if (userKeyspace != null) {
             KeyspaceContentObject table = keyspaceService.getSelectSimple(userKeyspace.getKeyspace().getName(), tableName, "*");
-            ExcelHelper excelHelper = new ExcelHelper();
+            ExcelHelper excelHelper = new ExcelHelper(Integer.parseInt(keyspaceProperties.getData().get("excelCellMaxLength")), messages.getMessage("database.keyspaces.tableData.tooLong", null, request.getLocale()));
             XSSFWorkbook workbook = excelHelper.createTable(table);
             response.setHeader("Content-disposition", "attachment; filename=" + tableName + ".xlsx");
             try {
@@ -502,8 +502,9 @@ public class MyDatabaseController {
     @ResponseBody
     @PostMapping(value = "${route.script[interpretor]}", produces = "application/json")
     public List<Map<String, Object>> scriptInterpretor(@RequestBody Map<String, Object> map,
-                                                 Authentication authentication,
-                                                 HttpSession session) {
+                                                       Authentication authentication,
+                                                       HttpSession session,
+                                                       HttpServletRequest request) {
         CassandraUserDetails userDetails = (CassandraUserDetails) authentication.getPrincipal();
         User user = userDetails.getUser();
         UserKeyspace userKeyspace = updateUserKeyspaces(authentication, session);
@@ -515,7 +516,7 @@ public class MyDatabaseController {
                     for (String query : queries) {
                         String queryWithoutComments = String.join("", query.split("/\\*(.|\\n)*?\\*/"));
                         if (queryWithoutComments.trim().length() > 0) {
-                            result.add(getDetectQuery(queryWithoutComments, userKeyspace, user));
+                            result.add(getDetectQuery(queryWithoutComments, userKeyspace, user, request));
                         }
                     }
                     return result;
@@ -527,7 +528,7 @@ public class MyDatabaseController {
         return new ArrayList<>();
     }
 
-    private Map<String, Object> getDetectQuery(String query, UserKeyspace userKeyspace, User user) {
+    private Map<String, Object> getDetectQuery(String query, UserKeyspace userKeyspace, User user, HttpServletRequest request) {
         VerifyQuery verifyQuery = new VerifyQuery(userKeyspace.getKeyspace().getName(), queryProperties);
         Map<String, Object> detectedQuery = verifyQuery.detectQuery(query);
         if (detectedQuery.get("error") != null) {
@@ -537,7 +538,17 @@ public class MyDatabaseController {
             if (detectedQuery.get("type").equals("select")) {
                 try {
                     KeyspaceContentObject content = keyspaceService.select(detectedQuery.get("success").toString());
-                    detectedQuery.put("content", prepareRowForView(content));
+                    // after we prepare the values from the data for the frontend limited by max length
+                    Integer maxLength = Integer.parseInt(keyspaceProperties.getData().get("maxLength"));
+                    List<Map<String, String>> preparedContent = prepareRowForView(content);
+                    for (Map<String, String> preparedData : preparedContent) {
+                        preparedData.forEach((k, v) -> {
+                            if (v != null && v.length() > maxLength)
+                                preparedData.put(k, v.substring(0, maxLength) + messages.getMessage("database.keyspaces.tableData.tooLong", null, request.getLocale()));
+
+                        });
+                    }
+                    detectedQuery.put("content", preparedContent);
                 } catch (Exception e) {
                     detectedQuery.put("error", e.getMessage());
                 }
@@ -567,7 +578,8 @@ public class MyDatabaseController {
     @PostMapping(value = "${route.console[interpretor]}", produces = "application/json")
     public Map<String, Object> consoleInterpretor(@RequestBody Map<String, Object> map,
                                                   Authentication authentication,
-                                                  HttpSession session) {
+                                                  HttpSession session,
+                                                  HttpServletRequest request) {
         CassandraUserDetails userDetails = (CassandraUserDetails) authentication.getPrincipal();
         User user = userDetails.getUser();
         UserKeyspace userKeyspace = updateUserKeyspaces(authentication, session);
@@ -578,7 +590,7 @@ public class MyDatabaseController {
                     // eliminate comments from query
                     query = String.join("", query.split("/\\*(.|\\n)*?\\*/"));
                     if (query.trim().length() > 0) {
-                        return getDetectQuery(query, userKeyspace, user);
+                        return getDetectQuery(query, userKeyspace, user, request);
                     } else {
                         return new HashMap<>();
                     }
@@ -1709,9 +1721,17 @@ public class MyDatabaseController {
                     update.setContent(updateNew);
                 }
             }
-            // after we prepare the values from the data for the frontend
+            // after we prepare the values from the data for the frontend limited by max length
+            Integer maxLength = Integer.parseInt(keyspaceProperties.getData().get("maxLength"));
+            List<Map<String, String>> preparedData = prepareRowForView(update);
+            for (Map<String, String> preparedDatum : preparedData) {
+                preparedDatum.forEach((k, v) -> {
+                    if (v != null && v.length() > maxLength)
+                        preparedDatum.put(k, v.substring(0, maxLength) + messages.getMessage("database.keyspaces.tableData.tooLong", null, request.getLocale()));
 
-            map.put("data", prepareRowForView(update));
+                });
+            }
+            map.put("data", preparedData);
         }
         return map;
     }

@@ -200,6 +200,7 @@ function initConsoleScript() {
                     currentConsoleContent["nr"] = nr;
                     if(nr >= content.length)
                         currentConsoleContent = {};
+                    changeAdminConsoleContentAjax();
                 } else {
                     this.echo("No results found!");
                 }
@@ -230,7 +231,8 @@ function initConsoleScript() {
             },
             echoCommand: false,
             anyLinks: false,
-            convertLinks: false
+            convertLinks: false,
+            outputLimit: 700
         });
 
         $("#script-textarea").on("change", function () {

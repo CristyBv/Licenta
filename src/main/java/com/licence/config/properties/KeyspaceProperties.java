@@ -17,4 +17,5 @@ public class KeyspaceProperties {
     private Map<String, String> panel;
     private Map<String, String> search;
     private Map<String, String> log;
+    private Map<String, String> data;
 }
