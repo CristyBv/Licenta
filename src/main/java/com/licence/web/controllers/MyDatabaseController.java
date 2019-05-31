@@ -21,6 +21,7 @@ import com.licence.web.models.UDT.UserNotification;
 import com.licence.web.models.User;
 import com.licence.web.models.pojo.KeyspaceContent;
 import com.licence.web.models.pojo.KeyspaceContentObject;
+import com.licence.web.models.pojo.KeyspaceContentObjectForExport;
 import com.licence.web.models.pojo.VerifyQuery;
 import com.licence.web.services.BackupService;
 import com.licence.web.services.KeyspaceService;
@@ -148,7 +149,7 @@ public class MyDatabaseController {
                     }
                 }
                 if (Objects.equals(activePanel, keyspaceProperties.getPanel().get("log"))) {
-                    List<KeyspaceLog> keyspaceLogs = getLogs(userKeyspace, null, null);
+                    List<KeyspaceLog> keyspaceLogs = getLogs(userKeyspace, null, null, Integer.parseInt(keyspaceProperties.getLog().get("max")));
                     if (keyspaceLogs != null)
                         model.addAttribute("todayLog", keyspaceLogs);
                     else
@@ -161,7 +162,7 @@ public class MyDatabaseController {
         return routeProperties.getMyDatabase();
     }
 
-    private List<KeyspaceLog> getLogs(UserKeyspace userKeyspace, Date date, String userName) {
+    private List<KeyspaceLog> getLogs(UserKeyspace userKeyspace, Date date, String userName, Integer max) {
         DateFormat formatter = new SimpleDateFormat("dd-MM-yyyy");
         try {
             if (date == null) {
@@ -175,8 +176,10 @@ public class MyDatabaseController {
                 if (date.equals(date2) && (userName == null || keyspaceLog.getUsername().toLowerCase().equals(userName.toLowerCase())))
                     keyspaceLogs.add(keyspaceLog);
             }
-
-            return keyspaceLogs.stream().sorted(Comparator.comparing(KeyspaceLog::getDate)).collect(Collectors.toList());
+            if (max != null)
+                return keyspaceLogs.stream().sorted(Comparator.comparing(KeyspaceLog::getDate)).collect(lastN(max));
+            else
+                return keyspaceLogs.stream().sorted(Comparator.comparing(KeyspaceLog::getDate)).collect(Collectors.toList());
         } catch (ParseException e) {
             return null;
         }
@@ -209,10 +212,10 @@ public class MyDatabaseController {
                 String date = map.get("date").toString();
                 String username = map.get("username").toString();
                 if (date.equals("today"))
-                    return getLogs(userKeyspace, null, username);
+                    return getLogs(userKeyspace, null, username, Integer.parseInt(keyspaceProperties.getLog().get("max")));
                 else {
                     try {
-                        return getLogs(userKeyspace, formatter.parse(date), username);
+                        return getLogs(userKeyspace, formatter.parse(date), username, Integer.parseInt(keyspaceProperties.getLog().get("max")));
                     } catch (ParseException e) {
                         return null;
                     }
@@ -220,10 +223,10 @@ public class MyDatabaseController {
             } else if (map.get("date") != null) {
                 String date = map.get("date").toString();
                 if (date.equals("today"))
-                    return getLogs(userKeyspace, null, null);
+                    return getLogs(userKeyspace, null, null, Integer.parseInt(keyspaceProperties.getLog().get("max")));
                 else {
                     try {
-                        return getLogs(userKeyspace, formatter.parse(date), null);
+                        return getLogs(userKeyspace, formatter.parse(date), null, Integer.parseInt(keyspaceProperties.getLog().get("max")));
                     } catch (ParseException e) {
                         return new ArrayList<>();
                     }
@@ -296,7 +299,7 @@ public class MyDatabaseController {
             try {
                 ObjectMapper mapper = new ObjectMapper();
                 response.setHeader("Content-disposition", "attachment; filename=" + userKeyspace.getKeyspace().getName() + ".json");
-                mapper.writeValue(response.getOutputStream(), getAllKeyspaceContent(userKeyspace));
+                mapper.writerWithDefaultPrettyPrinter().writeValue(response.getOutputStream(), getAllKeyspaceContent(userKeyspace));
             } catch (JsonGenerationException | JsonMappingException e) {
                 error = true;
             } catch (IOException e) {
@@ -318,9 +321,10 @@ public class MyDatabaseController {
         KeyspaceContent keyspaceContent = keyspaceService.getKeyspaceContent(userKeyspace.getKeyspace().getName().toLowerCase());
         map.put("Keyspace", userKeyspace.getKeyspace());
         map.put("KeyspaceContent", keyspaceContent);
-        List<KeyspaceContentObject> list = new ArrayList<>();
+        List<KeyspaceContentObjectForExport> list = new ArrayList<>();
         keyspaceContent.getTables().getContent().forEach(p -> {
-            list.add(keyspaceService.getSelectSimple(userKeyspace.getKeyspace().getName(), p.get("table_name").toString(), "*"));
+            KeyspaceContentObject obj = keyspaceService.getSelectSimple(userKeyspace.getKeyspace().getName(), p.get("table_name").toString(), "*");
+            list.add(new KeyspaceContentObjectForExport(obj.getTableName(), obj.getColumnDefinitions(), prepareRowForView(obj)));
         });
         map.put("TablesContent", list);
         return map;
@@ -340,7 +344,7 @@ public class MyDatabaseController {
             try {
                 ObjectMapper mapper = new ObjectMapper();
                 response.setHeader("Content-disposition", "attachment; filename=" + tableName + ".json");
-                mapper.writeValue(response.getOutputStream(), table.getContent());
+                mapper.writerWithDefaultPrettyPrinter().writeValue(response.getOutputStream(), prepareRowForView(table));
             } catch (JsonGenerationException | JsonMappingException e) {
                 error = true;
             } catch (IOException e) {
@@ -495,6 +499,69 @@ public class MyDatabaseController {
         return JSONObject.quote("Console content changed!");
     }
 
+    @ResponseBody
+    @PostMapping(value = "${route.script[interpretor]}", produces = "application/json")
+    public List<Map<String, Object>> scriptInterpretor(@RequestBody Map<String, Object> map,
+                                                 Authentication authentication,
+                                                 HttpSession session) {
+        CassandraUserDetails userDetails = (CassandraUserDetails) authentication.getPrincipal();
+        User user = userDetails.getUser();
+        UserKeyspace userKeyspace = updateUserKeyspaces(authentication, session);
+        if (userKeyspace != null) {
+            try {
+                List<String> queries = (List<String>) map.get("queries");
+                if (queries != null) {
+                    List<Map<String, Object>> result = new ArrayList<>();
+                    for (String query : queries) {
+                        String queryWithoutComments = String.join("", query.split("/\\*(.|\\n)*?\\*/"));
+                        if (queryWithoutComments.trim().length() > 0) {
+                            result.add(getDetectQuery(queryWithoutComments, userKeyspace, user));
+                        }
+                    }
+                    return result;
+                }
+            } catch (Exception e) {
+                return new ArrayList<>();
+            }
+        }
+        return new ArrayList<>();
+    }
+
+    private Map<String, Object> getDetectQuery(String query, UserKeyspace userKeyspace, User user) {
+        VerifyQuery verifyQuery = new VerifyQuery(userKeyspace.getKeyspace().getName(), queryProperties);
+        Map<String, Object> detectedQuery = verifyQuery.detectQuery(query);
+        if (detectedQuery.get("error") != null) {
+            detectedQuery.put("error", detectedQuery.get("error").toString().replaceAll("]", ")").replaceAll("\\[", "("));
+        } else {
+            // if the type is != null that means the command is a select
+            if (detectedQuery.get("type").equals("select")) {
+                try {
+                    KeyspaceContentObject content = keyspaceService.select(detectedQuery.get("success").toString());
+                    detectedQuery.put("content", prepareRowForView(content));
+                } catch (Exception e) {
+                    detectedQuery.put("error", e.getMessage());
+                }
+            } else {
+                try {
+                    keyspaceService.execute(detectedQuery.get("success").toString());
+                    String type = detectedQuery.get("type").toString();
+                    // prepare and add log
+                    String logContent = "Executed a query in this keyspace!\n     Query: " + detectedQuery.get("success");
+                    if (type.contains("update") || type.contains("alter") || type.contains("batch")) {
+                        userKeyspace.getKeyspace().addLog(keyspaceProperties.getLog().get("typeUpdate"), logContent, user.getUserName());
+                    } else if (type.contains("drop") || type.contains("truncate") || type.contains("delete")) {
+                        userKeyspace.getKeyspace().addLog(keyspaceProperties.getLog().get("typeDelete"), logContent, user.getUserName());
+                    } else if (type.contains("create") || type.contains("insert")) {
+                        userKeyspace.getKeyspace().addLog(keyspaceProperties.getLog().get("typeCreate"), logContent, user.getUserName());
+                    }
+                    keyspaceService.save(userKeyspace.getKeyspace(), false, false);
+                } catch (Exception e) {
+                    detectedQuery.put("error", e.getMessage());
+                }
+            }
+        }
+        return detectedQuery;
+    }
 
     @ResponseBody
     @PostMapping(value = "${route.console[interpretor]}", produces = "application/json")
@@ -511,39 +578,7 @@ public class MyDatabaseController {
                     // eliminate comments from query
                     query = String.join("", query.split("/\\*(.|\\n)*?\\*/"));
                     if (query.trim().length() > 0) {
-                        VerifyQuery verifyQuery = new VerifyQuery(userKeyspace.getKeyspace().getName(), queryProperties);
-                        Map<String, Object> detectedQuery = verifyQuery.detectQuery(query);
-                        if (detectedQuery.get("error") != null) {
-                            detectedQuery.put("error", detectedQuery.get("error").toString().replaceAll("]", ")").replaceAll("\\[", "("));
-                        } else {
-                            // if the type is != null that means the command is a select
-                            if (detectedQuery.get("type").equals("select")) {
-                                try {
-                                    KeyspaceContentObject content = keyspaceService.select(detectedQuery.get("success").toString());
-                                    detectedQuery.put("content", prepareRowForView(content));
-                                } catch (Exception e) {
-                                    detectedQuery.put("error", e.getMessage());
-                                }
-                            } else {
-                                try {
-                                    keyspaceService.execute(detectedQuery.get("success").toString());
-                                    String type = detectedQuery.get("type").toString();
-                                    // prepare and add log
-                                    String logContent = "Executed a query in this keyspace!\n     Query: " + detectedQuery.get("success");
-                                    if (type.contains("update") || type.contains("alter") || type.contains("batch")) {
-                                        userKeyspace.getKeyspace().addLog(keyspaceProperties.getLog().get("typeUpdate"), logContent, user.getUserName());
-                                    } else if (type.contains("drop") || type.contains("truncate") || type.contains("delete")) {
-                                        userKeyspace.getKeyspace().addLog(keyspaceProperties.getLog().get("typeDelete"), logContent, user.getUserName());
-                                    } else if (type.contains("create") || type.contains("insert")) {
-                                        userKeyspace.getKeyspace().addLog(keyspaceProperties.getLog().get("typeCreate"), logContent, user.getUserName());
-                                    }
-                                    keyspaceService.save(userKeyspace.getKeyspace(), false, false);
-                                } catch (Exception e) {
-                                    detectedQuery.put("error", e.getMessage());
-                                }
-                            }
-                        }
-                        return detectedQuery;
+                        return getDetectQuery(query, userKeyspace, user);
                     } else {
                         return new HashMap<>();
                     }
@@ -573,7 +608,7 @@ public class MyDatabaseController {
                 try {
                     ObjectMapper objectMapper = new ObjectMapper();
                     Map<String, Object> triggerMap = keyspaceContent.getTriggers().getContent().stream().filter(p -> p.get("trigger_name").toString().equals(triggerName)).findAny().orElse(null);
-                    backupContent = objectMapper.writeValueAsString(triggerMap);
+                    backupContent = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(triggerMap);
                 } catch (JsonProcessingException e) {
                     backupContent = "Json parse error for trigger structure!";
                 }
@@ -641,7 +676,7 @@ public class MyDatabaseController {
                 try {
                     ObjectMapper objectMapper = new ObjectMapper();
                     Map<String, Object> aggregateMap = keyspaceContent.getAggregates().getContent().stream().filter(p -> p.get("aggregate_name").toString().equals(aggregateName)).findAny().orElse(null);
-                    backupContent = objectMapper.writeValueAsString(aggregateMap);
+                    backupContent = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(aggregateMap);
                 } catch (JsonProcessingException e) {
                     backupContent = "Json parse error for aggregate structure!";
                 }
@@ -716,7 +751,7 @@ public class MyDatabaseController {
                 try {
                     ObjectMapper objectMapper = new ObjectMapper();
                     Map<String, Object> functionMap = keyspaceContent.getFunctions().getContent().stream().filter(p -> p.get("function_name").toString().equals(functionName)).findAny().orElse(null);
-                    backupContent = objectMapper.writeValueAsString(functionMap);
+                    backupContent = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(functionMap);
                 } catch (JsonProcessingException e) {
                     backupContent = "Json parse error for function structure!";
                 }
@@ -791,7 +826,7 @@ public class MyDatabaseController {
                 try {
                     ObjectMapper objectMapper = new ObjectMapper();
                     Map<String, Object> typeMap = keyspaceContent.getTypes().getContent().stream().filter(p -> p.get("type_name").toString().equals(type)).findAny().orElse(null);
-                    backupContent = objectMapper.writeValueAsString(typeMap);
+                    backupContent = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(typeMap);
                 } catch (JsonProcessingException e) {
                     backupContent = "Json parse error for type structure!";
                 }
@@ -956,7 +991,7 @@ public class MyDatabaseController {
                 try {
                     ObjectMapper objectMapper = new ObjectMapper();
                     Map<String, Object> indexMap = keyspaceContent.getIndexes().getContent().stream().filter(p -> p.get("index_name").toString().equals(indexName)).findAny().orElse(null);
-                    backupContent = objectMapper.writeValueAsString(indexMap);
+                    backupContent = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(indexMap);
                 } catch (JsonProcessingException e) {
                     backupContent = "Json parse error for index structure!";
                 }
@@ -1061,7 +1096,7 @@ public class MyDatabaseController {
                 try {
                     ObjectMapper objectMapper = new ObjectMapper();
                     Map<String, Object> viewMap = keyspaceContent.getViews().getContent().stream().filter(p -> p.get("view_name").toString().equals(view)).findAny().orElse(null);
-                    backupContent = objectMapper.writeValueAsString(viewMap);
+                    backupContent = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(viewMap);
                 } catch (JsonProcessingException e) {
                     backupContent = "Json parse error for view structure!";
                 }
@@ -1100,7 +1135,7 @@ public class MyDatabaseController {
                 try {
                     ObjectMapper objectMapper = new ObjectMapper();
                     Map<String, Object> tableMap = keyspaceContent.getTables().getContent().stream().filter(p -> p.get("table_name").toString().equals(table)).findAny().orElse(null);
-                    backupContent = objectMapper.writeValueAsString(tableMap);
+                    backupContent = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(tableMap);
                 } catch (JsonProcessingException e) {
                     backupContent = "Json parse error for table structure!";
                 }
@@ -1108,7 +1143,7 @@ public class MyDatabaseController {
                 try {
                     ObjectMapper objectMapper = new ObjectMapper();
                     KeyspaceContentObject content = keyspaceService.getSelectSimple(userKeyspace.getKeyspace().getName().toLowerCase(), table, "*");
-                    backupContent += "\nTable Content:\n" + objectMapper.writeValueAsString(content.getContent());
+                    backupContent += "\nTable Content:\n" + objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(content.getContent());
                 } catch (JsonProcessingException e) {
                     backupContent += "\n\n Json parse error for table content!";
                 }
@@ -1161,7 +1196,7 @@ public class MyDatabaseController {
                     String backupContent;
                     try {
                         ObjectMapper objectMapper = new ObjectMapper();
-                        backupContent = objectMapper.writeValueAsString(map);
+                        backupContent = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(map);
                     } catch (JsonProcessingException e) {
                         backupContent = null;
                     }
@@ -1210,7 +1245,7 @@ public class MyDatabaseController {
                 try {
                     ObjectMapper objectMapper = new ObjectMapper();
                     Map<String, Object> columnMap = keyspaceContent.getColumns().getContent().stream().filter(p -> p.get("column_name").toString().equals(columnName)).findAny().orElse(null);
-                    backupContent = objectMapper.writeValueAsString(columnMap);
+                    backupContent = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(columnMap);
                 } catch (JsonProcessingException e) {
                     backupContent = null;
                 }
@@ -1439,7 +1474,7 @@ public class MyDatabaseController {
                 String backupContent;
                 try {
                     ObjectMapper objectMapper = new ObjectMapper();
-                    backupContent = objectMapper.writeValueAsString(findRow);
+                    backupContent = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(findRow);
                 } catch (JsonProcessingException e) {
                     backupContent = null;
                 }
@@ -1637,6 +1672,13 @@ public class MyDatabaseController {
                                         return timestamp1.compareTo(timestamp2);
                                     else if (order.equals("desc"))
                                         return timestamp2.compareTo(timestamp1);
+                                } else if (definition.getType().getName().toString().equals("int")) {
+                                    Integer nr1 = Integer.parseInt(ent1.getValue().toString());
+                                    Integer nr2 = Integer.parseInt(ent2.getValue().toString());
+                                    if (order.equals("asc"))
+                                        return nr1.compareTo(nr2);
+                                    else if (order.equals("desc"))
+                                        return nr2.compareTo(nr1);
                                 }
                                 // else we will order by the result string
                                 if (order.equals("asc"))
@@ -1744,7 +1786,8 @@ public class MyDatabaseController {
     }
 
     @PostMapping(value = "${route.keyspace[removeUser]}")
-    public String removeUserFromKeyspace(@RequestParam(name = "userName", required = false) String userName,
+    public String removeUserFromKeyspace(@RequestParam(name = "userName", required = false) String
+                                                 userName,
                                          Authentication authentication,
                                          HttpSession session,
                                          WebRequest request,
@@ -1878,7 +1921,7 @@ public class MyDatabaseController {
 
                 try {
                     ObjectMapper mapper = new ObjectMapper();
-                    String keyspaceBackup = mapper.writeValueAsString(getAllKeyspaceContent(userKeyspace));
+                    String keyspaceBackup = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(getAllKeyspaceContent(userKeyspace));
                     final String[] deleteKeyspaceMessage = {String.format(messages.getMessage("database.keyspaces.delete.notification", null, request.getLocale()), user.getUserName(), userKeyspace.getName(), backupService.getUrlBackupSave(keyspaceBackup, userKeyspace.getKeyspace().getName(), appDomainName))};
 
                     // if the password is not enabled or the passwords matched
@@ -1933,7 +1976,7 @@ public class MyDatabaseController {
         return "forward:" + routeProperties.getMyDatabase();
     }
 
-    private boolean testKeyspaceRole(HttpSession session, String role) {
+    public static boolean testKeyspaceRole(HttpSession session, String role) {
         if (session.getAttribute("userKeyspace") != null) {
             UserKeyspace activeUserKeyspace = (UserKeyspace) session.getAttribute("userKeyspace");
             if (Objects.equals(activeUserKeyspace.getAccess(), role))
@@ -2167,6 +2210,7 @@ public class MyDatabaseController {
     public static String databaseCorrespondence(Object object, DataType dataType) {
         String type = dataType.getName().toString();
         StringBuilder stringBuilder = new StringBuilder("");
+        ObjectMapper objectMapper = new ObjectMapper();
         if (object == null)
             return null;
         try {
@@ -2206,8 +2250,9 @@ public class MyDatabaseController {
                 // if the object is a collection, we will edit every part of it
             } else if (dataType.isCollection()) {
                 Object obj = editNDimensionCollectionObject(object, dataType);
-                if (obj != null)
+                if (obj != null) {
                     stringBuilder.append(obj.toString());
+                }
                 // else we append the string value of the object
             } else {
                 stringBuilder.append(object.toString());
@@ -2310,7 +2355,8 @@ public class MyDatabaseController {
         }
     }
 
-    private Map<String, ArrayList<String>> getErrors(BindingResult bindingResult, Map<String, ArrayList<String>> errors) {
+    private Map<String, ArrayList<String>> getErrors(BindingResult
+                                                             bindingResult, Map<String, ArrayList<String>> errors) {
         List<FieldError> fieldErrors = bindingResult.getFieldErrors();
         for (FieldError fieldError : fieldErrors) {
             if (Objects.equals(fieldError.getField(), "name"))

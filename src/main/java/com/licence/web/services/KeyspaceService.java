@@ -377,7 +377,7 @@ public class KeyspaceService {
     public void createView(String keyspace, String baseTable, String view, String columnsSelected, String whereClause, String keys, String clusteringOrder) throws Exception {
         String query;
         if (clusteringOrder != null)
-            query = String.format(queryProperties.getCreate().get("view_clustering"), view, columnsSelected, keyspace + "." + baseTable, whereClause, keys, clusteringOrder);
+            query = String.format(queryProperties.getCreate().get("view_clustering"), keyspace+"."+view, columnsSelected, keyspace + "." + baseTable, whereClause, keys, clusteringOrder);
         else
             query = String.format(queryProperties.getCreate().get("view"), view, columnsSelected, keyspace + "." + baseTable, whereClause, keys);
         System.out.println(query);

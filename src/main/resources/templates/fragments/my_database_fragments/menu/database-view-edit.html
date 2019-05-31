@@ -424,7 +424,7 @@
                 <div th:class="'tab-pane ' + ${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[triggers]') ? 'active' : ''}"
                      id="triggers"
                      th:if="${session.activeViewEditPanel == @environment.getProperty('keyspace.panel[triggers]')}">
-                    <button th:if="${key.access != member}" class="btn btn-lg btn-default create-row-button" id="create-trigger-button">Create Trigger
+                    <button disabled th:if="${key.access != member}" class="btn btn-lg btn-default create-row-button" id="create-trigger-button">Create Trigger
                     </button>
                     <hr/>
                     <div th:if="${key.access != member}" class="modal fade create-row-modal" tabindex="-1" id="create-trigger-modal" role="dialog"
@@ -437,7 +437,7 @@
                     <table class="table table-striped table-bordered text-center" id="keyspace-data-triggers">
                         <thead>
                         <tr>
-                            <th scope="col" class="text-center">Aggregate Name</th>
+                            <th scope="col" class="text-center">Trigger Name</th>
                             <th scope="col" class="text-center">Table Name</th>
                             <th scope="col" class="text-center">Options</th>
                             <th scope="col" class="text-center" th:if="${key.access != member}"></th>

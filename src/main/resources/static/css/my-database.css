@@ -278,6 +278,22 @@ table.dataTable thead th {
     border: 1px solid black;
 }
 
+table.dataTable tbody tr:nth-child(even) {
+    background-color: #dbe3ea;
+}
+table.dataTable tbody tr:nth-child(odd) {
+    background-color: aliceblue;
+}
+
+#content-div table.dataTable tbody tr td {
+    white-space: pre-wrap;
+}
+
+table.dataTable thead tr th {
+    background-color: #182645;
+    color: white;
+}
+
 #content-div table.dataTable tbody tr:hover td {
     border: 1px solid #182645;
     box-sizing: border-box;

@@ -69,7 +69,9 @@ function doneAjaxTerminalShow(result) {
         if (result["error"] != null) {
             terminal.echo("[[g;red;]" + result["error"]);
         } else if (result["success"] != null) {
-            terminal.echo("[[i;;]" + result["success"]);
+            terminal.echo();
+            if(result["type"] != "select")
+                terminal.echo("[[i;;]" + result["success"]);
             terminal.echo("[[;green;]Valid!\n");
             if (result["type"] == "select") {
                 var content = result["success"];

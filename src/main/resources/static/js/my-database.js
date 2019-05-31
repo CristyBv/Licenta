@@ -4,6 +4,8 @@ var tablesSearch = [];
 var terminal;
 var logTerminal;
 var consoleStack = "";
+var currentConsoleContent = {};
+var consoleMaxResults = 15;
 
 $(document).ready(function () {
 
@@ -30,8 +32,8 @@ $(document).ready(function () {
     initLog();
 });
 
-function appendLeadingZeroes(n){
-    if(n <= 9){
+function appendLeadingZeroes(n) {
+    if (n <= 9) {
         return "0" + n;
     }
     return n
@@ -39,16 +41,17 @@ function appendLeadingZeroes(n){
 
 function echoLogs(logsContent) {
     logTerminal.clear();
-    for(var i = 0 ; i < logsContent.length ; i++) {
+    logTerminal.echo("[[b;red;]Max 100 logs. For more, export keyspace logs!\n");
+    for (var i = 0; i < logsContent.length; i++) {
         var date = new Date(Date.parse(logsContent[i]["date"]));
         var formatDate = appendLeadingZeroes(date.getDate()) + "-" + appendLeadingZeroes(date.getMonth() + 1) + "-" + date.getFullYear() + " " + appendLeadingZeroes(date.getHours()) + ":" + appendLeadingZeroes(date.getMinutes()) + ":" + appendLeadingZeroes(date.getSeconds());
 
         logTerminal.echo("[[bi;;]" + logsContent[i]["username"] + "] - [[;;]" + formatDate);
-        if(logsContent[i]["type"] == logsCreate) {
+        if (logsContent[i]["type"] == logsCreate) {
             logTerminal.echo("[[i;green;]" + logsContent[i]["content"]);
-        } else if(logsContent[i]["type"] == logsUpdate) {
+        } else if (logsContent[i]["type"] == logsUpdate) {
             logTerminal.echo("[[i;blue;]" + logsContent[i]["content"]);
-        } else if(logsContent[i]["type"] == logsDelete) {
+        } else if (logsContent[i]["type"] == logsDelete) {
             logTerminal.echo("[[i;red;]" + logsContent[i]["content"]);
         }
         logTerminal.echo();
@@ -59,27 +62,27 @@ function echoLogs(logsContent) {
 function initLog() {
     if ($("#log-div").html() != undefined) {
         logTerminal = $('#log-terminal').terminal(function (cmd) {
-            if(cmd[0] == "@") {
+            if (cmd[0] == "@") {
                 var cmdSplit = cmd.split("@");
                 var params = [];
                 var inputOk = true;
-                if(cmdSplit.length > 1) {
-                    if(cmdSplit[1] == "")
+                if (cmdSplit.length > 1) {
+                    if (cmdSplit[1] == "")
                         params["date"] = "today";
                     else {
                         params["date"] = cmdSplit[1];
                     }
                 } else
                     inputOk = false;
-                if(cmdSplit.length > 2) {
-                    if(cmdSplit[2] == "")
+                if (cmdSplit.length > 2) {
+                    if (cmdSplit[2] == "")
                         inputOk = false;
                     else
                         params["username"] = cmdSplit[2];
                 }
-                if(cmdSplit.length > 3)
+                if (cmdSplit.length > 3)
                     inputOk = false;
-                if(inputOk) {
+                if (inputOk) {
                     $.ajax({
                         type: "post",
                         url: logFilterUrl,
@@ -90,11 +93,11 @@ function initLog() {
                         }),
                         dataType: "json"
                     }).done(function (result) {
-                        if(result != null && result.length != 0)
+                        if (result != null && result.length != 0)
                             echoLogs(result);
-                        else if(result.length == 0) {
+                        else if (result.length == 0) {
                             logTerminal.echo("[[i;red;]" + "No data found!");
-                        } else if(result == null) {
+                        } else if (result == null) {
                             logTerminal.echo("[[i;red;]" + "Invalid! The logs could not be filtered! Please try again!");
                         }
                     }).fail(function () {
@@ -106,7 +109,7 @@ function initLog() {
                 }
             }
         }, {
-            greetings: "",
+            greetings: "Max 100 logs. For more, export keyspace logs!",
             prompt: "[[g;black;]>] ",
             convertLinks: false
         });
@@ -174,6 +177,32 @@ function initConsoleScript() {
                 consoleStack += cmd;
                 consoleInterpretorAjax(consoleStack);
                 consoleStack = "";
+            } else if (cmd == "@more") {
+                if (Object.keys(currentConsoleContent).length > 0) {
+                    var content = currentConsoleContent["content"];
+                    var nr = currentConsoleContent["nr"] + consoleMaxResults;
+                    if (content.length - currentConsoleContent["nr"] < consoleMaxResults)
+                        nr = currentConsoleContent["nr"] + (content.length - currentConsoleContent["nr"]);
+                    //this.clear();
+                    for (var i = currentConsoleContent["nr"]; i < nr; i++) {
+                        terminal.echo("[[;#1E90FF;]@Row " + (i + 1));
+                        terminal.echo("-----------------------------------------------------------------");
+                        Object.keys(content[i]).forEach(function (key) {
+                            var spaceDif = "";
+                            for (var j = 0; j < 30 - key.length; j++) {
+                                spaceDif += " ";
+                            }
+                            terminal.echo("[[ib;#DEB887;]" + key + "]" + spaceDif + " | " + content[i][key]);
+                        });
+                        terminal.echo("-----------------------------------------------------------------");
+                    }
+                    terminal.echo("");
+                    currentConsoleContent["nr"] = nr;
+                    if(nr >= content.length)
+                        currentConsoleContent = {};
+                } else {
+                    this.echo("No results found!");
+                }
             } else {
                 consoleStack += cmd + " ";
                 this.echo(consoleStack + " ...");
@@ -262,15 +291,15 @@ function initConsoleScript() {
                     batch.push(selSplit[i], ";");
                 }
 
-                if(query.includes("create") && query.includes("function") && query.includes("$$")) {
+                if (query.includes("create") && query.includes("function") && query.includes("$$")) {
                     funct.push(selSplit[i], ";");
                     functStart.push(i);
-                } else if(query.includes("$$") && funct.length > 1) {
+                } else if (query.includes("$$") && funct.length > 1) {
                     funct.push(selSplit[i]);
                     functEnd.push(i);
                     functs.push(funct.join(""));
                     funct = [];
-                } else if(funct.length > 1) {
+                } else if (funct.length > 1) {
                     funct.push(selSplit[i], ";");
                 }
 
@@ -310,33 +339,34 @@ function initConsoleScript() {
                 newSplit2 = newSplit;
             }
             //alert(JSON.stringify(newSplit2));
-            newSplit2.forEach(function (item, index) {
-                if (item.trim().length > 0) {
-                    $.ajax({
-                        type: "post",
-                        async: false,
-                        url: consoleInterpretorUrl,
-                        contentType: "application/json; charset=utf-8",
-                        data: JSON.stringify({
-                            "query": item
-                        }),
-                        dataType: "json"
-                    }).done(function (result) {
-                        if (result["error"] != null) {
-                            setTimeout(function () {
-                                doneAjaxTerminalShow(result);
-                            }, 1000);
-                        } else {
-                            doneAjaxTerminalShow(result);
-                        }
-                    }).fail(function () {
-                        alert("Server error!");
-                    });
-                }
+            $.ajax({
+                type: "post",
+                async: true,
+                url: scriptInterpretorUrl,
+                contentType: "application/json; charset=utf-8",
+                data: JSON.stringify({
+                    "queries": newSplit2
+                }),
+                dataType: "json"
+            }).done(function (result) {
+                doneAjaxScriptTerminalShow(result);
+            }).fail(function () {
+                alert("Server error!");
             });
         }
 
-        function doneAjaxTerminalShow(result) {
+        function doneAjaxScriptTerminalShow(result) {
+            if (result != null && result.length > 0) {
+                for (var i = 0; i < result.length; i++) {
+                    doneAjaxTerminalShow(result[i], true);
+                }
+            } else {
+                terminal.echo("[[;red;]Error! Refresh and try again!\n");
+            }
+        }
+
+        function doneAjaxTerminalShow(result, noContentChange) {
+            currentConsoleContent = {};
             if (result != null) {
                 if (result["error"] != null) {
                     terminal.echo("[[i;;]" + result["success"]);
@@ -348,11 +378,13 @@ function initConsoleScript() {
                         var content = result["content"];
                         var space = 30;
                         if (content.length > 0) {
-                            // var colnNames = [];
-                            // Object.keys(content[0]).forEach(function (key) {
-                            //     colnNames.push(key);
-                            // });
-                            for (var i = 0; i < content.length; i++) {
+                            var nr = content.length;
+                            if (content.length > consoleMaxResults) {
+                                nr = consoleMaxResults;
+                                currentConsoleContent["nr"] = nr;
+                                currentConsoleContent["content"] = content;
+                            }
+                            for (var i = 0; i < nr; i++) {
                                 terminal.echo("[[;#1E90FF;]@Row " + (i + 1));
                                 terminal.echo("-----------------------------------------------------------------");
                                 Object.keys(content[i]).forEach(function (key) {
@@ -364,7 +396,10 @@ function initConsoleScript() {
                                 });
                                 terminal.echo("-----------------------------------------------------------------");
                             }
-                            terminal.echo("");
+                            if(Object.keys(currentConsoleContent).length > 0)
+                                terminal.echo("[[i;;]Too many results! Type ][[;green;]@more][[i;;] to load more!\nIf you leave the page, this will no longer work for current select query!");
+                            else
+                                terminal.echo("");
                         } else {
                             terminal.echo("[[i;;]No results found!");
                         }
@@ -374,7 +409,8 @@ function initConsoleScript() {
                 terminal.echo("[[i;;]" + result["success"]);
                 terminal.echo("[[;red;]Error! Refresh and try again!\n");
             }
-            changeConsoleContentAjax();
+            if (noContentChange != true)
+                changeConsoleContentAjax();
         }
 
         // function scriptRunAjax(selected) {
@@ -399,6 +435,7 @@ function initConsoleScript() {
             }
             $.ajax({
                 type: "post",
+                async: true,
                 url: consoleChangeContentUrl,
                 contentType: "application/json; charset=utf-8",
                 data: JSON.stringify({
