@@ -213,7 +213,7 @@ function initConsoleScript() {
         }, {
             greetings: "Specify only the object name and not the keyspace.\n" +
             "You can only query in the current keyspace. Some commands are restricted.\n" +
-            "For script page type @script\nTo hide the script type @console\n",
+            "For script page type @script\nTo hide the script type @console\nMax console lines: 700\n",
             prompt: "[[g;white;black]>] ",
             name: "text",
             keymap: {
@@ -341,6 +341,8 @@ function initConsoleScript() {
                 newSplit2 = newSplit;
             }
             //alert(JSON.stringify(newSplit2));
+            terminal.echo("[[i;green;]\nThe script is running...\nThe valid results will appear in logs too.\nIf you don't want to wait for the results, you can now leave this page.");
+
             $.ajax({
                 type: "post",
                 async: true,
