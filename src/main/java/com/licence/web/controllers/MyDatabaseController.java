@@ -1442,7 +1442,7 @@ public class MyDatabaseController {
                     }
                     // prepare and add log with backup url
                     String logContent = "Inserted a row in " + keyspaceContentObject.getTableName() + "\n     Columns: " + insertColumns.toString() + "\n     Values: " + insertValues.toString();
-                    userKeyspace.getKeyspace().addLog(keyspaceProperties.getLog().get("typeUpdate"), logContent, user.getUserName());
+                    userKeyspace.getKeyspace().addLog(keyspaceProperties.getLog().get("typeCreate"), logContent, user.getUserName());
                     keyspaceService.save(userKeyspace.getKeyspace(), false, false);
                     model.addAttribute("keyspaceViewEditSuccess", "Row inserted!");
                     return "forward:" + routeProperties.getMyDatabase();

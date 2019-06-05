@@ -71,8 +71,10 @@ public class RecoveryController {
         User user;
         if (!Objects.equals(email, "")) {
             user = userService.findUserByEmail(email);
-        } else {
+        } else if(!Objects.equals(userName, "")) {
             user = userService.findUserByUsername(userName);
+        } else {
+            user = null;
         }
         return user;
     }
