@@ -1,9 +1,6 @@
 package com.licence.config.handlers;
 
-import com.licence.config.context.ApplicationContextProvider;
-import com.licence.web.models.User;
 import com.licence.web.services.UserService;
-import jnr.ffi.annotations.In;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.InternalAuthenticationServiceException;
 import org.springframework.security.core.AuthenticationException;
@@ -16,8 +13,6 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.util.Enumeration;
-import java.util.Objects;
 
 @Component
 public class CustomAuthenticationFailureHandler extends SimpleUrlAuthenticationFailureHandler {
@@ -41,7 +36,7 @@ public class CustomAuthenticationFailureHandler extends SimpleUrlAuthenticationF
     @Override
     public void onAuthenticationFailure(HttpServletRequest request, HttpServletResponse response, AuthenticationException exception) throws IOException, ServletException {
         // if the exception is
-        if(exception.getClass() == InternalAuthenticationServiceException.class)
+        if (exception.getClass() == InternalAuthenticationServiceException.class)
             setDefaultFailureUrl(disabledUserUrl);
         else setDefaultFailureUrl(badCredentialsUrl);
         setUseForward(false);

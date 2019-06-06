@@ -42,6 +42,7 @@ public class GenericFilter implements Filter {
             FilterChain chain) throws IOException, ServletException {
         HttpServletRequest req = (HttpServletRequest) request;
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        // if the user is authenticated
         if (authentication != null && !(authentication instanceof AnonymousAuthenticationToken)) {
             User authUser = ((CassandraUserDetails) authentication.getPrincipal()).getUser();
             User dbUser = userService.findById(authUser.getId());

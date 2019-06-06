@@ -38,11 +38,9 @@ public class CommandLineAppStartUpRunner implements CommandLineRunner {
 
     @Override
     public void run(String... args) throws Exception {
-//        for(int i = 0; i<1000;i++)
-//            System.out.println("insert into table2 (id) values ("+i+");");
-        //insertAdmin();
-        //insertKeyspaceAdmin();
-        //executeStartUpScriptsAfter();
+        insertAdmin();
+        insertKeyspaceAdmin();
+        executeStartUpScriptsAfter();
     }
 
     // after spring starts, some scripts are executed from a startUpScriptsAfter file

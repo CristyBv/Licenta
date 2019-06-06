@@ -1,6 +1,5 @@
 package com.licence.config.security;
 
-import com.licence.web.models.UDT.UserKeyspace;
 import com.licence.web.models.User;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
@@ -8,7 +7,6 @@ import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 
 // Create my own User class for spring security context
 public class CassandraUserDetails implements UserDetails {

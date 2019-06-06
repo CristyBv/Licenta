@@ -80,6 +80,7 @@ public class AdminConsoleController {
                         content = keyspaceService.select(query);
                         Integer maxLength = Integer.parseInt(keyspaceProperties.getData().get("maxLength"));
                         List<Map<String, String>> preparedData = prepareRowForView(content);
+                        // if a field contains data too long, we don't show all of that
                         for (Map<String, String> preparedDatum : preparedData) {
                             preparedDatum.forEach((k, v) -> {
                                 if (v != null && v.length() > maxLength)

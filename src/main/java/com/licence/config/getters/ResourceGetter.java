@@ -1,7 +1,6 @@
 package com.licence.config.getters;
 
 import org.apache.commons.io.FileUtils;
-import org.springframework.stereotype.Component;
 
 import java.io.File;
 
@@ -27,7 +26,7 @@ public class ResourceGetter {
             ClassLoader classLoader = getClass().getClassLoader();
             File file = new File(classLoader.getResource(path).getFile());
             String content = FileUtils.readFileToString(file, "UTF-8");
-            if(whatToReplace != null)
+            if (whatToReplace != null)
                 return content.replaceAll(whatToReplace, withWhatToReplace);
             else return content;
         } catch (Exception e) {

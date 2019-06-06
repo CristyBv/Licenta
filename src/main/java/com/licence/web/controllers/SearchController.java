@@ -34,7 +34,7 @@ public class SearchController {
 
     @GetMapping(value = "${route.searchLive[function]}", produces = "application/json")
     public Map<String, List<Map<String, String>>> searchFunctionLive(@RequestParam(name = "search", required = false) String search,
-                                                                   HttpSession session) {
+                                                                     HttpSession session) {
         List<Map<String, String>> options = new ArrayList<>();
         if (search != null && !search.isEmpty() && session.getAttribute("userKeyspace") != null) {
             // get the columns from the current active keyspace
@@ -65,7 +65,7 @@ public class SearchController {
             KeyspaceContent keyspaceContent = keyspaceService.getKeyspaceContent(userKeyspace.getKeyspace().getName().toLowerCase());
             // filter columns by search parameter
             List<Pair<String, String>> columns;
-            if(tableName != null) {
+            if (tableName != null) {
                 columns = keyspaceContent.getColumns().getContent().stream().filter(p -> p.get("table_name").toString().toLowerCase().equals(tableName.toLowerCase()) && p.get("column_name").toString().toLowerCase().contains(search.toLowerCase())).map(p -> new Pair<>(p.get("column_name").toString(), p.get("column_name") + " {table: " + p.get("table_name") + ", type: " + p.get("type") + ", kind: " + p.get("kind") + "}")).collect(Collectors.toList());
             } else {
                 columns = keyspaceContent.getColumns().getContent().stream().filter(p -> p.get("column_name").toString().toLowerCase().contains(search.toLowerCase())).map(p -> new Pair<>(p.get("column_name").toString(), p.get("column_name") + " {table: " + p.get("table_name") + ", type: " + p.get("type") + ", kind: " + p.get("kind") + "}")).collect(Collectors.toList());
@@ -84,7 +84,7 @@ public class SearchController {
 
     @GetMapping(value = "${route.searchLive[table-view]}", produces = "application/json")
     public Map<String, List<Map<String, String>>> searchTableViewLive(@RequestParam(name = "search", required = false) String search,
-                                                                  HttpSession session) {
+                                                                      HttpSession session) {
         List<Map<String, String>> options = new ArrayList<>();
         if (search != null && !search.isEmpty() && session.getAttribute("userKeyspace") != null) {
             // get the tables from the current active keyspace

@@ -1,9 +1,7 @@
 package com.licence.config.security;
 
-import com.licence.web.models.UDT.UserKeyspace;
 import com.licence.web.models.UDT.UserNotification;
 import com.licence.web.models.User;
-import com.licence.web.services.KeyspaceService;
 import com.licence.web.services.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -13,9 +11,7 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 public class CassandraUserDetailsService implements UserDetailsService {
@@ -46,12 +42,12 @@ public class CassandraUserDetailsService implements UserDetailsService {
         }
         // verify how many notification the user has
         // if he has more than the maximum, we delete it
-        if(user.getNotifications() != null && user.getNotifications().size() != 0) {
+        if (user.getNotifications() != null && user.getNotifications().size() != 0) {
             List<UserNotification> userNotifications = user.getNotifications().stream().sorted((p1, p2) -> p2.getDate().compareTo(p1.getDate())).collect(Collectors.toList());
             List<UserNotification> newUserNotifications = new ArrayList<>();
             // put the unread notifications first
             userNotifications.forEach(p -> {
-                if(!p.isRead())
+                if (!p.isRead())
                     newUserNotifications.add(p);
             });
             // if we store the read notifications too

@@ -54,34 +54,34 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
         http.
                 authorizeRequests()
                 // auth not request for those
-                    .antMatchers("/",
-                            routeProperties.getIndex(),
-                            routeProperties.getRegister(),
-                            routeProperties.getConfirmation(),
-                            routeProperties.getRecovery())
-                    .permitAll()
+                .antMatchers("/",
+                        routeProperties.getIndex(),
+                        routeProperties.getRegister(),
+                        routeProperties.getConfirmation(),
+                        routeProperties.getRecovery())
+                .permitAll()
                 // for any other request, must be auth
-                    .anyRequest().authenticated()
-                    .and()
+                .anyRequest().authenticated()
+                .and()
                 .formLogin()
-                    .loginPage(routeProperties.getIndex() + "?login")
-                    .loginProcessingUrl(routeProperties.getLogin())
-                    .failureUrl(routeProperties.getIndex())
-                    .failureHandler(authFailureHandler)
-                    .usernameParameter("email")
-                    .passwordParameter("password")
-                    .permitAll()
-                    .and()
+                .loginPage(routeProperties.getIndex() + "?login")
+                .loginProcessingUrl(routeProperties.getLogin())
+                .failureUrl(routeProperties.getIndex())
+                .failureHandler(authFailureHandler)
+                .usernameParameter("email")
+                .passwordParameter("password")
+                .permitAll()
+                .and()
                 .logout()
-                    .logoutRequestMatcher(new AntPathRequestMatcher(routeProperties.getLogout()))
-                    .logoutSuccessUrl(routeProperties.getIndex() + "?logout")
-                    .deleteCookies("JSESSIONID")
-                    .logoutSuccessHandler(logoutSuccessHandler())
-                    .and()
+                .logoutRequestMatcher(new AntPathRequestMatcher(routeProperties.getLogout()))
+                .logoutSuccessUrl(routeProperties.getIndex() + "?logout")
+                .deleteCookies("JSESSIONID")
+                .logoutSuccessHandler(logoutSuccessHandler())
+                .and()
                 .rememberMe()
-                    .key("rememberMeKey")
-                    .tokenValiditySeconds(86400)
-                    .rememberMeParameter("remember-me");
+                .key("rememberMeKey")
+                .tokenValiditySeconds(86400)
+                .rememberMeParameter("remember-me");
     }
 
     @Override

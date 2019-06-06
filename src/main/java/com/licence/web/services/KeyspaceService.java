@@ -4,10 +4,7 @@ import com.datastax.driver.core.Row;
 import com.datastax.driver.core.exceptions.DriverException;
 import com.licence.config.properties.KeyspaceProperties;
 import com.licence.config.properties.QueryProperties;
-import com.licence.config.security.CassandraUserDetails;
 import com.licence.web.models.Keyspace;
-import com.licence.web.models.UDT.KeyspaceLog;
-import com.licence.web.models.User;
 import com.licence.web.models.pojo.KeyspaceContent;
 import com.licence.web.models.pojo.KeyspaceContentObject;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,18 +12,11 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.cassandra.core.CassandraAdminOperations;
 import org.springframework.data.cassandra.core.cql.RowMapper;
 import org.springframework.lang.Nullable;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import javax.validation.constraints.NotEmpty;
-import javax.validation.constraints.Pattern;
-import javax.validation.constraints.Size;
 import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -57,7 +47,7 @@ public class KeyspaceService {
             keyspace.setCreationDate(Calendar.getInstance().getTime());
         if (keyspace.getLog() == null)
             keyspace.setLog(new ArrayList<>());
-        if(keyspace.getLog().size() == 0){
+        if (keyspace.getLog().size() == 0) {
             // if the log is null, that means this function is called for creation
             keyspace.addLog(keyspaceProperties.getLog().get("typeCreate"), "Created this keyspace!", keyspace.getUsers().get(0).getUserName());
         }
@@ -77,7 +67,6 @@ public class KeyspaceService {
         String query = String.format(queryProperties.getCreateKeyspace(), keyspace.getName(), keyspace.getReplicationFactor(), keyspace.isDurableWrites());
         System.out.println(query);
         adminOperations.getCqlOperations().execute(query);
-
     }
 
     private void alterKeyspace(Keyspace keyspace) {
@@ -377,7 +366,7 @@ public class KeyspaceService {
     public void createView(String keyspace, String baseTable, String view, String columnsSelected, String whereClause, String keys, String clusteringOrder) throws Exception {
         String query;
         if (clusteringOrder != null)
-            query = String.format(queryProperties.getCreate().get("view_clustering"), keyspace+"."+view, columnsSelected, keyspace + "." + baseTable, whereClause, keys, clusteringOrder);
+            query = String.format(queryProperties.getCreate().get("view_clustering"), keyspace + "." + view, columnsSelected, keyspace + "." + baseTable, whereClause, keys, clusteringOrder);
         else
             query = String.format(queryProperties.getCreate().get("view"), view, columnsSelected, keyspace + "." + baseTable, whereClause, keys);
         System.out.println(query);
@@ -469,7 +458,7 @@ public class KeyspaceService {
         KeyspaceContentObject keyspaceContentObject = new KeyspaceContentObject();
         System.out.println(query);
         try {
-            List<Map<String,Object>> content =  adminOperations.getCqlOperations().query(query, new RowMapper<Map<String, Object>>() {
+            List<Map<String, Object>> content = adminOperations.getCqlOperations().query(query, new RowMapper<Map<String, Object>>() {
                 @Nullable
                 @Override
                 public Map<String, Object> mapRow(Row row, int rowNum) throws DriverException {

@@ -1,8 +1,5 @@
 package com.licence.config.validation.password.pattern;
 
-import com.licence.config.validation.email.EmailValidator;
-import com.licence.config.validation.password.match.PasswordMatchesValidator;
-
 import javax.validation.Constraint;
 import javax.validation.Payload;
 import java.lang.annotation.Documented;
@@ -20,6 +17,8 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
 @Documented
 public @interface PasswordPattern {
     String message() default "invalid password pattern";
+
     Class<?>[] groups() default {};
+
     Class<? extends Payload>[] payload() default {};
 }

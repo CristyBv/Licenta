@@ -6,14 +6,11 @@ import com.licence.web.models.UDT.UserKeyspace;
 import com.licence.web.services.BackupService;
 import com.licence.web.services.KeyspaceService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
-import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.SessionAttribute;
-import org.springframework.web.server.WebSession;
 
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -37,8 +34,8 @@ public class BackupController {
                                    @SessionAttribute(required = false) UserKeyspace userKeyspace) {
         //UserKeyspace userKeyspace = session.getAttribute("userKeyspace");
         Backup backup = backupService.getBackup(backupId);
-        if(userKeyspace != null) {
-            if(backup != null && backup.getKeyspaceName().equals(userKeyspace.getKeyspace().getName())) {
+        if (userKeyspace != null) {
+            if (backup != null && backup.getKeyspaceName().equals(userKeyspace.getKeyspace().getName())) {
                 response.setHeader("Content-disposition", "attachment; filename=backup.json");
                 try {
                     response.getOutputStream().print(backup.getContent());
@@ -47,9 +44,9 @@ public class BackupController {
                 }
             }
         } else {
-            if(backup != null) {
+            if (backup != null) {
                 Keyspace keyspace = keyspaceService.findKeyspaceByName(backup.getKeyspaceName());
-                if(keyspace == null) {
+                if (keyspace == null) {
                     response.setHeader("Content-disposition", "attachment; filename=backup.json");
                     try {
                         response.getOutputStream().print(backup.getContent());

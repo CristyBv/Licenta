@@ -35,7 +35,7 @@ public class BackupService {
     }
 
     public String getUrlBackupSave(String content, String keyspaceName, String contextPath) {
-        if(content == null)
+        if (content == null)
             content = "Json parse error!";
         Backup backup = new Backup(content, keyspaceName);
         return contextPath + routeProperties.getBackup().get("json-download") + "?backupId=" + this.save(backup).getId();

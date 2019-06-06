@@ -63,6 +63,7 @@ public class ProfileController {
                           Model model) {
         CassandraUserDetails userDetails = (CassandraUserDetails) authentication.getPrincipal();
         User user = userDetails.getUser();
+        // sort notification after date desc
         if (user.getNotifications() != null && !user.getNotifications().isEmpty()) {
             List<UserNotification> userNotifications = user.getNotifications().stream().sorted((p1, p2) -> p2.getDate().compareTo(p1.getDate())).collect(Collectors.toList());
             Boolean[] unread = {false};

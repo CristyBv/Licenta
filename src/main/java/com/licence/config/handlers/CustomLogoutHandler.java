@@ -3,10 +3,8 @@ package com.licence.config.handlers;
 import com.licence.config.properties.RouteProperties;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.web.authentication.logout.LogoutHandler;
 import org.springframework.security.web.authentication.logout.LogoutSuccessHandler;
 import org.springframework.security.web.authentication.logout.SimpleUrlLogoutSuccessHandler;
-import org.springframework.stereotype.Component;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.Cookie;
@@ -25,8 +23,8 @@ public class CustomLogoutHandler extends SimpleUrlLogoutSuccessHandler implement
         String refererUrl = request.getHeader("Referer");
         System.out.println("Logout from: " + refererUrl);
         Cookie[] cookies = request.getCookies();
-        for(Cookie cookie:cookies) {
-            if(Objects.equals(cookie.getName(), "JSESSIONID"))
+        for (Cookie cookie : cookies) {
+            if (Objects.equals(cookie.getName(), "JSESSIONID"))
                 cookie.setMaxAge(0);
         }
         try {

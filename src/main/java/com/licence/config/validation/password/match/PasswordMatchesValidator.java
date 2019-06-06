@@ -14,10 +14,10 @@ public class PasswordMatchesValidator implements ConstraintValidator<PasswordMat
 
     @Override
     public boolean isValid(Object object, ConstraintValidatorContext context) {
-        if(object instanceof User) {
+        if (object instanceof User) {
             User user = (User) object;
             return user.getPassword().equals(user.getMatchingPassword());
-        } else if(object instanceof Keyspace) {
+        } else if (object instanceof Keyspace) {
             Keyspace keyspace = (Keyspace) object;
             return !(keyspace.getPassword().isEmpty() && keyspace.isPasswordEnabled()) && keyspace.getPassword().equals(keyspace.getMatchingPassword());
         }
