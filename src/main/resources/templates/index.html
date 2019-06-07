@@ -25,8 +25,26 @@
         <section class="jumbotron text-center" id="main-section">
             <h1 class="jumbotron-heading" th:text="#{app.name}"></h1>
             <p class="lead text-muted" th:utext="#{/index.text}"></p>
-        </section>
+            <div class="text-center" style="margin-left: 20%; margin-right: 20%; margin-top: 3%">
+                <p> Ideea aplicației pleacă de la tehnologia Apache Cassandra, o bază de date NoSQL (not only SQL)
+                    destinată gestionării cantităților mari de date. Din păcate interactionarea cu această bază de date
+                    de către un programator nu este foarte complexă.</p>
 
+                <p> Folosind limbajul CQL (Cassandra Query Language), un programator poate prelua date sau executa
+                    comenzi asupra bazei de date. Din păcate, din punct de vedere vizual și din punct de vedere al
+                    eficienței, această procedură nu este una foarte benefică. Interfața constă într-o consolă care
+                    primește comenzile CQL și returnează rezultatul. Astfel nu există nicio modalitate de a avea o
+                    privire de ansamblu a bazei de date fără a trece prin mai mulți pași inevitabili.</p>
+
+                <p> Aplicația a fost dezvoltată în special pentru acest motiv, de a eficientiza gestionarea
+                    acestei baze de date printr-o interfață prietenoasă, eficientă și accesibilă oricui (de aici și
+                    numele aplicației).</p>
+
+                <p> Având ca exemplu negativ interfața curentă a bazei de date, a fost ușor de imaginat o aplicație
+                    eficientă care să-i ocupe locul. Astfel, comparația dintre cele două interfețe poate fi destul de
+                    semnificativă.</p>
+            </div>
+        </section>
         <div class="modal fade" id="login-register-modal" tabindex="-1" role="dialog" aria-hidden="true">
             <div class="modal-dialog" role="document">
                 <div th:replace="fragments/login-register :: login-register" id="login-register-div"></div>
